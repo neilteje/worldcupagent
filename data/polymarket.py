@@ -179,3 +179,73 @@ def extract_implied_probs(moneyline: dict) -> dict[str, float]:
     if total > 0:
         probs = {k: v / total for k, v in probs.items()}
     return probs
+
+# ── Robust strategy-agent helpers (three-way home/draw/away keys) ──────────
+def _body(resp_json):
+    return resp_json.get("body", resp_json) if isinstance(resp_json, dict) else resp_json
+
+
+def get_mapping(fixture_id: int | str) -> dict | None:
+    try:
+        r = httpx.get(f"{_ARENA_API}/v1/web/mapping", headers=_HEADERS, params={"fixture_id": fixture_id}, timeout=15)
+        if not r.is_success: return None
+        mappings = r.json().get("mappings") or []
+        return mappings[0] if mappings else None
+    except Exception:
+        return None
+
+
+def get_gamma_event(slug: str) -> dict | None:
+    try:
+        r = httpx.get(f"{_GAMMA}/events", headers=_HEADERS, params={"slug": slug}, timeout=15)
+        if not r.is_success: return None
+        body = _body(r.json()) or []
+        return body[0] if isinstance(body, list) and body else body if isinstance(body, dict) else None
+    except Exception:
+        return None
+
+
+def extract_yes_token_ids(event: dict) -> dict[str, str | None]:
+    tokens = {"home": None, "draw": None, "away": None}
+    markets = event.get("markets") or event.get("data", {}).get("markets") or []
+    ticker = (event.get("ticker") or event.get("slug") or "").lower()
+    parsed = _TICKER_RE.match(ticker)
+    home_code, away_code = (parsed.group(1), parsed.group(2)) if parsed else ("home", "away")
+    for mkt in markets:
+        slug = (mkt.get("slug") or mkt.get("market_slug") or "").lower()
+        title = (mkt.get("question") or mkt.get("title") or "").lower()
+        key = _outcome_from_slug(slug, ticker, home_code, away_code) if ticker else None
+        if key is None:
+            if "draw" in slug or "draw" in title: key = "draw"
+            elif home_code in slug or " home" in title: key = "home"
+            elif away_code in slug or " away" in title: key = "away"
+        if key in tokens:
+            raw = mkt.get("clobTokenIds") or mkt.get("clob_token_ids") or mkt.get("tokens") or []
+            if isinstance(raw, str):
+                try: raw = json.loads(raw)
+                except json.JSONDecodeError: raw = [raw]
+            if raw and isinstance(raw[0], dict): token = raw[0].get("token_id") or raw[0].get("id")
+            else: token = raw[0] if raw else None
+            tokens[key] = str(token) if token else None
+    return tokens
+
+
+def get_midpoint(token_id: str) -> float | None:
+    return _clob_mid(str(token_id))
+
+
+def get_three_way_market_probs(fixture_id: int | str) -> dict:
+    mapping = get_mapping(fixture_id)
+    slug = (mapping or {}).get("polymarket_event_slug") or (mapping or {}).get("slug")
+    if not slug:
+        return {"complete": False, "raw_midpoints": {}, "normalized_probs": None, "reason": "mapping_missing"}
+    event = get_gamma_event(slug)
+    if not event:
+        return {"complete": False, "raw_midpoints": {}, "normalized_probs": None, "reason": "gamma_event_missing", "slug": slug}
+    tokens = extract_yes_token_ids(event)
+    raw = {k: get_midpoint(v) if v else None for k, v in tokens.items()}
+    if any(raw.get(k) is None for k in ("home", "draw", "away")):
+        return {"complete": False, "raw_midpoints": raw, "normalized_probs": None, "tokens": tokens, "slug": slug, "reason": "midpoint_missing"}
+    total = sum(float(raw[k]) for k in ("home", "draw", "away"))
+    norm = {k: float(raw[k]) / total for k in ("home", "draw", "away")} if total else None
+    return {"complete": bool(norm), "raw_midpoints": raw, "normalized_probs": norm, "tokens": tokens, "slug": slug, "reason": "ok" if norm else "zero_total"}
