@@ -206,6 +206,61 @@ class LedgerSession:
             execution_status="confirmed",
         ))
 
+    # ── Planning (e.g. the scout triaging signals into a plan of attack) ────
+
+    def planning(
+        self,
+        description: str,
+        output_payload: Any,
+        provider: str = "",
+        model_name: str = "",
+        internal_reasoning: str = "",
+        tokens_in: int | None = None,
+        tokens_out: int | None = None,
+        inputs: list[dict] | None = None,
+        upstream_ids: list[str] | None = None,
+    ) -> dict:
+        """Record a planning / triage step that shapes the downstream reasoning."""
+        fields: dict[str, Any] = {
+            "upstream_record_id": upstream_ids or ([self.last_id()] if self.last_id() else []),
+            "description": description,
+            "output_payload": _trunc(output_payload),
+        }
+        if model_name:
+            fields["model_invocation"] = _build_mi(
+                provider, model_name, internal_reasoning, tokens_in, tokens_out)
+        if inputs:
+            fields["inputs"] = [
+                {"input_record_id": inp.get("record_id"),
+                 "input_payload": _trunc(inp.get("payload"))}
+                for inp in inputs
+            ]
+        return self._add(_new_record(self.session_id, "Planning", **fields))
+
+    # ── Reflecting (post-decision retrospective — what we'd do differently) ──
+
+    def reflecting(
+        self,
+        description: str,
+        output_payload: Any,
+        provider: str = "",
+        model_name: str = "",
+        internal_reasoning: str = "",
+        tokens_in: int | None = None,
+        tokens_out: int | None = None,
+        upstream_ids: list[str] | None = None,
+    ) -> dict:
+        """Record a closing reflection over the whole session."""
+        fields: dict[str, Any] = {
+            "upstream_record_id": upstream_ids or ([self.last_id()] if self.last_id() else []),
+            "description": description,
+            "output_payload": _trunc(output_payload),
+        }
+        if model_name:
+            fields["model_invocation"] = _build_mi(
+                provider, model_name, internal_reasoning, tokens_in, tokens_out)
+        return self._add(_new_record(self.session_id, "Reflecting", **fields))
+
     # ── Acting — order ─────────────────────────────────────────────────────
 
     def acting_order(

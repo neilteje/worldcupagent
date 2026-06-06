@@ -40,13 +40,14 @@ import httpx
 
 import config
 from data import sportmonks, supabase_client, polymarket as pm
-from reasoning import llm
+from data import web_search, reddit_sentiment, kalshi
+from reasoning import llm, council, gates
 from reasoning.prompts import (
     sportmonks_digest_input, supabase_digest_input,
     predict_input, strategy_input, ht_predict_input,
 )
 from ledger.client import LedgerSession
-from betting.kelly import should_bet, expected_value
+from betting.kelly import should_bet, expected_value, kelly_usd
 
 console = Console()
 _H = {"x-api-key": config.ARENA_KEY, "Content-Type": "application/json"}
@@ -109,6 +110,37 @@ def lookup_country_id(participant: dict) -> int:
     StatsBomb tables are fetched with a fallback to all rows when no match.
     """
     return participant.get("country_id") or participant.get("id") or 0
+
+
+def _outcome_key(outcome: str, home_code: str, away_code: str) -> str | None:
+    """Map a council outcome (team_code | 'draw') to the home/draw/away slot."""
+    if outcome == "draw":
+        return "draw"
+    if outcome == home_code:
+        return "home"
+    if outcome == away_code:
+        return "away"
+    return None
+
+
+def _pm_mid_for(moneyline: dict | None, outcome: str,
+                home_code: str, away_code: str) -> float | None:
+    """Polymarket YES mid for our predicted outcome."""
+    if not moneyline:
+        return None
+    key = _outcome_key(outcome, home_code, away_code)
+    if key is None:
+        return None
+    return (moneyline.get("outcomes", {}).get(key) or {}).get("current_mid_yes")
+
+
+def _kalshi_mid_for(kalshi_ml: dict | None, outcome: str,
+                    home_code: str, away_code: str) -> float | None:
+    """Kalshi YES mid for our predicted outcome."""
+    if not kalshi_ml:
+        return None
+    key = _outcome_key(outcome, home_code, away_code)
+    return kalshi_ml.get(key) if key else None
 
 
 # ── Pre-match run ──────────────────────────────────────────────────────────
@@ -205,6 +237,46 @@ def run_prematch(fixture_id: int) -> dict | None:
     )
     console.print(f"  SM digest: {sm_digest_result.parsed.get('summary','')[:80]}…")
 
+    # ── (5b) External research: web search + Reddit crowd sentiment ─────────
+    home_name = home.get("name", home_code)
+    away_name = away.get("name", away_code)
+    match_date = str(fixture.get("starting_at", ""))[:10]
+    have_lineups = any(
+        (p.get("meta", {}) or {}).get("position") for p in participants
+    )
+
+    console.print("[dim]  Researching injuries / lineups / previews…[/dim]")
+    web_research = web_search.gather_research(
+        home_name, away_name, match_date, have_confirmed_lineups=have_lineups)
+    rec_web = session.tool_call(
+        name="web_search",
+        endpoint=f"{web_research.get('backend','none')}:search",
+        description="Targeted injury/lineup/preview search for both teams",
+        input_payload={"home": home_name, "away": away_name, "date": match_date,
+                       "skip_lineups": have_lineups},
+        output_payload=web_research,
+        via="external.web",
+        success=web_research.get("total_results", 0) > 0,
+        upstream_ids=[rec_sm_fixture["record_id"]],
+    )
+    console.print(f"  Web: {web_research.get('total_results',0)} results "
+                  f"via {web_research.get('backend')}")
+
+    console.print("[dim]  Pulling r/soccer crowd sentiment…[/dim]")
+    reddit_bundle = reddit_sentiment.get_sentiment_bundle(home_name, away_name)
+    rec_reddit = session.tool_call(
+        name="reddit",
+        endpoint="r/soccer/search.json",
+        description="Fetch top r/soccer thread comments for crowd sentiment",
+        input_payload={"query": f"{home_name} {away_name}"},
+        output_payload=reddit_bundle,
+        via="external.reddit",
+        success=reddit_bundle.get("threads_found", 0) > 0,
+        upstream_ids=[rec_sm_fixture["record_id"]],
+    )
+    console.print(f"  Reddit: {reddit_bundle.get('threads_found',0)} threads, "
+                  f"{len(reddit_bundle.get('top_comments',[]))} comments")
+
     # ── (6) Polymarket moneyline + digest ──────────────────────────────────
     console.print("[dim][4/7] Fetching Polymarket moneyline…[/dim]")
     moneyline = None
@@ -257,6 +329,21 @@ def run_prematch(fixture_id: int) -> dict | None:
         tokens_out=pm_digest_result.tokens_out,
         upstream_ids=[rec_pm_event["record_id"], rec_pm_mids["record_id"]],
     )
+
+    # ── (6b) Kalshi cross-market odds ──────────────────────────────────────
+    console.print("[dim]  Fetching Kalshi cross-market odds…[/dim]")
+    kalshi_ml = kalshi.get_moneyline(home_name, away_name)
+    rec_kalshi = session.tool_call(
+        name="kalshi",
+        endpoint="/trade-api/v2/markets",
+        description="Fetch Kalshi moneyline to triangulate against Polymarket",
+        input_payload={"home": home_name, "away": away_name},
+        output_payload=kalshi_ml,
+        via="external.kalshi",
+        success=kalshi_ml.get("markets_found", 0) > 0,
+        upstream_ids=[rec_pm_mids["record_id"]],
+    )
+    console.print(f"  Kalshi: {kalshi_ml.get('markets_found',0)} markets matched")
 
     # ── (7) Supabase priors + digest ───────────────────────────────────────
     console.print("[dim][5/7] Fetching Supabase historical priors…[/dim]")
@@ -319,110 +406,213 @@ def run_prematch(fixture_id: int) -> dict | None:
     )
     console.print(f"  Supabase digest: {sb_digest_result.parsed.get('summary','')[:80]}…")
 
-    # ── (8) Predict (market-blind) ─────────────────────────────────────────
-    console.print("[dim][6/7] Predicting (Claude + Gemini ensemble, market-blind)…[/dim]")
-    pred_content = predict_input(
+    # ── (8) Reasoning council: Scout → Analyst → Devil → Judge ─────────────
+    console.print("[dim][6/7] Convening reasoning council…[/dim]")
+    cr = council.run_council(
         fixture_name, home_code, away_code,
         sm_digest_result.parsed, sb_digest_result.parsed,
+        pm_digest_result.parsed, kalshi_ml,
+        web_research, reddit_bundle,
     )
-    pred_result = llm.predict(pred_content)
-    prediction = pred_result.parsed
 
-    rec_th_predict = session.thinking(
-        prompt_system="[PREDICT_SYS]",
+    # Scout → Planning record
+    rec_scout = session.planning(
+        description="Scout triage of injuries / lineups / crowd sentiment",
+        output_payload=cr.scout.parsed if cr.scout else {},
+        provider=cr.scout.provider if cr.scout else "",
+        model_name=cr.scout.model if cr.scout else "",
+        internal_reasoning=cr.scout.thinking if cr.scout else "",
+        tokens_in=cr.scout.tokens_in if cr.scout else 0,
+        tokens_out=cr.scout.tokens_out if cr.scout else 0,
+        inputs=[
+            {"record_id": rec_web["record_id"], "payload": web_research},
+            {"record_id": rec_reddit["record_id"], "payload": reddit_bundle},
+        ],
+        upstream_ids=[rec_web["record_id"], rec_reddit["record_id"],
+                      rec_th_sportmonks["record_id"]],
+    )
+    console.print(f"  Scout: {len(cr.scout_flags)} flag(s)")
+
+    # Analyst → Thinking record (market-blind)
+    rec_analyst = session.thinking(
+        prompt_system="[ANALYST_SYS]",
         inputs=[
             {"record_id": rec_th_sportmonks["record_id"], "payload": sm_digest_result.parsed},
-            {"record_id": rec_th_supabase["record_id"],   "payload": sb_digest_result.parsed},
+            {"record_id": rec_th_supabase["record_id"], "payload": sb_digest_result.parsed},
+            {"record_id": rec_scout["record_id"], "payload": cr.scout.parsed if cr.scout else {}},
         ],
-        output_payload=prediction,
-        provider=pred_result.provider,
-        model_name=pred_result.model,
-        internal_reasoning=pred_result.thinking,
-        tokens_in=pred_result.tokens_in,
-        tokens_out=pred_result.tokens_out,
-        upstream_ids=[rec_th_sportmonks["record_id"], rec_th_supabase["record_id"]],
+        output_payload=cr.analyst.parsed if cr.analyst else {},
+        provider=cr.analyst.provider if cr.analyst else "",
+        model_name=cr.analyst.model if cr.analyst else "",
+        internal_reasoning=cr.analyst.thinking if cr.analyst else "",
+        tokens_in=cr.analyst.tokens_in if cr.analyst else 0,
+        tokens_out=cr.analyst.tokens_out if cr.analyst else 0,
+        upstream_ids=[rec_th_sportmonks["record_id"], rec_th_supabase["record_id"],
+                      rec_scout["record_id"]],
     )
+
+    # Devil's advocate → Thinking record (raw chain-of-thought)
+    rec_devil = session.thinking(
+        prompt_system="[DEVIL_SYS]",
+        inputs=[{"record_id": rec_analyst["record_id"],
+                 "payload": cr.analyst.parsed if cr.analyst else {}}],
+        output_payload=cr.devil.parsed if cr.devil else {},
+        provider=cr.devil.provider if cr.devil else "",
+        model_name=cr.devil.model if cr.devil else "",
+        internal_reasoning=cr.devil.thinking if cr.devil else "",
+        tokens_in=cr.devil.tokens_in if cr.devil else 0,
+        tokens_out=cr.devil.tokens_out if cr.devil else 0,
+        upstream_ids=[rec_analyst["record_id"]],
+    )
+
+    # Judge → Thinking record (synthesis, sees markets) — DAG converges here
+    rec_judge = session.thinking(
+        prompt_system="[JUDGE_SYS]",
+        inputs=[
+            {"record_id": rec_analyst["record_id"], "payload": cr.analyst.parsed if cr.analyst else {}},
+            {"record_id": rec_devil["record_id"], "payload": cr.devil.parsed if cr.devil else {}},
+            {"record_id": rec_th_polymarket["record_id"], "payload": pm_digest_result.parsed},
+            {"record_id": rec_kalshi["record_id"], "payload": kalshi_ml},
+        ],
+        output_payload=cr.judge.parsed if cr.judge else {},
+        provider=cr.judge.provider if cr.judge else "",
+        model_name=cr.judge.model if cr.judge else "",
+        internal_reasoning=cr.judge.thinking if cr.judge else "",
+        tokens_in=cr.judge.tokens_in if cr.judge else 0,
+        tokens_out=cr.judge.tokens_out if cr.judge else 0,
+        upstream_ids=[rec_analyst["record_id"], rec_devil["record_id"],
+                      rec_th_polymarket["record_id"], rec_kalshi["record_id"]],
+    )
+
+    pred_outcome = cr.outcome
+    pred_prob = float(cr.probability)
+    prediction = {
+        "outcome": pred_outcome,
+        "probability": pred_prob,
+        "probabilities": cr.probabilities,
+        "confidence_level": cr.confidence,
+        "rationale": cr.council_summary,
+        "market_alignment": cr.market_alignment,
+    }
 
     # Acting record — prediction (arena scores this for PSL)
-    pred_outcome  = prediction.get("outcome", home_code)
-    pred_prob     = float(prediction.get("probability", 0.33))
-    rec_act_pred  = session.acting_prediction(
+    session.acting_prediction(
         outcome=pred_outcome,
         probability=pred_prob,
-        upstream_ids=[rec_th_predict["record_id"]],
+        upstream_ids=[rec_judge["record_id"]],
     )
-
     console.print(
-        f"  Prediction: [bold]{pred_outcome}[/bold] @ "
-        f"[green]{pred_prob:.1%}[/green] "
-        f"({prediction.get('confidence_level','?')} confidence)"
-    )
-    if pred_result.gemini_parsed:
-        console.print(f"  Ensemble note: {prediction.get('ensemble_note','')}")
-
-    # ── (9) Strategy ──────────────────────────────────────────────────────
-    console.print("[dim][7/7] Deciding trade strategy…[/dim]")
-    strat_content = strategy_input(prediction, pm_digest_result.parsed)
-    strat_result  = llm.strategy(strat_content)
-    strategy_data = strat_result.parsed
-
-    rec_th_strategy = session.thinking(
-        prompt_system="[STRATEGY_SYS]",
-        inputs=[
-            {"record_id": rec_th_predict["record_id"],    "payload": prediction},
-            {"record_id": rec_th_polymarket["record_id"], "payload": pm_digest_result.parsed},
-        ],
-        output_payload=strategy_data,
-        provider=strat_result.provider,
-        model_name=strat_result.model,
-        internal_reasoning=strat_result.thinking,
-        tokens_in=strat_result.tokens_in,
-        tokens_out=strat_result.tokens_out,
-        upstream_ids=[rec_th_predict["record_id"], rec_th_polymarket["record_id"]],
+        f"  Council verdict: [bold]{pred_outcome}[/bold] @ "
+        f"[green]{pred_prob:.1%}[/green] ({cr.confidence} confidence, "
+        f"market {cr.market_alignment})"
     )
 
-    console.print(f"  Strategy: should_trade={strategy_data.get('should_trade')}  "
-                  f"edge={strategy_data.get('edge_pp',0):+.1f}pp  "
-                  f"size=${strategy_data.get('size_usdc',0):.2f}")
+    # ── (9) Deterministic gates + Kelly sizing ─────────────────────────────
+    console.print("[dim][7/7] Running deterministic trade gates…[/dim]")
+    pm_mid = _pm_mid_for(moneyline, pred_outcome, home_code, away_code)
+    kalshi_mid = _kalshi_mid_for(kalshi_ml, pred_outcome, home_code, away_code)
+    gate = gates.evaluate_gates(
+        outcome=pred_outcome,
+        model_prob=pred_prob,
+        pm_mid=pm_mid,
+        kalshi_mid=kalshi_mid,
+        scout_flags=cr.scout_flags,
+        confidence=cr.confidence,
+        wallet_balance=wallet,
+    )
+
+    size_usdc = 0.0
+    limit_price = 0.0
+    if gate.should_trade and pm_mid:
+        base_usd = kelly_usd(pred_prob, pm_mid, wallet)
+        size_usdc = round(min(base_usd * gate.bet_multiplier, config.MAX_BET_USD, wallet), 2)
+        if size_usdc < 1.0:
+            gate.should_trade = False
+            gate.reasons.append(f"sized ${size_usdc:.2f} below $1 minimum")
+            size_usdc = 0.0
+        else:
+            limit_price = min(round(pm_mid + 0.02, 4), 0.99)
+
+    rec_gate = session.planning(
+        description="Deterministic trade gates + Kelly sizing",
+        output_payload={
+            "should_trade": gate.should_trade,
+            "edge": round(gate.edge, 4),
+            "bet_multiplier": gate.bet_multiplier,
+            "market_agreement": gate.market_agreement,
+            "veto_reason": gate.veto_reason,
+            "reasons": gate.reasons,
+            "pm_mid": pm_mid,
+            "kalshi_mid": kalshi_mid,
+            "size_usdc": size_usdc,
+            "limit_price": limit_price,
+        },
+        upstream_ids=[rec_judge["record_id"], rec_kalshi["record_id"]],
+    )
+    console.print(f"  Gates: should_trade={gate.should_trade}  "
+                  f"edge={gate.edge*100:+.1f}pp  ×{gate.bet_multiplier}  "
+                  f"size=${size_usdc:.2f}"
+                  + (f"  [yellow](veto: {gate.veto_reason})[/yellow]"
+                     if gate.veto_reason else ""))
 
     # ── (10) Order ────────────────────────────────────────────────────────
     order_response = None
-    order_payload  = None
+    if gate.should_trade and pm_slug and size_usdc >= 1.0 and limit_price > 0:
+        team_code = pred_outcome
+        order_payload = {
+            "fixture_code":          str(fixture_id),
+            "team_code":             team_code,
+            "usd_size":              str(round(size_usdc, 2)),
+            "limit_price":           round(limit_price, 4),
+            "time_in_force_seconds": config.DEFAULT_TIF_SECONDS,
+            "idempotency_key":       str(uuid.uuid4()),
+        }
+        try:
+            order_response = place_order(fixture_id, team_code, size_usdc, limit_price)
+            order_id = order_response.get("order_id") or order_response.get("status")
+            ok = isinstance(order_response, dict) and "order_id" in order_response
+            console.print(f"  Order: [{'green' if ok else 'yellow'}]{order_id}[/]")
+        except Exception as e:
+            order_response = {"error": str(e)}
+            console.print(f"  Order failed: [red]{e}[/red]")
 
-    if strategy_data.get("should_trade") and pm_slug:
-        team_code   = strategy_data.get("team_code") or strategy_data.get("outcome")
-        size_usdc   = float(strategy_data.get("size_usdc") or 0)
-        limit_price = float(strategy_data.get("limit_price") or 0)
+        submitted_ok = isinstance(order_response, dict) and "order_id" in order_response
+        session.acting_order(
+            direction="long",
+            outcome=pred_outcome,
+            size_usdc=size_usdc,
+            limit_price=limit_price,
+            order_payload=order_payload,
+            execution_status="pending" if submitted_ok else "failed",
+            execution_id=order_response.get("order_id") if submitted_ok else None,
+            upstream_ids=[rec_gate["record_id"]],
+        )
 
-        if team_code and size_usdc > 0 and limit_price > 0:
-            order_payload = {
-                "fixture_code":          str(fixture_id),
-                "team_code":             team_code,
-                "usd_size":              str(round(size_usdc, 2)),
-                "limit_price":           round(limit_price, 4),
-                "time_in_force_seconds": config.DEFAULT_TIF_SECONDS,
-                "idempotency_key":       str(uuid.uuid4()),
-            }
-            try:
-                order_response = place_order(fixture_id, team_code, size_usdc, limit_price)
-                order_id       = order_response.get("order_id") or order_response.get("status")
-                ok             = isinstance(order_response, dict) and "order_id" in order_response
-                console.print(f"  Order: [{'green' if ok else 'yellow'}]{order_id}[/]")
-            except Exception as e:
-                order_response = {"error": str(e)}
-                console.print(f"  Order failed: [red]{e}[/red]")
-
-            submitted_ok = isinstance(order_response, dict) and "order_id" in order_response
-            session.acting_order(
-                direction=strategy_data.get("direction", "long"),
-                outcome=strategy_data.get("outcome", ""),
-                size_usdc=size_usdc,
-                limit_price=limit_price,
-                order_payload=order_payload,
-                execution_status="pending" if submitted_ok else "failed",
-                execution_id=order_response.get("order_id") if submitted_ok else None,
-                upstream_ids=[rec_th_strategy["record_id"]],
-            )
+    # ── (10b) Closing reflection ───────────────────────────────────────────
+    session.reflecting(
+        description="Post-decision reflection on the council run",
+        output_payload={
+            "fixture": fixture_name,
+            "final_pick": pred_outcome,
+            "final_probability": pred_prob,
+            "market_alignment": cr.market_alignment,
+            "traded": bool(gate.should_trade and size_usdc >= 1.0),
+            "size_usdc": size_usdc,
+            "edge": round(gate.edge, 4),
+            "devils_advocate_raised": (cr.devil.parsed or {}).get("strongest_risks")
+                                       if cr.devil else None,
+            "what_to_improve": (
+                "Tighten priors mapping and confirm lineups closer to kickoff; "
+                "revisit if market and council diverge after team news."
+            ),
+            "data_gaps": {
+                "web_results": web_research.get("total_results", 0),
+                "reddit_threads": reddit_bundle.get("threads_found", 0),
+                "kalshi_markets": kalshi_ml.get("markets_found", 0),
+            },
+        },
+        upstream_ids=[rec_judge["record_id"], rec_gate["record_id"]],
+    )
 
     # ── (11) Submit ledger ────────────────────────────────────────────────
     console.print(
@@ -442,10 +632,11 @@ def run_prematch(fixture_id: int) -> dict | None:
         for e in (ledger_resp.get("errors") or []):
             console.print(f"    [red]#{e.get('index')}: {e.get('code')}: {e.get('message')}[/red]")
 
+    traded = gate.should_trade and size_usdc >= 1.0
     console.print(Panel(
         f"[bold green]Pre-match complete.[/bold green]  "
         f"Predicted [bold]{pred_outcome}[/bold] @ {pred_prob:.1%}  "
-        f"{'| Trade: ' + str(strategy_data.get('size_usdc','skip')) + 'usdc' if strategy_data.get('should_trade') else '| No trade'}",
+        f"{'| Trade: $' + format(size_usdc, '.2f') if traded else '| No trade'}",
         expand=False,
     ))
     return prediction
