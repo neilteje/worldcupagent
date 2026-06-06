@@ -60,6 +60,62 @@ def get_catalog() -> list[dict]:
     )
 
 
+# ── Country-name → StatsBomb country_id resolution ──────────────────────────
+# The priors tables key on StatsBomb country_id (Mexico=147), which differs from
+# Sportmonks team ids (Mexico=458). The ads_a_h2h_country table carries BOTH the
+# id and the name on each side, so we build a name→id map from it once and cache.
+
+_COUNTRY_ID_MAP: dict[str, int] | None = None
+
+# Hand-tuned aliases for names that differ between Sportmonks and StatsBomb.
+_NAME_ALIASES = {
+    "usa": "united states",
+    "united states of america": "united states",
+    "south korea": "korea republic",
+    "north korea": "korea dpr",
+    "ivory coast": "côte d'ivoire",
+    "iran": "iran",
+    "czechia": "czech republic",
+}
+
+
+def _build_country_id_map() -> dict[str, int]:
+    rows = _get("ads_a_h2h_country",
+                params={"select": "country_id_a,country_name_a,country_id_b,country_name_b"})
+    m: dict[str, int] = {}
+    for r in rows:
+        if r.get("country_name_a") and r.get("country_id_a") is not None:
+            m[r["country_name_a"].strip().lower()] = int(r["country_id_a"])
+        if r.get("country_name_b") and r.get("country_id_b") is not None:
+            m[r["country_name_b"].strip().lower()] = int(r["country_id_b"])
+    return m
+
+
+def resolve_country_id(team_name: str) -> int | None:
+    """
+    Map a Sportmonks team name to its StatsBomb country_id, or None if unknown.
+    Tries exact match, alias table, then a loose contains-match.
+    """
+    global _COUNTRY_ID_MAP
+    if not team_name:
+        return None
+    if _COUNTRY_ID_MAP is None:
+        try:
+            _COUNTRY_ID_MAP = _build_country_id_map()
+        except Exception:
+            _COUNTRY_ID_MAP = {}
+
+    name = team_name.strip().lower()
+    if name in _COUNTRY_ID_MAP:
+        return _COUNTRY_ID_MAP[name]
+    if name in _NAME_ALIASES and _NAME_ALIASES[name] in _COUNTRY_ID_MAP:
+        return _COUNTRY_ID_MAP[_NAME_ALIASES[name]]
+    for known, cid in _COUNTRY_ID_MAP.items():
+        if name in known or known in name:
+            return cid
+    return None
+
+
 # ── Priors — multi-table fetch ─────────────────────────────────────────────
 
 def get_country_style(country_id_a: int, country_id_b: int) -> list[dict]:

@@ -19,17 +19,28 @@ import config
 _SERPER_URL = "https://google.serper.dev/search"
 _DDG_URL = "https://api.duckduckgo.com/"
 
+# Templates are deliberately broad in SOURCE coverage but narrow in INTENT.
+# We mix general queries with site-scoped queries so the council sees beat
+# reporters, statistical previews, and fan/expert discussion — not one echo.
 _INJURY_TEMPLATES = (
-    "{home} vs {away} injury news {date}",
-    "{home} team news injuries {date}",
-    "{away} team news injuries {date}",
+    "{home} vs {away} injury news team news {date}",
+    "{home} injuries suspensions doubtful {date}",
+    "{away} injuries suspensions doubtful {date}",
+    "{home} vs {away} late fitness test {date}",
 )
 _LINEUP_TEMPLATES = (
-    "{home} predicted lineup {date}",
-    "{away} predicted lineup {date}",
+    "{home} predicted starting lineup {date}",
+    "{away} predicted starting lineup {date}",
+    "{home} vs {away} confirmed lineups {date}",
 )
 _PREVIEW_TEMPLATES = (
     "{home} vs {away} match preview prediction {date}",
+    "{home} vs {away} expert prediction betting tips {date}",
+    "{home} vs {away} tactical preview head to head form {date}",
+    "site:bbc.com/sport {home} vs {away} {date}",
+    "site:theguardian.com/football {home} vs {away} {date}",
+    "site:espn.com {home} vs {away} {date}",
+    "site:reddit.com/r/soccer {home} vs {away} match thread {date}",
 )
 
 
@@ -111,16 +122,23 @@ def _run_templates(templates, home: str, away: str, date: str, per_query: int) -
     return out
 
 
-def fetch_injury_news(home: str, away: str, match_date: str, per_query: int = 4) -> list[dict]:
+def fetch_injury_news(home: str, away: str, match_date: str, per_query: int = 6) -> list[dict]:
     return _run_templates(_INJURY_TEMPLATES, home, away, match_date, per_query)
 
 
-def fetch_lineup_news(home: str, away: str, match_date: str, per_query: int = 4) -> list[dict]:
+def fetch_lineup_news(home: str, away: str, match_date: str, per_query: int = 6) -> list[dict]:
     return _run_templates(_LINEUP_TEMPLATES, home, away, match_date, per_query)
 
 
-def fetch_previews(home: str, away: str, match_date: str, per_query: int = 4) -> list[dict]:
+def fetch_previews(home: str, away: str, match_date: str, per_query: int = 6) -> list[dict]:
     return _run_templates(_PREVIEW_TEMPLATES, home, away, match_date, per_query)
+
+
+def _domain(url: str) -> str:
+    try:
+        return url.split("/")[2].replace("www.", "")
+    except Exception:
+        return ""
 
 
 def gather_research(
@@ -128,11 +146,15 @@ def gather_research(
     away: str,
     match_date: str,
     have_confirmed_lineups: bool = False,
+    per_query: int = 6,
 ) -> dict:
     """
-    One-shot bundle for the agent. When Sportmonks already exposes confirmed
-    lineups we skip the lineup queries — the structured API data beats scraped
-    headlines and we save quota.
+    One-shot research bundle for the agent. Pulls injury/lineup/preview signals
+    across general + site-scoped queries (BBC, Guardian, ESPN, Reddit) so the
+    council sees a diverse source set, not a single echo chamber.
+
+    When Sportmonks already exposes confirmed lineups we skip the lineup queries
+    — the structured API data beats scraped headlines and saves quota.
 
     Returns:
       {
@@ -140,18 +162,21 @@ def gather_research(
         "injuries": [result, ...],
         "lineups":  [result, ...],
         "previews": [result, ...],
+        "sources": [domain, ...],     # distinct domains seen
         "total_results": int,
       }
     """
     backend = "serper" if config.SERPER_API_KEY else "ddg"
-    injuries = fetch_injury_news(home, away, match_date)
-    lineups = [] if have_confirmed_lineups else fetch_lineup_news(home, away, match_date)
-    previews = fetch_previews(home, away, match_date)
-    total = len(injuries) + len(lineups) + len(previews)
+    injuries = fetch_injury_news(home, away, match_date, per_query)
+    lineups = [] if have_confirmed_lineups else fetch_lineup_news(home, away, match_date, per_query)
+    previews = fetch_previews(home, away, match_date, per_query)
+    all_results = injuries + lineups + previews
+    sources = sorted({_domain(r.get("url", "")) for r in all_results if r.get("url")})
     return {
-        "backend": backend if total else "none",
+        "backend": backend if all_results else "none",
         "injuries": injuries,
         "lineups": lineups,
         "previews": previews,
-        "total_results": total,
+        "sources": sources,
+        "total_results": len(all_results),
     }

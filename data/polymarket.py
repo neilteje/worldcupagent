@@ -29,6 +29,8 @@ _CLOB          = f"{_ARENA_API}/v1/data/proxy/polymarket-clob"
 _HEADERS       = {"x-api-key": config.ARENA_KEY}
 
 _TICKER_RE = re.compile(r"^fifwc-([a-z]{2,4})-([a-z]{2,4})-(\d{4}-\d{2}-\d{2})$")
+# Generic 3-way soccer ticker: any prefix (fifwc-, fif-, …), home-away-date.
+_TICKER_RE_GENERIC = re.compile(r"^([a-z]+)-([a-z]{2,4})-([a-z]{2,4})-(\d{4}-\d{2}-\d{2})$")
 
 
 # ── Mapping ────────────────────────────────────────────────────────────────
@@ -154,6 +156,59 @@ def get_moneyline(fixture_id: int) -> dict | None:
 
     return {
         "sportmonks_match_id":   fixture_id,
+        "fixture":               event.get("title"),
+        "kickoff_utc":           event.get("startDate"),
+        "polymarket_event_slug": slug,
+        "outcomes":              outcomes,
+    }
+
+
+def get_moneyline_by_slug(slug: str) -> dict | None:
+    """
+    Build the 3-way moneyline from a Polymarket event slug directly — works for
+    ANY product line (World Cup `fifwc-…`, friendlies `fif-…`, etc.), bypassing
+    the arena's curated fixture→slug mapping.
+
+    Returns the same shape as get_moneyline(), or None if the event isn't found.
+    """
+    if not slug:
+        return None
+
+    resp = httpx.get(f"{_GAMMA}/events", headers=_HEADERS,
+                     params={"slug": slug}, timeout=15)
+    resp.raise_for_status()
+    events = resp.json().get("body") or []
+    event = events[0] if events else None
+    if not event:
+        return None
+
+    ticker = (event.get("ticker") or "").lower()
+    m = _TICKER_RE_GENERIC.match(ticker)
+    if not m:
+        return None
+    _prefix, pm_home, pm_away, _date = m.groups()
+
+    outcomes: dict[str, dict] = {}
+    for mkt in (event.get("markets") or []):
+        key = _outcome_from_slug((mkt.get("slug") or "").lower(),
+                                 ticker, pm_home, pm_away)
+        if key is None:
+            continue
+        try:
+            token_ids = json.loads(mkt.get("clobTokenIds") or "[]")
+        except json.JSONDecodeError:
+            token_ids = []
+        token_yes = token_ids[0] if token_ids else None
+        outcomes[key] = {
+            "team_code":       "draw" if key == "draw" else (
+                                    pm_home.upper() if key == "home" else pm_away.upper()),
+            "condition_id":    mkt.get("conditionId"),
+            "token_yes":       token_yes,
+            "current_mid_yes": _clob_mid(token_yes),
+        }
+
+    return {
+        "sportmonks_match_id":   None,
         "fixture":               event.get("title"),
         "kickoff_utc":           event.get("startDate"),
         "polymarket_event_slug": slug,
