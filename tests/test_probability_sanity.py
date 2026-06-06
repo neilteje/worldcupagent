@@ -18,11 +18,11 @@ def test_no_bet_when_dry_run():
     assert 'dry_run_enabled' in risk['blocking_risk_flags'] and not risk['order_allowed']
 
 def test_risk_audit_exact_confidence_boundary():
-    risk=audit_decision({'home':.5,'draw':.28,'away':.22},{'edge_tier':'medium','edge_type':'model_only_edge','best_edge':.07},.55,.2,False,True)
+    risk=audit_decision({'home':.5,'draw':.28,'away':.22},{'edge_tier':'medium','edge_type':'model_only_edge','best_edge':.07},.53,.2,False,True)
     assert 'confidence_too_low' not in risk['risk_flags']
 
 def test_risk_audit_adds_critic_suggested_flags():
-    risk=audit_decision({'home':.5,'draw':.28,'away':.22},{'edge_tier':'soft','edge_type':'model_only_edge','best_edge':.04},.7,.2,False,True, consensus_case='all_disagree')
+    risk=audit_decision({'home':.5,'draw':.28,'away':.22},{'edge_tier':'soft','edge_type':'model_only_edge','best_edge':.04},.65,.2,False,True, consensus_case='all_disagree')
     assert 'confidence_insufficient_for_soft_edge' in risk['risk_flags']
     assert 'source_disagreement_unresolved' in risk['risk_flags']
     assert 'multi_source_conflict' in risk['risk_flags']
@@ -35,7 +35,7 @@ def test_ledger_dag_parent_structure():
     lb=LedgerBuilder('F','PRE_MATCH',load_settings(True))
     recs=lb.build_standard_trace(prediction={'fixture_code':'F','window':'PRE_MATCH','probabilities':{'home':.4,'draw':.3,'away':.3},'confidence':.6})
     ids={r['record_id'] for r in recs}
-    assert lb.validate_dag() and all(pid in ids for r in recs for pid in r.get('parent_ids',[]))
+    assert lb.validate_dag() and all(pid in ids for r in recs for pid in r.get('upstream_record_id',[]))
 
 def test_prediction_payload_validates():
     payload={'home':.4,'draw':.3,'away':.3}

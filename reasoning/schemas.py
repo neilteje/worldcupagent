@@ -1,5 +1,5 @@
 from __future__ import annotations
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import uuid
 import time
@@ -21,9 +21,7 @@ class LedgerRecord:
             "record_id": self.record_id,
             "session_id": self.session_id,
             "behavior": self.behavior,
-            "parent_ids": self.parent_ids,
             "upstream_record_id": self.parent_ids,
-            "timestamp": self.timestamp,
             "client_ts_utc": self.client_ts_utc,
         }
         d.update(self.payload)

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from pathlib import Path
-import json, uuid
+import json, time, uuid
 import httpx
 from agent.config import Settings, load_settings
 from data import polymarket, sportmonks
@@ -37,10 +37,52 @@ def _safe_order(settings: Settings, payload: dict) -> dict:
     if not settings.arena_key:
         return {"submitted": False, "reason": "ARENA_KEY missing", "payload": payload}
     try:
-        r = httpx.post(f"{settings.arena_api}/v1/orders", headers=settings.headers, json=payload, timeout=20)
-        if r.is_success:
-            return {"submitted": True, "response": r.json(), "payload": payload}
-        return {"submitted": False, "reason": f"HTTP {r.status_code}: {r.text[:200]}", "payload": payload}
+        r = httpx.post(settings.arena_orders_url, headers=settings.headers, json=payload, timeout=60)
+        if r.status_code == 404:
+            return {"submitted": False, "reason": "arena_orders_not_live", "payload": payload}
+        if not r.is_success:
+            return {"submitted": False, "reason": f"HTTP {r.status_code}: {r.text[:200]}", "payload": payload}
+        response = r.json()
+        result = {
+            "submitted": True,
+            "response": response,
+            "payload": payload,
+            "order_id": response.get("order_id"),
+            "status": response.get("status"),
+        }
+        order_id = response.get("order_id")
+        if not order_id:
+            return result
+        final_status = response.get("status")
+        reject_reason = None
+        tx_hash = None
+        clob_order_id = None
+        order_detail = None
+        terminal = {"closed", "filled", "rejected"}
+        for _ in range(max(int(settings.order_poll_attempts), 0)):
+            if final_status in terminal:
+                break
+            time.sleep(max(float(settings.order_poll_seconds), 0.0))
+            poll = httpx.get(f"{settings.arena_orders_url}/{order_id}", headers=settings.headers, timeout=15)
+            if not poll.is_success:
+                continue
+            order_detail = poll.json()
+            final_status = order_detail.get("status") or final_status
+            reject_reason = order_detail.get("rejection_reason") or reject_reason
+            fills = order_detail.get("open_fills") or []
+            if fills:
+                tx_hash = fills[0].get("tx_hash") or tx_hash
+                clob_order_id = fills[0].get("clob_order_id") or clob_order_id
+        result.update(
+            {
+                "final_status": final_status,
+                "order_detail": order_detail,
+                "rejection_reason": reject_reason,
+                "tx_hash": tx_hash,
+                "clob_order_id": clob_order_id,
+            }
+        )
+        return result
     except Exception as exc:
         return {"submitted": False, "reason": repr(exc), "payload": payload}
 
@@ -285,7 +327,19 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     prediction_payload = {"fixture_code": fixture_code, "window": window, "probabilities": model_out["probabilities"], "confidence": confidence, "top_signals": top_signals, "risk_flags": risk["risk_flags"]}
 
     ledger = LedgerBuilder(fixture_code, window, settings)
-    records = ledger.build_standard_trace(kickoff_time=fixture.get("starting_at") or fixture.get("kickoff_utc"), lock_time=fixture.get("pre_match_lock_at") or fixture.get("ht_lock_at"), sportmonks={"fixture_id": fixture_id, "detail_keys": list(detail.keys()) if isinstance(detail, dict) else [], "prediction": sm_pred}, supabase={"priors": priors, "completeness": completeness}, polymarket={**market, "previous_market": previous_market, "stale": stale}, bookmaker=bookmaker, lineup=lineup, halftime=ht_out, probability={**model_out, "draw_model": draw_out, "source_reconciliation": source_reconciliation, "claim_extraction": claim_extraction}, consensus=cons, edge=edge, risk=risk, prediction=prediction_payload, order={"action_type": "order" if should_order else "skip", **order_payload, "reason": order_result.get("reason")}, reflection={"data_complete": completeness["score"], "decision": "order" if should_order else "skip", "top_signals": top_signals, "source_reconciliation": source_reconciliation, "llm_claims": claim_extraction, "llm_analysis": llm_analysis})
+    ledger_order_payload = {
+        "action_type": "order" if should_order else "skip",
+        **order_payload,
+        "reason": order_result.get("reason"),
+        "submitted": order_result.get("submitted", False),
+        "order_id": order_result.get("order_id") or ((order_result.get("response") or {}).get("order_id") if isinstance(order_result.get("response"), dict) else None),
+        "status": order_result.get("status"),
+        "final_status": order_result.get("final_status"),
+        "rejection_reason": order_result.get("rejection_reason"),
+        "tx_hash": order_result.get("tx_hash"),
+        "clob_order_id": order_result.get("clob_order_id"),
+    }
+    records = ledger.build_standard_trace(kickoff_time=fixture.get("starting_at") or fixture.get("kickoff_utc"), lock_time=fixture.get("pre_match_lock_at") or fixture.get("ht_lock_at"), sportmonks={"fixture_id": fixture_id, "detail_keys": list(detail.keys()) if isinstance(detail, dict) else [], "prediction": sm_pred}, supabase={"priors": priors, "completeness": completeness}, polymarket={**market, "previous_market": previous_market, "stale": stale}, bookmaker=bookmaker, lineup=lineup, halftime=ht_out, probability={**model_out, "draw_model": draw_out, "source_reconciliation": source_reconciliation, "claim_extraction": claim_extraction}, consensus=cons, edge=edge, risk=risk, prediction=prediction_payload, order=ledger_order_payload, reflection={"data_complete": completeness["score"], "decision": "order" if should_order else "skip", "top_signals": top_signals, "source_reconciliation": source_reconciliation, "llm_claims": claim_extraction, "llm_analysis": llm_analysis})
     trace_quality = ledger.trace_quality()
     ledger_result = LedgerAdapter(settings).submit(ledger.session_id, records)
     decision = {"session_id": ledger.session_id, "fixture_code": fixture_code, "window": window, "teams": fixture.get("name"), "final_probs": model_out["probabilities"], "market_probs": market.get("normalized_probs"), "bookmaker_probs": bookmaker, "sportmonks_probs": sm_pred, "halftime": ht_out, "lineup": lineup, "data_completeness": completeness, "market_stale": stale, "source_reconciliation": source_reconciliation, "source_contribution": model_out.get("source_contribution"), "deterministic_weights": model_out.get("weights"), "probability_steps": model_out.get("steps"), "llm_claims": claim_extraction, "consensus_case": cons["case"], "best_outcome": best, "best_edge": edge["best_edge"], "edge_tier": edge["edge_tier"], "edge_type": edge["edge_type"], "edge_reason": edge["reason"], "confidence": confidence, "uncertainty": uncertainty, "top_signals": top_signals, "llm_analysis": llm_analysis, "action": "BET" if should_order else "SKIP", "risk_flags": risk["risk_flags"], "blocking_risk_flags": risk["blocking_risk_flags"], "prediction_submitted": True, "order_submitted": bool(order_result.get("submitted")), "dry_run": settings.dry_run, "ledger_submitted": ledger_result.get("submitted", False), "ledger_records": len(records), "ledger_dag_valid": ledger.validate_dag(), "trace_quality": trace_quality, "order": order_result}

@@ -8,12 +8,12 @@ def test_edge_thresholds():
 
 def test_no_bet_low_confidence_uncertainty_and_against():
     assert not evaluate_edge('f','PRE_MATCH',{'home':.57,'draw':.23,'away':.20},{'home':.45,'draw':.30,'away':.25},{'home':.55,'draw':.25,'away':.20},.5,.2,'model_bookmaker_vs_polymarket')['should_bet']
-    assert not evaluate_edge('f','PRE_MATCH',{'home':.57,'draw':.23,'away':.20},{'home':.45,'draw':.30,'away':.25},{'home':.55,'draw':.25,'away':.20},.7,.5,'model_bookmaker_vs_polymarket')['should_bet']
+    assert not evaluate_edge('f','PRE_MATCH',{'home':.57,'draw':.23,'away':.20},{'home':.45,'draw':.30,'away':.25},{'home':.55,'draw':.25,'away':.20},.7,.53,'model_bookmaker_vs_polymarket')['should_bet']
     assert not evaluate_edge('f','PRE_MATCH',{'home':.50,'draw':.24,'away':.26},{'away':.42,'draw':.30,'home':.28},{'away':.43,'draw':.29,'home':.28},.7,.2,'bookmaker_polymarket_vs_model')['should_bet']
 
 def test_confidence_boundary_allows_exact_threshold():
-    r = evaluate_edge('f','PRE_MATCH',{'home':.53,'draw':.25,'away':.22},{'home':.45,'draw':.30,'away':.25},{'home':.51,'draw':.27,'away':.22},.55,.2,'model_bookmaker_vs_polymarket')
-    assert 'Confidence below 0.55' not in r['reason']
+    r = evaluate_edge('f','PRE_MATCH',{'home':.53,'draw':.25,'away':.22},{'home':.45,'draw':.30,'away':.25},{'home':.51,'draw':.27,'away':.22},.53,.2,'model_bookmaker_vs_polymarket')
+    assert 'Confidence below 0.53' not in r['reason']
 
 
 def test_negative_stale_sentence_does_not_create_stale_edge():

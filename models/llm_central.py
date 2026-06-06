@@ -7,10 +7,7 @@ BLOCKING_FLAGS = {
     "llm_central_missing",
     "llm_central_failed",
     "llm_central_invalid_probabilities",
-    "llm_central_recommends_skip",
-    "llm_central_recommends_watch",
     "llm_central_veto",
-    "llm_central_not_betting",
 }
 
 
@@ -70,8 +67,8 @@ def normalize_central_prediction(
 
     return {
         "probabilities": normalize_probs(raw_probs),
-        "confidence": _clamp_float(parsed.get("confidence"), fallback_confidence, low=0.25, high=0.90),
-        "uncertainty": _clamp_float(parsed.get("uncertainty"), fallback_uncertainty, low=0.05, high=0.80),
+        "confidence": _clamp_float(parsed.get("confidence"), fallback_confidence, low=0.30, high=0.90),
+        "uncertainty": _clamp_float(parsed.get("uncertainty"), fallback_uncertainty, low=0.05, high=0.65),
         "risk_flags": list(dict.fromkeys(risk_flags)),
         "blocking_risk_flags": [flag for flag in dict.fromkeys(risk_flags) if flag in BLOCKING_FLAGS],
         "supporting_signals": [str(x)[:120] for x in (parsed.get("supporting_signals") or [])[:4]],

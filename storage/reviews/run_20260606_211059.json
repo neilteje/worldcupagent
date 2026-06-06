@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-06-06T21:10:59.694042+00:00",
+  "commands_run": [
+    "C:\\Users\\sidan_ud0ve2j\\Desktop\\sidharthanand\\hackathons\\stairai-kalshi\\worldcupagent\\agent\\main.py --once --dry-run"
+  ],
+  "tests": {
+    "passed": null,
+    "failed": null
+  },
+  "fixtures_processed": 1,
+  "predictions_generated": 1,
+  "orders_attempted": 0,
+  "orders_skipped": 1,
+  "ledger_records_generated": 14,
+  "api_errors": [],
+  "weaknesses": [
+    "Most or all opportunities remain no-trade because measured edge is small.",
+    "Ledger is saved locally but live submission is unavailable or not configured."
+  ],
+  "ideas_proposed": [
+    "Track source contribution deltas per run to explain probability movement.",
+    "Use prediction diffing to explain changes from the previous fixture/window run.",
+    "Add live API reliability metrics over multiple runs."
+  ],
+  "ideas_implemented": [
+    "Added structured run review artifacts for every agent run."
+  ],
+  "remaining_todos": [
+    "Most or all opportunities remain no-trade because measured edge is small.",
+    "Ledger is saved locally but live submission is unavailable or not configured."
+  ],
+  "llm_review": {
+    "key": {
+      "present": true,
+      "length": 108
+    }
+  }
+}

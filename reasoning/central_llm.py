@@ -3,14 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 import json
 
-from reasoning.anthropic_review import (
-    SONNET_MODELS,
-    _extract_text,
-    _extract_thinking,
-    _model_candidates,
-    _parse_json,
-    _post_with_optional_thinking,
-    _write_artifact,
+from reasoning.anthropic_review import _extract_text, _extract_thinking, _model_candidates, _parse_json, _post_with_optional_thinking, _write_artifact
+
+CENTRAL_MODELS = (
+    "claude-haiku-4-5-20251001",
+    "claude-3-5-haiku-latest",
+    "claude-sonnet-4-5-20250929",
+    "claude-3-5-sonnet-latest",
 )
 
 
@@ -25,6 +24,8 @@ def central_match_forecast_with_anthropic(settings, decision_context: dict, *, s
         "You must synthesize all provided features into one final 3-way probability forecast. "
         "Use every relevant feature: Sportmonks, bookmaker, Polymarket, Supabase priors, lineups, halftime state, "
         "source reconciliation, claim-extracted signals, stale-market detection, confidence, and uncertainty clues. "
+        "Do not default to SKIP because of missing secondary features when bookmaker, market, and model signals are aligned. "
+        "Use missing data as a confidence haircut, not an automatic veto, unless there is severe contradictory evidence. "
         "Return only minified JSON. No markdown fences. "
         "Schema: {"
         "\"probabilities\":{\"home\":number,\"draw\":number,\"away\":number},"
@@ -42,7 +43,7 @@ def central_match_forecast_with_anthropic(settings, decision_context: dict, *, s
     )
 
     errors: list[str] = []
-    for model in _model_candidates(SONNET_MODELS):
+    for model in _model_candidates(CENTRAL_MODELS):
         try:
             response = _post_with_optional_thinking(key, model, prompt, max_tokens=2200, thinking_budget=2048, timeout=60)
             if not response.is_success:

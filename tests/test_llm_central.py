@@ -51,5 +51,6 @@ def test_llm_central_watch_blocks_even_with_valid_probs():
         fallback_confidence=0.6,
         fallback_uncertainty=0.3,
     )
-    assert "llm_central_recommends_watch" in normalized["blocking_risk_flags"]
-    assert "llm_central_not_betting" in normalized["blocking_risk_flags"]
+    assert "llm_central_recommends_watch" in normalized["risk_flags"]
+    assert "llm_central_not_betting" in normalized["risk_flags"]
+    assert normalized["blocking_risk_flags"] == []

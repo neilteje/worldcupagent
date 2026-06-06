@@ -7,15 +7,15 @@ def audit_decision(probabilities: dict[str, float], edge: dict, confidence: floa
     flags: list[str] = list(extra_flags or [])
     if not valid_probs(probabilities): flags.append("probabilities_invalid")
     if not market_complete: flags.append("market_data_missing_for_order")
-    if confidence < .55 - 1e-9: flags.append("confidence_too_low")
-    if uncertainty > .45: flags.append("uncertainty_too_high")
+    if confidence < .53 - 1e-9: flags.append("confidence_too_low")
+    if uncertainty > .52: flags.append("uncertainty_too_high")
     if data_completeness is not None and data_completeness < .45: flags.append("data_completeness_too_low")
     if edge.get("edge_tier") == "none": flags.append("edge_below_threshold")
     if edge.get("edge_tier") == "strong" and confidence < .65:
         flags.append("edge_tier_confidence_mismatch")
-    if edge.get("edge_tier") == "medium" and confidence < .60:
+    if edge.get("edge_tier") == "medium" and confidence < .58:
         flags.append("edge_tier_confidence_mismatch")
-    if edge.get("edge_tier") == "soft" and confidence < .75:
+    if edge.get("edge_tier") == "soft" and confidence < .68:
         flags.append("confidence_insufficient_for_soft_edge")
     if edge.get("edge_tier") == "none" and abs(float(edge.get("best_edge") or 0.0)) < .03:
         flags.append("edge_margin_within_noise")

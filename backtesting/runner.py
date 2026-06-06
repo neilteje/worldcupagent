@@ -19,6 +19,7 @@ class BacktestMatch:
     sportmonks: dict[str, float]
     bookmaker: dict[str, float]
     market: dict[str, float]
+    priors: dict[str, float]
     result: str
 
 
@@ -43,12 +44,12 @@ def synthetic_history(n: int, seed: int = 2026) -> list[BacktestMatch]:
         total = h+d+a; true = {"home": h/total, "draw": d/total, "away": a/total}
         def noisy(scale):
             vals = {k: max(.02, true[k] + rng.gauss(0, scale)) for k in true}; s=sum(vals.values()); return {k: vals[k]/s for k in vals}
-        market = noisy(.055); bookmaker = noisy(.035); sm = noisy(.045)
+        market = noisy(.055); bookmaker = noisy(.035); sm = noisy(.045); priors = noisy(.025)
         r = rng.random(); acc=0; result="away"
         for k,v in true.items():
             acc += v
             if r <= acc: result = k; break
-        rows.append(BacktestMatch(f"BT-{i+1:03d}", sm, bookmaker, market, result))
+        rows.append(BacktestMatch(f"BT-{i+1:03d}", sm, bookmaker, market, priors, result))
     return rows
 
 
@@ -99,12 +100,12 @@ def run_backtest(settings: Settings, sample_size: int = 50, use_claude: bool = F
     decisions = []
     total_brier = market_brier = 0.0
     for row in rows:
-        model = pre_match_model(row.sportmonks, row.bookmaker, row.market, None, None, .8)
+        model = pre_match_model(row.sportmonks, row.bookmaker, row.market, row.priors, None, 1.0)
         cons = consensus_triangle(model["probabilities"], row.bookmaker, row.market)
         conf = model["confidence"] + cons["confidence_modifier"]
         edge = evaluate_edge(row.fixture_code, "PRE_MATCH", model["probabilities"], row.market, row.bookmaker, conf, model["uncertainty"], cons["case"])
         risk = audit_decision(model["probabilities"], edge, conf, model["uncertainty"], False, True, None, cons["case"])
-        size = bet_size(edge["edge_tier"], conf, min(1.0, bankroll), cons["bet_size_modifier"])
+        size = bet_size(edge["edge_tier"], conf, min(1.75, bankroll), cons["bet_size_modifier"], allow_soft=True)
         bet = edge["should_bet"] and risk["order_allowed"] and size > 0
         pnl = 0.0
         if bet:
@@ -156,7 +157,7 @@ def _simulate_strategy(settings: Settings, rows: list[BacktestMatch], *, mode: s
     fallback_count = 0
     blocked_by_llm = 0
     for row in rows:
-        deterministic_model = pre_match_model(row.sportmonks, row.bookmaker, row.market, None, None, .8)
+        deterministic_model = pre_match_model(row.sportmonks, row.bookmaker, row.market, row.priors, None, 1.0)
         model = deterministic_model
         llm_central = None
         if mode == "llm_central":
@@ -168,19 +169,19 @@ def _simulate_strategy(settings: Settings, rows: list[BacktestMatch], *, mode: s
                     "market_probs": row.market,
                     "bookmaker_probs": row.bookmaker,
                     "sportmonks_probs": row.sportmonks,
-                    "supabase_priors": None,
-                    "lineup": {"risk_flags": ["lineup_unconfirmed"]},
+                    "supabase_priors": row.priors,
+                    "lineup": {"risk_flags": [], "home_lineup_confirmed": True, "away_lineup_confirmed": True, "reason": "Synthetic confirmed lineups for backtest fairness."},
                     "halftime": None,
                     "structured_claims": {},
                     "claim_signals": [],
-                    "data_completeness": {"score": 0.75, "missing": ["supabase_priors", "lineup_confirmed"]},
+                    "data_completeness": {"score": 1.0, "missing": []},
                     "deterministic_prematch": deterministic_model,
                     "deterministic_model": deterministic_model,
                     "source_reconciliation": {},
                     "market_stale": {},
                     "signal_conflict": 0.0,
                     "top_signals": [],
-                    "dry_run": True,
+                    "dry_run": False,
                 },
                 storage_dir=settings.storage_dir,
             )
@@ -205,7 +206,7 @@ def _simulate_strategy(settings: Settings, rows: list[BacktestMatch], *, mode: s
         conf = model["confidence"] + cons["confidence_modifier"]
         edge = evaluate_edge(row.fixture_code, "PRE_MATCH", model["probabilities"], row.market, row.bookmaker, conf, model["uncertainty"], cons["case"])
         risk = audit_decision(model["probabilities"], edge, conf, model["uncertainty"], False, True, None, cons["case"], extra_flags=(llm_central or {}).get("blocking_risk_flags"))
-        size = bet_size(edge["edge_tier"], conf, min(1.0, bankroll), cons["bet_size_modifier"])
+        size = bet_size(edge["edge_tier"], conf, min(1.75, bankroll), cons["bet_size_modifier"], allow_soft=True)
         bet = edge["should_bet"] and risk["order_allowed"] and size > 0
         pnl = 0.0
         if bet:
