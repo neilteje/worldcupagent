@@ -34,6 +34,7 @@ class Settings:
     default_fixture_code: str = os.getenv("DEFAULT_FIXTURE_CODE", "DEMO-FIXTURE")
     storage_dir: Path = Path(os.getenv("STORAGE_DIR", "storage"))
     anthropic_key: str = os.getenv("ANTHROPIC_KEY") or os.getenv("ANTHROPIC_API_KEY", "")
+    llm_signal_delta_cap: float = min(_float("LLM_SIGNAL_DELTA_CAP", 0.02), 0.05)
     backtest_llm_budget_usd: float = min(_float("BACKTEST_LLM_BUDGET_USD", 5.0), 5.0)
     tif_seconds: int = int(_float("TIME_IN_FORCE_SECONDS", 30))
 

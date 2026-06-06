@@ -1,0 +1,49 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "signal_analyst",
+  "model": "claude-sonnet-4-5-20250929",
+  "latency_seconds": 15.066,
+  "usage": {
+    "input_tokens": 1814,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 637,
+    "output_tokens_details": {
+      "thinking_tokens": 423
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "recommendation": "SKIP",
+    "risk_posture": "veto",
+    "confidence_adjustment": -0.07,
+    "supporting_signals": [
+      "all_sources_agree_home",
+      "consensus_case_strong",
+      "positive_edge_home_0.060"
+    ],
+    "contradicting_signals": [
+      "uncertainty_0.50_exceeds_threshold",
+      "confidence_0.71_below_soft_edge_min_0.75",
+      "lineup_unconfirmed_low_0.35"
+    ],
+    "additional_risk_flags": [
+      "blocking_gates_active",
+      "soft_edge_insufficient_confidence",
+      "lineup_data_missing",
+      "dry_run_no_real_order"
+    ],
+    "rationale": "Deterministic gates block: uncertainty too high, dry run enabled. Soft edge requires 0.75+ confidence but only 0.71 available. Lineup unconfirmed adds material uncertainty. All sources agree on home but edge quality and confidence insufficient.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this decision context:\n\n1. **Deterministic Gates**: \n   - blocking_risk_flags: [\"uncertainty_too_high\", \"dry_run_enabled\"]\n   - order_allowed: false\n   - This is a DRY RUN\n\n2. **Edge Analysis**:\n   - Best edge: +0.060 on home\n   - Edge tier: \"soft\"\n   - should_bet: false\n   - Reason: \"Soft edge requires model/bookmaker support and confidence at least 0.75\" but confidence is only 0.71\n\n3. **Source Agreement**:\n   - All sources (bookmaker, market, model, sportmonks) agree on \"home\"\n   - Max gap is 0.11 between sportmonks and market\n   - Consensus case: \"all_agree\"\n\n4. **Risk Flags**:\n   - probability_sources_missing\n   - uncertainty_too_high (0.50)\n   - confidence_insufficient_for_soft_edge (0.71 < 0.75 required)\n   - dry_run_enabled\n   - lineup_unconfirmed\n\n5. **Data Completeness**:\n   - Score: 0.8\n   - Missing: lineup_confirmed\n   - Lineup confidence: 0.35 (very low)\n\n**Analysis**:\n- Supporting: All sources agree on home, consensus case strong\n- Contradicting: Uncertainty too high (0.50), confidence insufficient (0.71 vs 0.75 needed), lineup unconfirmed, soft edge only\n- Risk posture: VETO (blocking flags present)\n- Recommendation: SKIP (should_bet=false, order_allowed=false)\n- Confidence adjustment: Negative due to uncertainty and missing lineup data\n\nConservative approach required as per instructions.",
+  "text_preview": "{\"recommendation\":\"SKIP\",\"risk_posture\":\"veto\",\"confidence_adjustment\":-0.07,\"supporting_signals\":[\"all_sources_agree_home\",\"consensus_case_strong\",\"positive_edge_home_0.060\"],\"contradicting_signals\":[\"uncertainty_0.50_exceeds_threshold\",\"confidence_0.71_below_soft_edge_min_0.75\",\"lineup_unconfirmed_low_0.35\"],\"additional_risk_flags\":[\"blocking_gates_active\",\"soft_edge_insufficient_confidence\",\"lineup_data_missing\",\"dry_run_no_real_order\"],\"rationale\":\"Deterministic gates block: uncertainty too high, dry run enabled. Soft edge requires 0.75+ confidence but only 0.71 available. Lineup unconfirmed adds material uncertainty. All sources agree on home but edge quality and confidence insufficient.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

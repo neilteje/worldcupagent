@@ -11,7 +11,7 @@ def _git_hash() -> str:
         return "unknown"
 
 
-def write_run_review(storage_dir: Path, *, command: str, dry_run: bool, decisions: list[dict], runtime_seconds: float, exit_status: int, commands_run: list[str] | None = None, tests: dict | None = None, ideas_implemented: list[str] | None = None, code_changes: list[str] | None = None) -> dict:
+def write_run_review(storage_dir: Path, *, command: str, dry_run: bool, decisions: list[dict], runtime_seconds: float, exit_status: int, commands_run: list[str] | None = None, tests: dict | None = None, ideas_implemented: list[str] | None = None, code_changes: list[str] | None = None, llm_review: dict | None = None) -> dict:
     reviews = storage_dir / "reviews"
     reviews.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
@@ -54,6 +54,7 @@ def write_run_review(storage_dir: Path, *, command: str, dry_run: bool, decision
         "ideas_proposed": ideas,
         "ideas_implemented": ideas_implemented or [],
         "remaining_todos": weaknesses[:],
+        "llm_review": llm_review or {},
     }
     json_path = reviews / f"run_{timestamp}.json"
     json_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -69,15 +70,21 @@ def write_run_review(storage_dir: Path, *, command: str, dry_run: bool, decision
             f"- Sportmonks probabilities: {d.get('sportmonks_probs')}",
             f"- HT data if applicable: {d.get('halftime')}",
             f"- Lineup data if applicable: {d.get('lineup')}",
+            f"- LLM-extracted claims: {_format_claims(d.get('llm_claims'))}",
+            f"- Deterministic weights: {d.get('deterministic_weights')}",
+            f"- Source contribution: {d.get('source_contribution')}",
             f"- Consensus case: {d.get('consensus_case')}",
             f"- Best edge: {d.get('best_outcome')} {d.get('best_edge')}",
             f"- Edge tier: {d.get('edge_tier')}",
             f"- Confidence: {d.get('confidence')}",
             f"- Uncertainty: {d.get('uncertainty')}",
             f"- Top signals: {d.get('top_signals')}",
+            f"- LLM analyst: {_format_decision_llm(d.get('llm_analysis'))}",
+            f"- Critic comments: {_format_critic_comments(d.get('critic_comments'))}",
+            f"- Reasoning trace quality: {d.get('trace_quality')}",
             f"- Risk flags: {d.get('risk_flags')}",
             f"- Action: prediction={d.get('prediction_submitted')} order={d.get('order_submitted')} action={d.get('action')}",
-            f"- Reason: {d.get('reason') or d.get('edge_reason')}",
+            f"- Final reason: {_final_reason(d)}",
         ]))
     md = f"""# Agent Run Review
 
@@ -113,6 +120,9 @@ def write_run_review(storage_dir: Path, *, command: str, dry_run: bool, decision
 - Ledger issues: {'Some ledgers were local-only.' if any(not d.get('ledger_submitted') for d in decisions) else 'Ledger submission reported success.'}
 - Automation issues: Duplicate order prevention should be monitored with real non-dry runs.
 
+## LLM provider status
+{_format_llm_review(llm_review)}
+
 ## New ideas proposed
 {chr(10).join('- ' + i for i in ideas)}
 
@@ -143,3 +153,70 @@ def write_run_review(storage_dir: Path, *, command: str, dry_run: bool, decision
     previous += f"\n## {iso}\n- Decisions: {len(decisions)}\n- Orders skipped: {summary['orders_skipped']}\n- Ledger records: {summary['ledger_records_generated']}\n- Weakness count: {len(weaknesses)}\n"
     comp.write_text(previous, encoding="utf-8")
     return {"markdown": str(md_path), "json": str(json_path), **summary}
+
+
+def _format_llm_review(llm_review: dict | None) -> str:
+    if not llm_review:
+        return "- Anthropic: not requested for this run."
+    key = llm_review.get("key") or {}
+    lines = [f"- Anthropic key present: {bool(key.get('present'))} (length={int(key.get('length') or 0)})"]
+    health = llm_review.get("health_check")
+    if health:
+        lines.append(f"- Health check called: {health.get('called')} ok={health.get('ok')} model={health.get('model', 'n/a')} latency={health.get('latency_seconds', 'n/a')}")
+        if not health.get("ok"):
+            lines.append(f"- Health check errors: {health.get('errors') or health.get('reason')}")
+    critic = llm_review.get("critic")
+    if critic:
+        lines.append(f"- Critic called: {critic.get('called')} ok={critic.get('ok')} model={critic.get('model', 'n/a')} latency={critic.get('latency_seconds', 'n/a')}")
+        lines.append("- Critic order authorization: disabled; deterministic gates remain authoritative.")
+        parsed = critic.get("parsed") or {}
+        if parsed:
+            lines.append(f"- Critic parsed keys: {', '.join(sorted(parsed.keys()))}")
+        if not critic.get("ok"):
+            lines.append(f"- Critic errors: {critic.get('errors') or critic.get('reason')}")
+    return "\n".join(lines)
+
+
+def _format_decision_llm(llm_analysis: dict | None) -> str:
+    if not llm_analysis:
+        return "not requested"
+    if not llm_analysis.get("ok"):
+        return f"called={llm_analysis.get('called')} ok=False reason={llm_analysis.get('reason') or llm_analysis.get('errors')}"
+    parsed = llm_analysis.get("parsed") or {}
+    return (
+        f"model={llm_analysis.get('model', 'n/a')} "
+        f"recommendation={parsed.get('recommendation', 'n/a')} "
+        f"posture={parsed.get('risk_posture', 'n/a')} "
+        f"latency={llm_analysis.get('latency_seconds', 'n/a')}"
+    )
+
+
+def _format_claims(claims_result: dict | None) -> str:
+    if not claims_result:
+        return "not requested"
+    claims = claims_result.get("claims") or []
+    dropped = claims_result.get("dropped_claims") or []
+    if not claims and not dropped:
+        return claims_result.get("reason") or "none"
+    brief = [f"{c.get('claim_type')}:{c.get('subject')}" for c in claims[:4]]
+    if dropped:
+        brief.append(f"dropped={len(dropped)}")
+    return "; ".join(brief)
+
+
+def _format_critic_comments(comments: dict | None) -> str:
+    if not comments:
+        return "not requested"
+    risks = comments.get("risk_flag_suggestions") or []
+    concerns = comments.get("probability_concerns") or []
+    return f"concerns={concerns[:2]} risk_notes={risks[:2]}"
+
+
+def _final_reason(decision: dict) -> str:
+    order = decision.get("order") or {}
+    if decision.get("action") == "BET":
+        return f"order allowed by deterministic gates; {decision.get('edge_reason')}"
+    blockers = decision.get("blocking_risk_flags") or []
+    if blockers:
+        return f"skipped because blocking flags={blockers}; {decision.get('edge_reason')}"
+    return str(order.get("reason") or decision.get("edge_reason") or "skip")

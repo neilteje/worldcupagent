@@ -1,0 +1,45 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "signal_analyst",
+  "model": "claude-sonnet-4-5-20250929",
+  "latency_seconds": 7.243,
+  "usage": {
+    "input_tokens": 1785,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 222,
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "recommendation": "SKIP",
+    "risk_posture": "veto",
+    "confidence_adjustment": -0.08,
+    "supporting_signals": [
+      "all_sources_agree_home",
+      "model_edge_positive_0.060",
+      "low_source_conflict_0.0"
+    ],
+    "contradicting_signals": [
+      "uncertainty_0.50_exceeds_threshold",
+      "confidence_0.71_below_soft_edge_0.75",
+      "lineup_unconfirmed_both_teams"
+    ],
+    "additional_risk_flags": [
+      "uncertainty_too_high",
+      "confidence_insufficient_for_soft_edge",
+      "lineup_unconfirmed",
+      "soft_edge_requires_higher_conviction"
+    ],
+    "rationale": "Blocking risks present: uncertainty 0.50 above threshold, confidence 0.71 insufficient for soft edge tier (requires 0.75+), lineups unconfirmed. Despite source agreement on home outcome, edge quality and data completeness inadequate for approval.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "text_preview": "```json\n{\"recommendation\":\"SKIP\",\"risk_posture\":\"veto\",\"confidence_adjustment\":-0.08,\"supporting_signals\":[\"all_sources_agree_home\",\"model_edge_positive_0.060\",\"low_source_conflict_0.0\"],\"contradicting_signals\":[\"uncertainty_0.50_exceeds_threshold\",\"confidence_0.71_below_soft_edge_0.75\",\"lineup_unconfirmed_both_teams\"],\"additional_risk_flags\":[\"uncertainty_too_high\",\"confidence_insufficient_for_soft_edge\",\"lineup_unconfirmed\",\"soft_edge_requires_higher_conviction\"],\"rationale\":\"Blocking risks present: uncertainty 0.50 above threshold, confidence 0.71 insufficient for soft edge tier (requires 0.75+), lineups unconfirmed. Despite source agreement on home outcome, edge quality and data completeness inadequate for approval.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

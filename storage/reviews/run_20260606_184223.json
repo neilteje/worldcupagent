@@ -1,0 +1,108 @@
+{
+  "timestamp": "2026-06-06T18:42:23.062330+00:00",
+  "commands_run": [
+    "C:\\Users\\sidan_ud0ve2j\\Desktop\\sidharthanand\\hackathons\\stairai-kalshi\\worldcupagent\\agent\\main.py --once --dry-run --verbose --anthropic-health-check --use-anthropic-critic"
+  ],
+  "tests": {
+    "passed": null,
+    "failed": null
+  },
+  "fixtures_processed": 1,
+  "predictions_generated": 1,
+  "orders_attempted": 0,
+  "orders_skipped": 1,
+  "ledger_records_generated": 14,
+  "api_errors": [],
+  "weaknesses": [
+    "Most or all opportunities remain no-trade because measured edge is small.",
+    "Ledger is saved locally but live submission is unavailable or not configured."
+  ],
+  "ideas_proposed": [
+    "Track source contribution deltas per run to explain probability movement.",
+    "Use prediction diffing to explain changes from the previous fixture/window run.",
+    "Add live API reliability metrics over multiple runs."
+  ],
+  "ideas_implemented": [
+    "Added Anthropic API health check and non-authorizing LLM critic path."
+  ],
+  "remaining_todos": [
+    "Most or all opportunities remain no-trade because measured edge is small.",
+    "Ledger is saved locally but live submission is unavailable or not configured."
+  ],
+  "llm_review": {
+    "key": {
+      "present": true,
+      "length": 108
+    },
+    "health_check": {
+      "called": true,
+      "ok": true,
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "latency_seconds": 1.879,
+      "usage": {
+        "input_tokens": 38,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 34,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "parsed": {
+        "ok": true,
+        "role": "health_check",
+        "note": "anthropic_api_reachable"
+      },
+      "text_preview": "```json\n{\"ok\": true, \"role\": \"health_check\", \"note\": \"anthropic_api_reachable\"}\n```"
+    },
+    "critic": {
+      "called": true,
+      "ok": true,
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "latency_seconds": 6.02,
+      "usage": {
+        "input_tokens": 790,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 387,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "parsed": {
+        "probability_concerns": [
+          "Edge of 0.51% is marginal and within noise threshold; consensus across sources suggests market is fairly priced",
+          "Lineup confirmation missing for at least one team reduces signal confidence to 0.56; probability deltas all zero indicate unresolved data dependency",
+          "Away probability shift from bookmaker (0.26) to final (0.275) is minimal; limited actionable alpha"
+        ],
+        "risk_flag_suggestions": [
+          "Maintain edge_below_threshold block; dry-run gate already active",
+          "Flag incomplete lineup data as hard stop until confirmed for both teams",
+          "Monitor stale_score=0.0 assumption; verify market freshness timestamp against fixture start"
+        ],
+        "reporting_improvements": [
+          "Document why draw_model generated zero probability_delta despite 0.71 weight; clarify adjustment logic",
+          "Add fixture timing (minutes to kickoff) to window context for context on lineup-confirmation urgency",
+          "Report source_quality scores (0.35 sportmonks, 0.7 model) in summary; explain quality degradation rationale"
+        ],
+        "next_engineering_steps": [
+          "Implement automated lineup-confirmation check with hard gate; do not allow PRE_MATCH orders without both rosters",
+          "Tune edge_tier threshold; current 0.51% consistently skipped; validate threshold against historical edge distribution",
+          "Add market-move tracking for away leg; 0.0 movement across all outcomes suggests market depth or stale odds"
+        ],
+        "order_authorization": "DENY"
+      },
+      "text_preview": "```json\n{\n  \"probability_concerns\": [\n    \"Edge of 0.51% is marginal and within noise threshold; consensus across sources suggests market is fairly priced\",\n    \"Lineup confirmation missing for at least one team reduces signal confidence to 0.56; probability deltas all zero indicate unresolved data dependency\",\n    \"Away probability shift from bookmaker (0.26) to final (0.275) is minimal; limited actionable alpha\"\n  ],\n  \"risk_flag_suggestions\": [\n    \"Maintain edge_below_threshold block; dry-run gate already active\",\n    \"Flag incomplete lineup data as hard stop until confirmed for both teams\",\n    \"Monitor stale_score=0.0 assumption; verify market freshness timestamp against fixture start\"\n  ],\n  \"reporting_improvements\": [\n    \"Document why draw_model generated zero probability_delta despite 0.71 weight; clarify adjustment logic\",\n    \"Add fixture timing (minutes to kickoff) to window context for context on lineup-confirmation urgency\",\n    \"Report source_quality scores (0.35 sportmonks, 0.7 model) in summary; explain quality degradation rationale\"\n  ],\n  \"next_engineering_steps\": [\n    \"Implement automated lineup-confirmation check with hard gate; do not allow PRE_MATCH orders without both rosters\",\n    \"Tune edge_tier threshold; current 0.51% consistently skipped; validate threshold against historical edge distribution\",\n    \"Add market-move tracking for away leg; 0.0 movement across all outcomes suggests market depth or stale odds\"\n  ],\n  \"order_authorization\": \"DENY\"\n}\n```",
+      "order_authorization_allowed": false,
+      "artifact": "storage\\reviews\\anthropic_review_20260606_184223.json"
+    }
+  }
+}

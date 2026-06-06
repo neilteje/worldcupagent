@@ -1,0 +1,45 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "signal_analyst",
+  "model": "claude-sonnet-4-20250514",
+  "latency_seconds": 5.935,
+  "usage": {
+    "input_tokens": 1743,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 137,
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "confidence_adjustment": -0.05,
+    "supporting_signals": [
+      "all sources favor home",
+      "6% edge on home outcome",
+      "strong consensus agreement"
+    ],
+    "contradicting_signals": [
+      "lineup unconfirmed",
+      "market-model gap 11%",
+      "soft edge requires higher confidence"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "market_model_divergence",
+      "edge_threshold_unmet",
+      "dry_run_blocking"
+    ],
+    "rationale": "soft edge with lineup uncertainty and source gaps warrants caution despite consensus",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "text_preview": "{\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"confidence_adjustment\":-0.05,\"supporting_signals\":[\"all sources favor home\",\"6% edge on home outcome\",\"strong consensus agreement\"],\"contradicting_signals\":[\"lineup unconfirmed\",\"market-model gap 11%\",\"soft edge requires higher confidence\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"market_model_divergence\",\"edge_threshold_unmet\",\"dry_run_blocking\"],\"rationale\":\"soft edge with lineup uncertainty and source gaps warrants caution despite consensus\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

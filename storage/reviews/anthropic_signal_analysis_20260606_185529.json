@@ -1,0 +1,44 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "signal_analyst",
+  "model": "claude-sonnet-4-20250514",
+  "latency_seconds": 5.611,
+  "usage": {
+    "input_tokens": 1744,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 136,
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "confidence_adjustment": -0.05,
+    "supporting_signals": [
+      "all sources agree on home",
+      "soft edge of +0.060 exists",
+      "high model confidence 0.75"
+    ],
+    "contradicting_signals": [
+      "lineup unconfirmed both teams",
+      "edge below threshold for betting",
+      "missing lineup data reduces reliability"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "soft_edge_insufficient",
+      "data_completeness_suboptimal"
+    ],
+    "rationale": "soft edge requires higher threshold, lineup uncertainty adds risk",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "text_preview": "{\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"confidence_adjustment\":-0.05,\"supporting_signals\":[\"all sources agree on home\",\"soft edge of +0.060 exists\",\"high model confidence 0.75\"],\"contradicting_signals\":[\"lineup unconfirmed both teams\",\"edge below threshold for betting\",\"missing lineup data reduces reliability\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"soft_edge_insufficient\",\"data_completeness_suboptimal\"],\"rationale\":\"soft edge requires higher threshold, lineup uncertainty adds risk\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

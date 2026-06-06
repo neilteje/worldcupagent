@@ -19,6 +19,7 @@ def print_run_report(report: dict) -> str:
         f"Order submitted: {report.get('order_submitted')}",
         f"Dry run: {report.get('dry_run')}",
         f"Ledger: {report.get('ledger_submitted')} ({report.get('ledger_records')} records)",
+        f"Trace score: {float((report.get('trace_quality') or {}).get('score', 0.0)):.2f}",
     ]
     text = "\n".join(lines)
     print(text)

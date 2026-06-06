@@ -1,0 +1,108 @@
+{
+  "timestamp": "2026-06-06T18:37:26.531202+00:00",
+  "commands_run": [
+    "C:\\Users\\sidan_ud0ve2j\\Desktop\\sidharthanand\\hackathons\\stairai-kalshi\\worldcupagent\\agent\\main.py --once --dry-run --verbose --use-synthetic-fixtures --anthropic-health-check --use-anthropic-critic"
+  ],
+  "tests": {
+    "passed": null,
+    "failed": null
+  },
+  "fixtures_processed": 10,
+  "predictions_generated": 10,
+  "orders_attempted": 0,
+  "orders_skipped": 10,
+  "ledger_records_generated": 143,
+  "api_errors": [],
+  "weaknesses": [
+    "Most or all opportunities remain no-trade because measured edge is small.",
+    "Ledger is saved locally but live submission is unavailable or not configured."
+  ],
+  "ideas_proposed": [
+    "Track source contribution deltas per run to explain probability movement.",
+    "Use prediction diffing to explain changes from the previous fixture/window run.",
+    "Add live API reliability metrics over multiple runs."
+  ],
+  "ideas_implemented": [
+    "Added Anthropic API health check and non-authorizing LLM critic path."
+  ],
+  "remaining_todos": [
+    "Most or all opportunities remain no-trade because measured edge is small.",
+    "Ledger is saved locally but live submission is unavailable or not configured."
+  ],
+  "llm_review": {
+    "key": {
+      "present": true,
+      "length": 108
+    },
+    "health_check": {
+      "called": true,
+      "ok": true,
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "latency_seconds": 1.387,
+      "usage": {
+        "input_tokens": 38,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 34,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "parsed": {
+        "ok": true,
+        "role": "health_check",
+        "note": "anthropic_api_reachable"
+      },
+      "text_preview": "```json\n{\"ok\": true, \"role\": \"health_check\", \"note\": \"anthropic_api_reachable\"}\n```"
+    },
+    "critic": {
+      "called": true,
+      "ok": true,
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "latency_seconds": 7.517,
+      "usage": {
+        "input_tokens": 3620,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 509,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "parsed": {
+        "probability_concerns": [
+          "Decision 2: sportmonks (54% home) vs bookmaker (34% home) gap unexplained; confidence 0.55 insufficient for soft edge",
+          "Decision 3: strong edge (15.8%) claimed but confidence only 0.55; halftime model and draw_model both push draw to 49.8% yet market/bookmaker show 31-35%",
+          "Decision 4: confidence 0.38 with 14.2% edge contradicts; halftime_model favors away but final_probs favor home; source disagreement unresolved"
+        ],
+        "risk_flag_suggestions": [
+          "Enforce minimum confidence threshold (\u22650.65) before authorizing soft edges; Decisions 2\u20134 breach this",
+          "Lineup_confirmed missing in all cases; gate lineups before pre-match window or reject fixture",
+          "Decision 3: multi_source_conflict + strong edge_tier + low confidence = reject until corroboration resolves"
+        ],
+        "reporting_improvements": [
+          "Add explicit reconciliation step when bookmaker/market disagree with model; Decision 2 flags conflict but provides no explanation",
+          "Log why halftime_model and draw_model impact differs; Decision 4 shows conflicting signals (away +0.062 vs home +0.025) with no tiebreaker logic",
+          "Clarify edge_tier rationale: Decision 3 claims 'strong' (0.159 edge) yet confidence is 0.55; thresholds appear arbitrary"
+        ],
+        "next_engineering_steps": [
+          "Add pre-authorization gate: reject if (confidence < 0.65 AND edge_tier in [soft, strong]) OR (lineup_confirmed == false)",
+          "Implement source reconciliation module for bookmaker vs model divergence >0.20 probability units",
+          "Validate edge_tier assignment: ensure soft edges require \u22650.60 confidence, strong edges \u22650.70, none \u22640.03"
+        ],
+        "order_authorization": "REJECT_ALL"
+      },
+      "text_preview": "```json\n{\n  \"probability_concerns\": [\n    \"Decision 2: sportmonks (54% home) vs bookmaker (34% home) gap unexplained; confidence 0.55 insufficient for soft edge\",\n    \"Decision 3: strong edge (15.8%) claimed but confidence only 0.55; halftime model and draw_model both push draw to 49.8% yet market/bookmaker show 31-35%\",\n    \"Decision 4: confidence 0.38 with 14.2% edge contradicts; halftime_model favors away but final_probs favor home; source disagreement unresolved\"\n  ],\n  \"risk_flag_suggestions\": [\n    \"Enforce minimum confidence threshold (\u22650.65) before authorizing soft edges; Decisions 2\u20134 breach this\",\n    \"Lineup_confirmed missing in all cases; gate lineups before pre-match window or reject fixture\",\n    \"Decision 3: multi_source_conflict + strong edge_tier + low confidence = reject until corroboration resolves\"\n  ],\n  \"reporting_improvements\": [\n    \"Add explicit reconciliation step when bookmaker/market disagree with model; Decision 2 flags conflict but provides no explanation\",\n    \"Log why halftime_model and draw_model impact differs; Decision 4 shows conflicting signals (away +0.062 vs home +0.025) with no tiebreaker logic\",\n    \"Clarify edge_tier rationale: Decision 3 claims 'strong' (0.159 edge) yet confidence is 0.55; thresholds appear arbitrary\"\n  ],\n  \"next_engineering_steps\": [\n    \"Add pre-authorization gate: reject if (confidence < 0.65 AND edge_tier in [soft, strong]) OR (lineup_confirmed == false)\",\n    \"Implement source reconciliation module for bookmaker vs model divergence >0.20 probability units\",\n    \"Validate edge_tier assignment: ensure soft edges require \u22650.60 confidence, strong edges \u22650.70, none \u22640.03\"\n  ],\n  \"order_authorization\": \"REJECT_ALL\"\n}\n```",
+      "order_authorization_allowed": false,
+      "artifact": "storage\\reviews\\anthropic_review_20260606_183726.json"
+    }
+  }
+}

@@ -35,8 +35,46 @@ def shrink_toward_market(probs: dict[str, float], market_probs: dict[str, float]
     return normalize_probs({k: model[k] * (1 - s) + market[k] * s for k in OUTCOMES})
 
 
+def calibrate_probs(
+    probs: dict[str, float],
+    *,
+    market_probs: dict[str, float] | None = None,
+    temperature: float = 1.06,
+    shrink_strength: float = 0.06,
+    draw_floor: float = 0.16,
+    max_prob: float = 0.86,
+    draw_floor_reason: str | None = None,
+) -> dict:
+    risk_flags: list[str] = []
+    calibrated = normalize_probs(probs)
+    calibrated = clamp_probs(calibrated, min_prob=0.025, max_prob=max_prob)
+    calibrated = temperature_scale(calibrated, temperature)
+    if market_probs:
+        calibrated = shrink_toward_market(calibrated, market_probs, shrink_strength)
+    if max(calibrated.values()) > max_prob:
+        risk_flags.append("prediction_overconfidence_clamped")
+        calibrated = clamp_probs(calibrated, min_prob=0.025, max_prob=max_prob)
+    if calibrated["draw"] < draw_floor and not _clear_low_draw_reason(draw_floor_reason):
+        risk_flags.append("draw_floor_applied")
+        shortfall = draw_floor - calibrated["draw"]
+        home_away = calibrated["home"] + calibrated["away"]
+        calibrated = normalize_probs(
+            {
+                "home": calibrated["home"] - shortfall * calibrated["home"] / max(home_away, 1e-9),
+                "draw": draw_floor,
+                "away": calibrated["away"] - shortfall * calibrated["away"] / max(home_away, 1e-9),
+            }
+        )
+    return {"probabilities": normalize_probs(calibrated), "risk_flags": list(dict.fromkeys(risk_flags)), "temperature": temperature, "shrink_strength": shrink_strength, "draw_floor": draw_floor}
+
+
 def valid_probs(probs: dict[str, float], lo: float = 0.02, hi: float = 0.92, tol: float = 0.015) -> bool:
     if set(OUTCOMES) - set(probs):
         return False
     vals = [float(probs[k]) for k in OUTCOMES]
     return all(math.isfinite(v) and lo <= v <= hi for v in vals) and abs(sum(vals) - 1.0) <= tol
+
+
+def _clear_low_draw_reason(reason: str | None) -> bool:
+    text = (reason or "").lower()
+    return any(marker in text for marker in ("large favorite", "red card volatility", "must win late", "extreme mismatch"))

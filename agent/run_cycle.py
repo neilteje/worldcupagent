@@ -11,12 +11,16 @@ from models.consensus import consensus_triangle
 from models.edge_engine import evaluate_edge
 from models.halftime import evaluate_halftime
 from models.lineup_delta import evaluate_lineup_delta
+from models.llm_decision import merge_llm_analysis_into_risk
 from models.probability import pre_match_model, halftime_model
 from models.bet_sizing import bet_size, limit_price
 from models.sanity_checks import audit_decision
 from models.signal_scoring import score_signal, summarize_signals, signal_conflict_score
 from models.draw_model import apply_draw_model, draw_sanity_flags
 from models.market_stale import detect_market_stale
+from models.source_reconciliation import reconcile_sources
+from reasoning.anthropic_review import analyze_decision_signals_with_anthropic
+from reasoning.claim_extraction import apply_official_overrides, claims_to_signals, extract_claims_with_anthropic, validate_claim_json
 from reasoning.ledger_builder import LedgerAdapter, LedgerBuilder
 from reasoning.run_report import print_run_report
 
@@ -73,7 +77,32 @@ def _source_completeness(*, market: dict, bookmaker: dict | None, sm_pred: dict 
     return {"score": score, "checks": checks, "missing": [k for k, v in checks.items() if not v]}
 
 
-def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: Settings | None = None, verbose: bool = False) -> dict:
+def _extract_structured_claims(settings: Settings, fixture: dict, synthetic: dict, lineup: dict, *, use_llm_claims: bool) -> dict:
+    raw_structured = synthetic.get("structured_claims") or fixture.get("structured_claims")
+    source_texts = synthetic.get("source_texts") or fixture.get("source_texts") or []
+    result = {"called": False, "ok": True, "claims": [], "dropped_claims": [], "signals": [], "risk_flags": []}
+    if raw_structured:
+        result.update(validate_claim_json({"claims": raw_structured}, delta_cap=settings.llm_signal_delta_cap))
+        result["called"] = False
+        result["source"] = "prestructured"
+    elif use_llm_claims:
+        if not source_texts:
+            result.update({"ok": True, "reason": "no_text_sources_for_claim_extraction"})
+        else:
+            result.update(extract_claims_with_anthropic(settings, source_texts, delta_cap=settings.llm_signal_delta_cap))
+
+    override = apply_official_overrides(result.get("claims") or [], lineup_result=lineup)
+    result["claims"] = override["claims"]
+    result["dropped_claims"] = override["dropped"]
+    result["signals"] = claims_to_signals(result["claims"], delta_cap=settings.llm_signal_delta_cap)
+    if result.get("errors"):
+        result["risk_flags"].append("llm_claim_validation_error")
+    if result["dropped_claims"]:
+        result["risk_flags"].append("web_claims_overridden_by_official_data")
+    return result
+
+
+def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: Settings | None = None, verbose: bool = False, *, use_llm_analyst: bool = False, use_llm_claims: bool = False) -> dict:
     settings = settings or load_settings()
     fixture = fixture or {"id": settings.default_fixture_code, "fixture_code": settings.default_fixture_code, "demo": True}
     window = "HT" if (window or fixture.get("preferred_window", "PRE_MATCH")).upper() in {"HT", "HALFTIME"} else "PRE_MATCH"
@@ -101,8 +130,10 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     if window == "HT":
         live = synthetic.get("live") or get_live_checkpoint(settings, fixture_code) or ({"home_goals": 0, "away_goals": 0, "home_xg": .35, "away_xg": .28, "home_shots": 4, "away_shots": 3, "home_sot": 1, "away_sot": 1} if fixture.get("demo") else None)
 
+    claim_extraction = _extract_structured_claims(settings, fixture, synthetic, lineup, use_llm_claims=use_llm_claims)
+    claim_signals = claim_extraction.get("signals") or []
     completeness = _source_completeness(market=market, bookmaker=bookmaker, sm_pred=sm_pred, priors=priors, lineup=lineup, window=window, live=live)
-    prematch = pre_match_model(sm_pred, bookmaker, market.get("normalized_probs"), priors, lineup.get("probability_delta"), completeness["score"])
+    prematch = pre_match_model(sm_pred, bookmaker, market.get("normalized_probs"), priors, lineup.get("probability_delta"), completeness["score"], structured_signals=claim_signals)
     draw_inputs = {
         "total_projected_xg": synthetic.get("projected_xg"),
         "strength_gap": abs((prematch["probabilities"].get("home", 0) - prematch["probabilities"].get("away", 0))),
@@ -115,13 +146,14 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     model_out = prematch
     if window == "HT":
         ht_out = evaluate_halftime(prematch["probabilities"], market.get("normalized_probs"), live_checkpoint=live or {})
-        model_out = halftime_model(prematch["probabilities"], ht_out, market.get("normalized_probs"), bookmaker)
+        model_out = halftime_model(prematch["probabilities"], ht_out, market.get("normalized_probs"), bookmaker, structured_signals=claim_signals)
         draw_ht = apply_draw_model(model_out["probabilities"], market_draw=(market.get("normalized_probs") or {}).get("draw"), bookmaker_draw=(bookmaker or {}).get("draw"), ht_score=(int((live or {}).get("home_goals", 0)), int((live or {}).get("away_goals", 0))), ht_total_xg=float((live or {}).get("home_xg", 0) or 0) + float((live or {}).get("away_xg", 0) or 0), red_cards=(int((live or {}).get("home_red", 0) or 0), int((live or {}).get("away_red", 0) or 0)))
         model_out["probabilities"] = draw_ht["probabilities"]
         draw_out = draw_ht
 
     cons = consensus_triangle(model_out["probabilities"], bookmaker, market.get("normalized_probs"))
-    signals = [
+    source_reconciliation = reconcile_sources(model_out["probabilities"], sm_pred, bookmaker, market.get("normalized_probs"))
+    signals = list(claim_signals) + [
         score_signal("lineup_delta", "sportmonks", "lineup", lineup.get("probability_delta"), source_quality=.90 if "lineup_unconfirmed" not in lineup.get("risk_flags", []) else .35, freshness=.85, corroboration=.70, reason=lineup.get("reason", "")),
         score_signal("draw_model", "model", "draw", draw_out.get("delta"), source_quality=.70, freshness=.80, corroboration=.65, reason=draw_out.get("reason", "")),
     ]
@@ -137,7 +169,9 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
 
     previous_market = synthetic.get("previous_market") or previous_normalized_probs(settings.storage_dir, fixture_code, window)
     stale = detect_market_stale(market.get("normalized_probs"), previous_market, bookmaker, synthetic.get("signal_delta") or lineup.get("probability_delta"))
-    signal_reasons = [s.get("reason", "") for s in top_signals] + [stale.get("reason", "")]
+    signal_reasons = [s.get("reason", "") for s in top_signals]
+    if stale.get("is_stale"):
+        signal_reasons.append(stale.get("reason", ""))
     edge = evaluate_edge(fixture_code, window, model_out["probabilities"], market.get("normalized_probs"), bookmaker, confidence, uncertainty, cons["case"], signals=signal_reasons)
     if stale.get("is_stale") and edge.get("edge_tier") != "none":
         edge["edge_type"] = "market_stale"
@@ -145,7 +179,37 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
 
     duplicate = _duplicate_order_marker(settings, fixture_code, window) and not settings.dry_run
     extra_flags = draw_sanity_flags(model_out["probabilities"], reason=draw_out.get("reason", ""))
+    extra_flags.extend(model_out.get("risk_flags", []))
+    extra_flags.extend(claim_extraction.get("risk_flags", []))
+    extra_flags.extend(source_reconciliation.get("flags", []))
+    if stale.get("reason") == "Need current and previous market snapshots.":
+        extra_flags.append("market_snapshot_stale_unknown")
     risk = audit_decision(model_out["probabilities"], edge, confidence, uncertainty, settings.dry_run, bool(market.get("complete")), lineup, cons["case"], duplicate_order=duplicate, data_completeness=completeness["score"], extra_flags=extra_flags)
+    llm_analysis = None
+    if use_llm_analyst:
+        llm_context = {
+            "fixture_code": fixture_code,
+            "window": window,
+            "final_probs": model_out["probabilities"],
+            "market_probs": market.get("normalized_probs"),
+            "bookmaker_probs": bookmaker,
+            "sportmonks_probs": sm_pred,
+            "source_reconciliation": source_reconciliation,
+            "consensus_case": cons["case"],
+            "edge": edge,
+            "confidence": confidence,
+            "uncertainty": uncertainty,
+            "top_signals": top_signals,
+            "signal_conflict": conflict,
+            "data_completeness": completeness,
+            "market_stale": stale,
+            "risk": risk,
+            "lineup": lineup,
+            "halftime": ht_out,
+            "dry_run": settings.dry_run,
+        }
+        llm_analysis = analyze_decision_signals_with_anthropic(settings, llm_context, storage_dir=settings.storage_dir)
+        risk = merge_llm_analysis_into_risk(risk, llm_analysis)
     usd = bet_size(edge["edge_tier"], confidence, settings.max_order_usd, cons["bet_size_modifier"], allow_soft=False)
     best = edge["best_outcome"] or "home"
     raw_mid = (market.get("raw_midpoints") or {}).get(best) or (market.get("normalized_probs") or {}).get(best) or .33
@@ -156,9 +220,10 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     prediction_payload = {"fixture_code": fixture_code, "window": window, "probabilities": model_out["probabilities"], "confidence": confidence, "top_signals": top_signals, "risk_flags": risk["risk_flags"]}
 
     ledger = LedgerBuilder(fixture_code, window, settings)
-    records = ledger.build_standard_trace(kickoff_time=fixture.get("starting_at") or fixture.get("kickoff_utc"), lock_time=fixture.get("pre_match_lock_at") or fixture.get("ht_lock_at"), sportmonks={"fixture_id": fixture_id, "detail_keys": list(detail.keys()) if isinstance(detail, dict) else [], "prediction": sm_pred}, supabase={"priors": priors, "completeness": completeness}, polymarket={**market, "previous_market": previous_market, "stale": stale}, bookmaker=bookmaker, lineup=lineup, halftime=ht_out, probability={**model_out, "draw_model": draw_out}, consensus=cons, edge=edge, risk=risk, prediction=prediction_payload, order={"action_type": "order" if should_order else "skip", **order_payload, "reason": order_result.get("reason")}, reflection={"data_complete": completeness["score"], "decision": "order" if should_order else "skip", "top_signals": top_signals})
+    records = ledger.build_standard_trace(kickoff_time=fixture.get("starting_at") or fixture.get("kickoff_utc"), lock_time=fixture.get("pre_match_lock_at") or fixture.get("ht_lock_at"), sportmonks={"fixture_id": fixture_id, "detail_keys": list(detail.keys()) if isinstance(detail, dict) else [], "prediction": sm_pred}, supabase={"priors": priors, "completeness": completeness}, polymarket={**market, "previous_market": previous_market, "stale": stale}, bookmaker=bookmaker, lineup=lineup, halftime=ht_out, probability={**model_out, "draw_model": draw_out, "source_reconciliation": source_reconciliation, "claim_extraction": claim_extraction}, consensus=cons, edge=edge, risk=risk, prediction=prediction_payload, order={"action_type": "order" if should_order else "skip", **order_payload, "reason": order_result.get("reason")}, reflection={"data_complete": completeness["score"], "decision": "order" if should_order else "skip", "top_signals": top_signals, "source_reconciliation": source_reconciliation, "llm_claims": claim_extraction, "llm_analysis": llm_analysis})
+    trace_quality = ledger.trace_quality()
     ledger_result = LedgerAdapter(settings).submit(ledger.session_id, records)
-    decision = {"session_id": ledger.session_id, "fixture_code": fixture_code, "window": window, "teams": fixture.get("name"), "final_probs": model_out["probabilities"], "market_probs": market.get("normalized_probs"), "bookmaker_probs": bookmaker, "sportmonks_probs": sm_pred, "halftime": ht_out, "lineup": lineup, "data_completeness": completeness, "market_stale": stale, "consensus_case": cons["case"], "best_outcome": best, "best_edge": edge["best_edge"], "edge_tier": edge["edge_tier"], "edge_type": edge["edge_type"], "edge_reason": edge["reason"], "confidence": confidence, "uncertainty": uncertainty, "top_signals": top_signals, "action": "BET" if should_order else "SKIP", "risk_flags": risk["risk_flags"], "blocking_risk_flags": risk["blocking_risk_flags"], "prediction_submitted": True, "order_submitted": bool(order_result.get("submitted")), "dry_run": settings.dry_run, "ledger_submitted": ledger_result.get("submitted", False), "ledger_records": len(records), "ledger_dag_valid": ledger.validate_dag(), "order": order_result}
+    decision = {"session_id": ledger.session_id, "fixture_code": fixture_code, "window": window, "teams": fixture.get("name"), "final_probs": model_out["probabilities"], "market_probs": market.get("normalized_probs"), "bookmaker_probs": bookmaker, "sportmonks_probs": sm_pred, "halftime": ht_out, "lineup": lineup, "data_completeness": completeness, "market_stale": stale, "source_reconciliation": source_reconciliation, "source_contribution": model_out.get("source_contribution"), "deterministic_weights": model_out.get("weights"), "probability_steps": model_out.get("steps"), "llm_claims": claim_extraction, "consensus_case": cons["case"], "best_outcome": best, "best_edge": edge["best_edge"], "edge_tier": edge["edge_tier"], "edge_type": edge["edge_type"], "edge_reason": edge["reason"], "confidence": confidence, "uncertainty": uncertainty, "top_signals": top_signals, "llm_analysis": llm_analysis, "action": "BET" if should_order else "SKIP", "risk_flags": risk["risk_flags"], "blocking_risk_flags": risk["blocking_risk_flags"], "prediction_submitted": True, "order_submitted": bool(order_result.get("submitted")), "dry_run": settings.dry_run, "ledger_submitted": ledger_result.get("submitted", False), "ledger_records": len(records), "ledger_dag_valid": ledger.validate_dag(), "trace_quality": trace_quality, "order": order_result}
     out = settings.storage_dir / "decisions" / f"{fixture_code}-{window}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(decision, indent=2), encoding="utf-8")

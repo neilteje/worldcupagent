@@ -17,6 +17,20 @@ def test_no_bet_when_dry_run():
     risk=audit_decision({'home':.5,'draw':.28,'away':.22},{'edge_tier':'strong','edge_type':'model_only_edge'},.7,.2,True,True)
     assert 'dry_run_enabled' in risk['blocking_risk_flags'] and not risk['order_allowed']
 
+def test_risk_audit_exact_confidence_boundary():
+    risk=audit_decision({'home':.5,'draw':.28,'away':.22},{'edge_tier':'medium','edge_type':'model_only_edge','best_edge':.07},.55,.2,False,True)
+    assert 'confidence_too_low' not in risk['risk_flags']
+
+def test_risk_audit_adds_critic_suggested_flags():
+    risk=audit_decision({'home':.5,'draw':.28,'away':.22},{'edge_tier':'soft','edge_type':'model_only_edge','best_edge':.04},.7,.2,False,True, consensus_case='all_disagree')
+    assert 'confidence_insufficient_for_soft_edge' in risk['risk_flags']
+    assert 'source_disagreement_unresolved' in risk['risk_flags']
+    assert 'multi_source_conflict' in risk['risk_flags']
+
+def test_risk_audit_blocks_edge_tier_confidence_mismatch():
+    risk=audit_decision({'home':.5,'draw':.28,'away':.22},{'edge_tier':'strong','edge_type':'model_only_edge','best_edge':.12},.6,.2,False,True)
+    assert 'edge_tier_confidence_mismatch' in risk['blocking_risk_flags']
+
 def test_ledger_dag_parent_structure():
     lb=LedgerBuilder('F','PRE_MATCH',load_settings(True))
     recs=lb.build_standard_trace(prediction={'fixture_code':'F','window':'PRE_MATCH','probabilities':{'home':.4,'draw':.3,'away':.3},'confidence':.6})

@@ -1,0 +1,22 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "model": "claude-haiku-4-5-20251001",
+  "latency_seconds": 10.965,
+  "usage": {
+    "input_tokens": 3555,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 900,
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {},
+  "text_preview": "```json\n{\n  \"probability_concerns\": [\n    {\n      \"fixture\": \"SYN-MB-VS-PM\",\n      \"issue\": \"Soft edge (5.95%) with 0.75 confidence insufficient for authorization; consensus_case 'all_agree' masks missing lineup data\",\n      \"severity\": \"medium\"\n    },\n    {\n      \"fixture\": \"SYN-PM-BK-AGAINST\",\n      \"issue\": \"Critical: confidence 0.55 + bookmaker/market agree against model (SportMonks 54% home vs final 40% home); edge 5.06% unreliable\",\n      \"severity\": \"high\"\n    },\n    {\n      \"fixture\": \"SYN-HT-LOW-XG\",\n      \"issue\": \"Draw edge 15.88% but confidence only 0.55; bookmaker/market disagree with model (38% home vs 27%); uncertainty 0.30 is elevated\",\n      \"severity\": \"high\"\n    },\n    {\n      \"fixture\": \"SYN-FAV-LUCKY-TRAIL\",\n      \"issue\": \"Strong edge 14.19% but confidence critically low (0.38); all_disagree consensus; halftime signal contradicts bookmaker direction; uncertainty 0.42\",\n      \"severity\": \"critical\"\n    },\n    {\n      \"fixture\": \"SYN-GK-MISSING\",\n      \"issue\": \"Edge 2.93% below meaningful threshold despite 1.0 data_completeness; blocked correctly by edge_below_threshold\",\n      \"severity\": \"low\"\n    }\n  ],\n  \"risk_flag_suggestions\": [\n    {\n      \"fixture\": \"SYN-MB-VS-PM\",\n      \"add_flags\": [\"lineup_delta_zero_impact\", \"market_snapshot_stale_unknown\"]\n    },\n    {\n      \"fixture\": \"SYN-PM-BK-AGAINST\",\n      \"add_flags\": [\"source_disagreement_unresolved\", \"confidence_insufficient_for_soft_edge\"]\n    },\n    {\n      \"fixture\": \"SYN-HT-LOW-XG\",\n      \"add_flags\": [\"multi_source_conflict\", \"high_uncertainty_halftime_window\"]\n    },\n    {\n      \"fixture\": \"SYN-FAV-LUCKY-TRAIL\",\n      \"add_flags\": [\"halftime_signal_reversal_risk\", \"extreme_confidence_gap\", \"luck_factor_unquantified\"]\n    },\n    {\n      \"fixture\": \"SYN-GK-MISSING\",\n      \"add_flags\": [\"edge_margin_within_noise\"]\n    }\n  ],\n  \"reporting_improvements\": [\n    \"Market staleness detection incomplete: 'Need current and previous market snapshots' is placeholder; implement timestamp delta chec",
+  "order_authorization_allowed": false
+}

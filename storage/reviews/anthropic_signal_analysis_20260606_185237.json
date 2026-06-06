@@ -1,0 +1,44 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "signal_analyst",
+  "model": "claude-sonnet-4-20250514",
+  "latency_seconds": 5.685,
+  "usage": {
+    "input_tokens": 1754,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 136,
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "recommendation": "SKIP",
+    "risk_posture": "veto",
+    "confidence_adjustment": -0.05,
+    "supporting_signals": [
+      "All sources agree on home favorite",
+      "Low source disagreement max 3%",
+      "Model confidence 75%"
+    ],
+    "contradicting_signals": [
+      "Edge below 3% threshold",
+      "Lineups unconfirmed",
+      "Best edge only 0.5%"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "edge_below_threshold",
+      "insufficient_edge_margin"
+    ],
+    "rationale": "Multiple blocking risk flags with minimal edge and missing lineup data",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "text_preview": "{\"recommendation\":\"SKIP\",\"risk_posture\":\"veto\",\"confidence_adjustment\":-0.05,\"supporting_signals\":[\"All sources agree on home favorite\",\"Low source disagreement max 3%\",\"Model confidence 75%\"],\"contradicting_signals\":[\"Edge below 3% threshold\",\"Lineups unconfirmed\",\"Best edge only 0.5%\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"edge_below_threshold\",\"insufficient_edge_margin\"],\"rationale\":\"Multiple blocking risk flags with minimal edge and missing lineup data\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

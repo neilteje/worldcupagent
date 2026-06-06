@@ -39,15 +39,17 @@ def evaluate_edge(fixture_code: str, window: str, final_model_probs: dict[str, f
         edge_type = "lineup_not_priced_in"
     elif window.upper() == "HT" and ("luck" in signal_text or "overreaction" in signal_text or "comeback" in signal_text):
         edge_type = "ht_scoreline_overreaction"
-    elif "stale" in signal_text:
+    elif "stale-market detector supports" in signal_text or "stale market supports" in signal_text:
         edge_type = "market_stale"
     elif tier != "none":
         edge_type = "model_only_edge"
     reasons = [f"best {best_outcome} edge {best_edge:+.3f} is {tier}."]
     should_bet = tier in {"medium", "strong"} or (tier == "soft" and consensus_case == "model_bookmaker_vs_polymarket" and confidence_score >= 0.75)
     if tier == "none": should_bet = False; reasons.append("Edge below 3% threshold.")
-    if confidence_score < 0.55: should_bet = False; reasons.append("Confidence below 0.55.")
+    if confidence_score < 0.55 - 1e-9: should_bet = False; reasons.append("Confidence below 0.55.")
     if uncertainty_score > 0.45: should_bet = False; reasons.append("Uncertainty above 0.45.")
+    if tier == "soft" and not (consensus_case == "model_bookmaker_vs_polymarket" and confidence_score >= 0.75):
+        reasons.append("Soft edge requires model/bookmaker support and confidence at least 0.75.")
     if signal_text and all(w in signal_text for w in ["sentiment"]): should_bet = False; reasons.append("Sentiment-only edge is not tradable.")
     if against and edge_type not in {"lineup_not_priced_in", "ht_scoreline_overreaction"}:
         should_bet = False; reasons.append("Bookmaker and Polymarket agree against the model.")

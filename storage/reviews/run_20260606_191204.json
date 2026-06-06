@@ -1,0 +1,108 @@
+{
+  "timestamp": "2026-06-06T19:12:04.249074+00:00",
+  "commands_run": [
+    "C:\\Users\\sidan_ud0ve2j\\Desktop\\sidharthanand\\hackathons\\stairai-kalshi\\worldcupagent\\agent\\main.py --once --dry-run --verbose --use-synthetic-fixtures --fixture-code SYN-MB-VS-PM --anthropic-health-check --use-llm-analyst --use-anthropic-critic"
+  ],
+  "tests": {
+    "passed": null,
+    "failed": null
+  },
+  "fixtures_processed": 1,
+  "predictions_generated": 1,
+  "orders_attempted": 0,
+  "orders_skipped": 1,
+  "ledger_records_generated": 14,
+  "api_errors": [],
+  "weaknesses": [
+    "Ledger is saved locally but live submission is unavailable or not configured.",
+    "Confirmed lineup data is unavailable for at least one decision."
+  ],
+  "ideas_proposed": [
+    "Track source contribution deltas per run to explain probability movement.",
+    "Use prediction diffing to explain changes from the previous fixture/window run.",
+    "Add live API reliability metrics over multiple runs."
+  ],
+  "ideas_implemented": [
+    "Added Anthropic Sonnet signal analyst as a required second decision input."
+  ],
+  "remaining_todos": [
+    "Ledger is saved locally but live submission is unavailable or not configured.",
+    "Confirmed lineup data is unavailable for at least one decision."
+  ],
+  "llm_review": {
+    "key": {
+      "present": true,
+      "length": 108
+    },
+    "health_check": {
+      "called": true,
+      "ok": true,
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "latency_seconds": 1.198,
+      "usage": {
+        "input_tokens": 38,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 43,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "parsed": {
+        "ok": true,
+        "role": "health_check",
+        "note": "anthropic_api_reachable"
+      },
+      "text_preview": "```json\n{\n  \"ok\": true,\n  \"role\": \"health_check\",\n  \"note\": \"anthropic_api_reachable\"\n}\n```"
+    },
+    "critic": {
+      "called": true,
+      "ok": true,
+      "provider": "anthropic",
+      "model": "claude-haiku-4-5-20251001",
+      "latency_seconds": 5.185,
+      "usage": {
+        "input_tokens": 854,
+        "cache_creation_input_tokens": 0,
+        "cache_read_input_tokens": 0,
+        "cache_creation": {
+          "ephemeral_5m_input_tokens": 0,
+          "ephemeral_1h_input_tokens": 0
+        },
+        "output_tokens": 340,
+        "service_tier": "standard",
+        "inference_geo": "not_available"
+      },
+      "parsed": {
+        "probability_concerns": [
+          "Final home prob 0.51 vs bookmaker 0.54 lacks convincing edge (0.06 soft-tier)",
+          "Draw probability 0.26 sits between bookmaker 0.25 and market 0.29 with no directional signal",
+          "Lineup confirmation missing blocks reliable probability synthesis"
+        ],
+        "risk_flag_suggestions": [
+          "Escalate lineup_confirmed to hard gate\u2014current 0.5625 confidence insufficient for pre-match commitment",
+          "Uncertainty 0.50 exceeds soft-edge threshold; require \u22650.75 for EXECUTE",
+          "Soft edge + insufficient confidence + dry_run_enabled = stack of deterministic blocks correctly honored"
+        ],
+        "reporting_improvements": [
+          "Log why draw_model and lineup_delta both impact=0.0 despite 0.71/0.56 confidence\u2014unclear if signals are neutral or suppressed",
+          "Clarify probability_delta zeros: are they genuine no-ops or unmapped outputs?",
+          "Document consensus_case='all_agree' decision rule\u2014bookmaker/sportmonks/market show material spread (0.54 vs 0.56 vs 0.45 home)"
+        ],
+        "next_engineering_steps": [
+          "Enforce lineup_confirmed as blocking gate before probability aggregation",
+          "Reduce soft-edge threshold or raise confidence floor to 0.80+ for pre-match windows",
+          "Review draw_model signal generation\u20140.72 weight with zero impact suggests miscalibration"
+        ],
+        "order_authorization": "REJECT"
+      },
+      "text_preview": "```json\n{\"probability_concerns\":[\"Final home prob 0.51 vs bookmaker 0.54 lacks convincing edge (0.06 soft-tier)\",\"Draw probability 0.26 sits between bookmaker 0.25 and market 0.29 with no directional signal\",\"Lineup confirmation missing blocks reliable probability synthesis\"],\"risk_flag_suggestions\":[\"Escalate lineup_confirmed to hard gate\u2014current 0.5625 confidence insufficient for pre-match commitment\",\"Uncertainty 0.50 exceeds soft-edge threshold; require \u22650.75 for EXECUTE\",\"Soft edge + insufficient confidence + dry_run_enabled = stack of deterministic blocks correctly honored\"],\"reporting_improvements\":[\"Log why draw_model and lineup_delta both impact=0.0 despite 0.71/0.56 confidence\u2014unclear if signals are neutral or suppressed\",\"Clarify probability_delta zeros: are they genuine no-ops or unmapped outputs?\",\"Document consensus_case='all_agree' decision rule\u2014bookmaker/sportmonks/market show material spread (0.54 vs 0.56 vs 0.45 home)\"],\"next_engineering_steps\":[\"Enforce lineup_confirmed as blocking gate before probability aggregation\",\"Reduce soft-edge threshold or raise confidence floor to 0.80+ for pre-match windows\",\"Review draw_model signal generation\u20140.72 weight with zero impact suggests miscalibration\"],\"order_authorization\":\"REJECT\"}\n```",
+      "order_authorization_allowed": false,
+      "artifact": "storage\\reviews\\anthropic_review_20260606_191204.json"
+    }
+  }
+}
