@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2154,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 882,
+    "output_tokens_details": {
+      "thinking_tokens": 645
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.482,
+      "draw": 0.272,
+      "away": 0.246
+    },
+    "confidence": 0.59,
+    "uncertainty": 0.608,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Bookmaker and Sportmonks consensus on home win ~51-52%",
+      "Deterministic blend shows home favorite at 48.2%",
+      "All sources agree home is most likely outcome"
+    ],
+    "contradicting_signals": [
+      "Supabase priors show higher away probability (32% vs 22%)",
+      "No market data available for validation",
+      "Lineups unconfirmed for both teams",
+      "High uncertainty 0.608 with missing data sources"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "missing_market_data",
+      "synthetic_fixture_code"
+    ],
+    "rationale": "Moderate home favoritism but critical data gaps (market, lineups, Polymarket) and high uncertainty warrant skipping. Fixture code suggests synthetic/test scenario.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided decision context:\n\n**Key Data Points:**\n- Bookmaker probs: home 0.51, draw 0.27, away 0.22\n- Sportmonks probs: home 0.52, draw 0.26, away 0.22\n- Supabase priors: home 0.40, draw 0.28, away 0.32\n- Deterministic model: home 0.482, draw 0.272, away 0.246\n- Confidence: 0.59 (moderate)\n- Uncertainty: 0.608 (high)\n\n**Missing Data:**\n- No Polymarket data\n- No confirmed lineups\n- No market data\n- Data completeness score: 0.6 (60%)\n\n**Risk Flags:**\n- probability_sources_missing\n- lineup_unconfirmed\n- dry_run mode\n- fixture_code: \"SYN-MISSING-MARKET\" (suggests this might be synthetic/test data)\n\n**Analysis:**\n1. All three probability sources (bookmaker, sportmonks, supabase) favor home win\n2. There's reasonable consensus: home ranges 0.40-0.52, draw 0.26-0.28, away 0.22-0.32\n3. Supabase shows higher away probability (0.32) vs others (0.22)\n4. No claim signals, no lineup confirmation, no market data\n5. High uncertainty (0.608) and moderate confidence (0.59)\n6. Missing critical data sources\n\n**Final Probabilities:**\nBased on the deterministic model output which blends all sources:\n- Home: 0.482 (48.2%)\n- Draw: 0.272 (27.2%)\n- Away: 0.246 (24.6%)\n\n**Recommendation:**\nGiven:\n- Missing market data and unconfirmed lineups\n- High uncertainty paired with only moderate confidence\n- Synthetic/missing market fixture code and dry run mode\n\nThis should be SKIP - too many critical data gaps and risk flags present.\n\n**Risk Posture:** caution (would escalate to veto with additional flags, though probability estimates show some consistency)\n\n**Supporting Signals:**\n- Bookmaker and sportmonks align on home as favorite\n- Deterministic model reinforces home win as most likely outcome\n\n**Contradicting Signals:**\n- Supabase priors diverge significantly, showing higher away probability (0.32 vs 0.22 from other sources)\n- Probability sources incomplete, lineups still unconfirmed, and no market data available to validate the predictions being made",
+  "text_preview": "{\"probabilities\":{\"home\":0.482,\"draw\":0.272,\"away\":0.246},\"confidence\":0.59,\"uncertainty\":0.608,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Bookmaker and Sportmonks consensus on home win ~51-52%\",\"Deterministic blend shows home favorite at 48.2%\",\"All sources agree home is most likely outcome\"],\"contradicting_signals\":[\"Supabase priors show higher away probability (32% vs 22%)\",\"No market data available for validation\",\"Lineups unconfirmed for both teams\",\"High uncertainty 0.608 with missing data sources\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"missing_market_data\",\"synthetic_fixture_code\"],\"rationale\":\"Moderate home favoritism but critical data gaps (market, lineups, Polymarket) and high uncertainty warrant skipping. Fixture code suggests synthetic/test scenario.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

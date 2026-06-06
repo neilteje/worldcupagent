@@ -107,3 +107,15 @@
 - Orders skipped: 1
 - Ledger records: 14
 - Weakness count: 1
+
+## 2026-06-06T20:43:54.240544+00:00
+- Decisions: 1
+- Orders skipped: 1
+- Ledger records: 15
+- Weakness count: 2
+
+## 2026-06-06T20:44:18.016956+00:00
+- Decisions: 10
+- Orders skipped: 10
+- Ledger records: 153
+- Weakness count: 3

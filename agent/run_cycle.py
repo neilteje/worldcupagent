@@ -11,6 +11,7 @@ from models.consensus import consensus_triangle
 from models.edge_engine import evaluate_edge
 from models.halftime import evaluate_halftime
 from models.lineup_delta import evaluate_lineup_delta
+from models.llm_central import normalize_central_prediction
 from models.llm_decision import merge_llm_analysis_into_risk
 from models.probability import pre_match_model, halftime_model
 from models.bet_sizing import bet_size, limit_price
@@ -20,6 +21,7 @@ from models.draw_model import apply_draw_model, draw_sanity_flags
 from models.market_stale import detect_market_stale
 from models.source_reconciliation import reconcile_sources
 from reasoning.anthropic_review import analyze_decision_signals_with_anthropic
+from reasoning.central_llm import central_match_forecast_with_anthropic
 from reasoning.claim_extraction import apply_official_overrides, claims_to_signals, extract_claims_with_anthropic, validate_claim_json
 from reasoning.ledger_builder import LedgerAdapter, LedgerBuilder
 from reasoning.run_report import print_run_report
@@ -102,8 +104,9 @@ def _extract_structured_claims(settings: Settings, fixture: dict, synthetic: dic
     return result
 
 
-def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: Settings | None = None, verbose: bool = False, *, use_llm_analyst: bool = False, use_llm_claims: bool = False) -> dict:
+def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: Settings | None = None, verbose: bool = False, *, use_llm_analyst: bool = False, use_llm_claims: bool = False, decision_mode: str | None = None) -> dict:
     settings = settings or load_settings()
+    decision_mode = (decision_mode or settings.decision_mode or "deterministic").lower()
     fixture = fixture or {"id": settings.default_fixture_code, "fixture_code": settings.default_fixture_code, "demo": True}
     window = "HT" if (window or fixture.get("preferred_window", "PRE_MATCH")).upper() in {"HT", "HALFTIME"} else "PRE_MATCH"
     fixture_code = _fixture_code(fixture)
@@ -151,6 +154,59 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
         model_out["probabilities"] = draw_ht["probabilities"]
         draw_out = draw_ht
 
+    deterministic_reference = {
+        "probabilities": dict(model_out["probabilities"]),
+        "confidence": float(model_out["confidence"]),
+        "uncertainty": float(model_out["uncertainty"]),
+        "risk_flags": list(model_out.get("risk_flags", [])),
+        "weights": model_out.get("weights"),
+        "source_contribution": model_out.get("source_contribution"),
+        "steps": model_out.get("steps"),
+    }
+
+    llm_central = None
+    if decision_mode == "llm_central":
+        llm_central = central_match_forecast_with_anthropic(
+            settings,
+            {
+                "fixture_code": fixture_code,
+                "window": window,
+                "market_probs": market.get("normalized_probs"),
+                "bookmaker_probs": bookmaker,
+                "sportmonks_probs": sm_pred,
+                "supabase_priors": priors,
+                "lineup": lineup,
+                "halftime": ht_out,
+                "structured_claims": claim_extraction,
+                "claim_signals": claim_signals,
+                "data_completeness": completeness,
+                "deterministic_prematch": prematch,
+                "deterministic_model": deterministic_reference,
+                "source_reconciliation": None,
+                "market_stale": None,
+                "signal_conflict": None,
+                "top_signals": [],
+                "dry_run": settings.dry_run,
+            },
+            storage_dir=settings.storage_dir,
+        )
+        central_prediction = normalize_central_prediction(
+            llm_central,
+            fallback_probs=deterministic_reference["probabilities"],
+            fallback_confidence=deterministic_reference["confidence"],
+            fallback_uncertainty=deterministic_reference["uncertainty"],
+        )
+        model_out = {
+            **model_out,
+            "probabilities": central_prediction["probabilities"],
+            "confidence": central_prediction["confidence"],
+            "uncertainty": central_prediction["uncertainty"],
+            "risk_flags": list(dict.fromkeys(list(model_out.get("risk_flags") or []) + central_prediction["risk_flags"])),
+            "llm_central": central_prediction,
+            "deterministic_reference": deterministic_reference,
+            "decision_mode": decision_mode,
+        }
+
     cons = consensus_triangle(model_out["probabilities"], bookmaker, market.get("normalized_probs"))
     source_reconciliation = reconcile_sources(model_out["probabilities"], sm_pred, bookmaker, market.get("normalized_probs"))
     signals = list(claim_signals) + [
@@ -166,6 +222,13 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     conflict = signal_conflict_score(signals)
     confidence = max(.1, min(.9, model_out["confidence"] + cons["confidence_modifier"] - conflict - max(0, .65 - completeness["score"]) * .18))
     uncertainty = max(.05, min(.85, model_out["uncertainty"] + conflict + max(0, .70 - completeness["score"]) * .20))
+    if llm_central:
+        top_signals.extend(
+            [{"name": "llm_central_support", "reason": text} for text in model_out["llm_central"].get("supporting_signals", [])[:2]]
+        )
+        top_signals.extend(
+            [{"name": "llm_central_contradiction", "reason": text} for text in model_out["llm_central"].get("contradicting_signals", [])[:2]]
+        )
 
     previous_market = synthetic.get("previous_market") or previous_normalized_probs(settings.storage_dir, fixture_code, window)
     stale = detect_market_stale(market.get("normalized_probs"), previous_market, bookmaker, synthetic.get("signal_delta") or lineup.get("probability_delta"))
@@ -180,6 +243,8 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     duplicate = _duplicate_order_marker(settings, fixture_code, window) and not settings.dry_run
     extra_flags = draw_sanity_flags(model_out["probabilities"], reason=draw_out.get("reason", ""))
     extra_flags.extend(model_out.get("risk_flags", []))
+    if llm_central:
+        extra_flags.extend(model_out["llm_central"].get("blocking_risk_flags", []))
     extra_flags.extend(claim_extraction.get("risk_flags", []))
     extra_flags.extend(source_reconciliation.get("flags", []))
     if stale.get("reason") == "Need current and previous market snapshots.":
@@ -224,6 +289,8 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     trace_quality = ledger.trace_quality()
     ledger_result = LedgerAdapter(settings).submit(ledger.session_id, records)
     decision = {"session_id": ledger.session_id, "fixture_code": fixture_code, "window": window, "teams": fixture.get("name"), "final_probs": model_out["probabilities"], "market_probs": market.get("normalized_probs"), "bookmaker_probs": bookmaker, "sportmonks_probs": sm_pred, "halftime": ht_out, "lineup": lineup, "data_completeness": completeness, "market_stale": stale, "source_reconciliation": source_reconciliation, "source_contribution": model_out.get("source_contribution"), "deterministic_weights": model_out.get("weights"), "probability_steps": model_out.get("steps"), "llm_claims": claim_extraction, "consensus_case": cons["case"], "best_outcome": best, "best_edge": edge["best_edge"], "edge_tier": edge["edge_tier"], "edge_type": edge["edge_type"], "edge_reason": edge["reason"], "confidence": confidence, "uncertainty": uncertainty, "top_signals": top_signals, "llm_analysis": llm_analysis, "action": "BET" if should_order else "SKIP", "risk_flags": risk["risk_flags"], "blocking_risk_flags": risk["blocking_risk_flags"], "prediction_submitted": True, "order_submitted": bool(order_result.get("submitted")), "dry_run": settings.dry_run, "ledger_submitted": ledger_result.get("submitted", False), "ledger_records": len(records), "ledger_dag_valid": ledger.validate_dag(), "trace_quality": trace_quality, "order": order_result}
+    decision["decision_mode"] = decision_mode
+    decision["llm_central"] = llm_central
     out = settings.storage_dir / "decisions" / f"{fixture_code}-{window}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(decision, indent=2), encoding="utf-8")

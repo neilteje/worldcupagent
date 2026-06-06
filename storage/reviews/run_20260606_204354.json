@@ -1,0 +1,38 @@
+{
+  "timestamp": "2026-06-06T20:43:54.240544+00:00",
+  "commands_run": [
+    "C:\\Users\\sidan_ud0ve2j\\Desktop\\sidharthanand\\hackathons\\stairai-kalshi\\worldcupagent\\agent\\main.py --once --dry-run --use-synthetic-fixtures --fixture-code SYN-MB-VS-PM --decision-mode llm_central"
+  ],
+  "tests": {
+    "passed": null,
+    "failed": null
+  },
+  "fixtures_processed": 1,
+  "predictions_generated": 1,
+  "orders_attempted": 0,
+  "orders_skipped": 1,
+  "ledger_records_generated": 15,
+  "api_errors": [],
+  "weaknesses": [
+    "Ledger is saved locally but live submission is unavailable or not configured.",
+    "Confirmed lineup data is unavailable for at least one decision."
+  ],
+  "ideas_proposed": [
+    "Track source contribution deltas per run to explain probability movement.",
+    "Use prediction diffing to explain changes from the previous fixture/window run.",
+    "Add live API reliability metrics over multiple runs."
+  ],
+  "ideas_implemented": [
+    "Added structured run review artifacts for every agent run."
+  ],
+  "remaining_todos": [
+    "Ledger is saved locally but live submission is unavailable or not configured.",
+    "Confirmed lineup data is unavailable for at least one decision."
+  ],
+  "llm_review": {
+    "key": {
+      "present": true,
+      "length": 108
+    }
+  }
+}

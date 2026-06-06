@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2016,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 858,
+    "output_tokens_details": {
+      "thinking_tokens": 594
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.44,
+      "draw": 0.252,
+      "away": 0.308
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources agree home favorite 42-46%",
+      "Low signal conflict 0.0 indicates source alignment",
+      "Bookmaker and Polymarket converge",
+      "Data completeness 0.75 acceptable"
+    ],
+    "contradicting_signals": [
+      "Lineup unconfirmed",
+      "Supabase priors missing",
+      "Draw probability varies 22-29% across sources",
+      "Moderate uncertainty 0.6"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "dry_run_mode",
+      "missing_historical_priors"
+    ],
+    "rationale": "Home favorite consensus across all sources (bookmaker 45.9%, sportmonks 42.6%, polymarket 44.9%). Deterministic model output 44.0/25.2/30.8 balances sources well. Missing lineup and supabase priors reduce confidence. Watch recommended until data completeness improves.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data systematically:\n\n**Key Inputs:**\n1. **Bookmaker probs**: Home 45.9%, Draw 22.0%, Away 32.1%\n2. **Sportmonks probs**: Home 42.6%, Draw 29.1%, Away 28.3%\n3. **Market probs (Polymarket)**: Home 44.9%, Draw 23.9%, Away 31.2%\n4. **Deterministic model**: Home 44.0%, Draw 25.2%, Away 30.8% (confidence 0.6, uncertainty 0.6)\n\n**Data Completeness:**\n- Missing: supabase_priors, lineup_confirmed\n- Score: 0.75 (reasonable but not complete)\n\n**Risk Flags:**\n- probability_sources_missing (from deterministic model)\n- lineup_unconfirmed\n\n**Context:**\n- Pre-match fixture (window: PRE_MATCH)\n- Dry run: true\n- No halftime data\n- No claim signals\n- Signal conflict: 0.0\n- No structured claims\n\n**Analysis:**\n1. All sources agree on home favorite (42-46% range)\n2. Draw probability varies more significantly (22-29%)\n3. Away probability fairly consistent (28-32%)\n4. Confidence is moderate (0.6)\n5. Uncertainty is moderate-high (0.6)\n6. Missing key data (lineup, supabase priors)\n\n**Supporting Signals:**\n- Consistent home favorite across all sources\n- Bookmaker, Polymarket, Sportmonks alignment\n- Low signal conflict (0.0)\n- Reasonable data completeness (0.75)\n\n**Contradicting Signals:**\n- Lineup unconfirmed\n- Missing supabase priors\n- Draw probability variation (22-29% range)\n- Moderate uncertainty (0.6)\n\n**Risk Assessment:**\nThe unconfirmed lineup and incomplete probability sources create meaningful gaps, while the moderate confidence level suggests caution. Operating in dry run mode further limits actionability.\n\n**Final Probabilities:**\nThe deterministic model's estimates align well with the broader consensus, so I'm settling on Home 44.0%, Draw 25.2%, and Away 30.8%.\n\n**Recommendation:**\nWATCH status is appropriate given the missing lineup confirmation and incomplete data sources, with a cautious risk posture warranted.",
+  "text_preview": "{\"probabilities\":{\"home\":0.44,\"draw\":0.252,\"away\":0.308},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources agree home favorite 42-46%\",\"Low signal conflict 0.0 indicates source alignment\",\"Bookmaker and Polymarket converge\",\"Data completeness 0.75 acceptable\"],\"contradicting_signals\":[\"Lineup unconfirmed\",\"Supabase priors missing\",\"Draw probability varies 22-29% across sources\",\"Moderate uncertainty 0.6\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"dry_run_mode\",\"missing_historical_priors\"],\"rationale\":\"Home favorite consensus across all sources (bookmaker 45.9%, sportmonks 42.6%, polymarket 44.9%). Deterministic model output 44.0/25.2/30.8 balances sources well. Missing lineup and supabase priors reduce confidence. Watch recommended until data completeness improves.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2017,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 809,
+    "output_tokens_details": {
+      "thinking_tokens": 553
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.52,
+      "draw": 0.35,
+      "away": 0.13
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources converge on home favorite",
+      "Bookmaker shows strong home bias 61.7%",
+      "Deterministic model 51.9% home",
+      "Multiple independent sources agree"
+    ],
+    "contradicting_signals": [
+      "Away prob variance: 6% to 18.5% across sources",
+      "Missing lineup confirmation",
+      "Supabase priors unavailable",
+      "Data completeness only 75%"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "high_uncertainty",
+      "source_divergence"
+    ],
+    "rationale": "Home favorite consensus across all sources but significant missing data (lineup, supabase) and high variance in away probability create elevated uncertainty. Deterministic model blends bookmaker, polymarket, sportmonks with 0.4/0.27/0.33 weights. Missing draw model and claims reduce confidence to 0.6.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided decision context to generate a comprehensive forecast:\n\n**Key Data Points:**\n1. **Bookmaker probabilities**: Home 0.617, Draw 0.323, Away 0.060\n2. **Sportmonks probabilities**: Home 0.471, Draw 0.345, Away 0.185\n3. **Market probabilities**: Home 0.474, Draw 0.376, Away 0.150\n4. **Deterministic model**: Home 0.519, Draw 0.347, Away 0.133\n5. **Confidence**: 0.6\n6. **Uncertainty**: 0.6\n7. **Data completeness score**: 0.75\n\n**Missing Data:**\n- Supabase priors\n- Lineup confirmation\n- Draw model\n- LLM claims\n\n**Risk Flags:**\n- probability_sources_missing\n- lineup_unconfirmed\n\n**Analysis:**\n- Strong home favorite across all sources\n- Bookmaker shows strongest home bias (0.617)\n- Sportmonks and Market probs more balanced\n- Away probability varies significantly: 0.06 (bookmaker) to 0.185 (sportmonks)\n- Draw probability relatively consistent (0.32-0.38)\n- Missing critical data (lineup, supabase priors)\n- Moderate confidence and high uncertainty\n\n**Supporting Signals:**\n- All sources favor home win\n- Bookmaker and model converge on home advantage\n- Multiple independent sources agree on direction\n\n**Contradicting Signals:**\n- Significant variance in away probability across sources\n- Missing lineup confirmation creates uncertainty\n- Bookmaker odds diverge notably from market/sportmonks\n- Data completeness only 75%\n\n**Final Probabilities:**\nI'll weight the deterministic model output while considering the bookmaker influence. Given missing data and variance, I'll blend:\n- Home: ~0.52 (between deterministic 0.519 and slightly higher)\n- Draw: ~0.35 (close to deterministic 0.347)\n- Away: ~0.13 (deterministic 0.133)\n\nThe missing lineup data and inconsistency between bookmaker and market estimates create enough uncertainty that I should skip this forecast. The 0.6 confidence paired with 0.6 uncertainty suggests the data gaps are too significant to make a reliable prediction, particularly given the 25% incompleteness in available information.",
+  "text_preview": "{\"probabilities\":{\"home\":0.52,\"draw\":0.35,\"away\":0.13},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources converge on home favorite\",\"Bookmaker shows strong home bias 61.7%\",\"Deterministic model 51.9% home\",\"Multiple independent sources agree\"],\"contradicting_signals\":[\"Away prob variance: 6% to 18.5% across sources\",\"Missing lineup confirmation\",\"Supabase priors unavailable\",\"Data completeness only 75%\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"high_uncertainty\",\"source_divergence\"],\"rationale\":\"Home favorite consensus across all sources but significant missing data (lineup, supabase) and high variance in away probability create elevated uncertainty. Deterministic model blends bookmaker, polymarket, sportmonks with 0.4/0.27/0.33 weights. Missing draw model and claims reduce confidence to 0.6.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

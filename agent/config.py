@@ -37,6 +37,7 @@ class Settings:
     llm_signal_delta_cap: float = min(_float("LLM_SIGNAL_DELTA_CAP", 0.02), 0.05)
     backtest_llm_budget_usd: float = min(_float("BACKTEST_LLM_BUDGET_USD", 5.0), 5.0)
     tif_seconds: int = int(_float("TIME_IN_FORCE_SECONDS", 30))
+    decision_mode: str = os.getenv("DECISION_MODE", "deterministic")
 
     @property
     def arena_api(self) -> str:

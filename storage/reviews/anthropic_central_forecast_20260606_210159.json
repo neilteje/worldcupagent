@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2016,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 897,
+    "output_tokens_details": {
+      "thinking_tokens": 677
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.401,
+      "draw": 0.331,
+      "away": 0.268
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources align home favorite 40-43%",
+      "Low signal conflict 0.0",
+      "Bookmaker confidence in home 42.5%",
+      "Consistent draw probability 32-35%"
+    ],
+    "contradicting_signals": [
+      "Missing supabase priors",
+      "Lineup unconfirmed",
+      "No claim signals available",
+      "Moderate uncertainty 0.6"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "moderate_confidence_only",
+      "no_clear_edge"
+    ],
+    "rationale": "Home favored at 40% with draw 33% and away 27%. Sources align but missing lineup and priors reduce confidence. No exploitable edge detected with 60% uncertainty.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided decision context to generate a final forecast:\n\n**Key Data Points:**\n1. **Bookmaker probabilities**: Home: 42.51%, Draw: 32.75%, Away: 24.73%\n2. **Sportmonks probabilities**: Home: 39.80%, Draw: 31.99%, Away: 28.21%\n3. **Market probabilities (likely Polymarket)**: Home: 38.60%, Draw: 34.58%, Away: 26.82%\n4. **Deterministic model output**: Home: 40.13%, Draw: 33.10%, Away: 26.76%\n\n**Missing Data:**\n- Supabase priors\n- Lineup confirmed\n- Draw model\n- LLM claims\n- Data completeness score: 0.75\n\n**Risk Flags:**\n- probability_sources_missing\n- lineup_unconfirmed\n\n**Confidence & Uncertainty:**\n- Confidence: 0.6 (moderate)\n- Uncertainty: 0.6 (moderate-high)\n\n**Analysis:**\n- All sources agree home is favored (~39-43%), with draw second (~32-35%), and away least likely (~25-28%)\n- The deterministic model has blended these with weights: bookmaker 40%, sportmonks 33%, polymarket 27%\n- No halftime data (pre-match scenario)\n- No claim signals or structured signals\n- Signal conflict: 0.0 (sources are reasonably aligned)\n- This is a dry run (fixture code BT-005)\n\n**Final Probabilities:**\nI'll use the deterministic model output as the base since it's already weighted and calibrated:\n- Home: 40.13%\n- Draw: 33.10%\n- Away: 26.76%\n\n**Recommendation:**\nGiven the moderate confidence and missing lineup confirmation alongside supabase priors, there's no compelling edge here. The probabilities are fairly tight across outcomes, and without those key inputs, I should SKIP this fixture. The sources align well on home being favored, but the gaps in data and lack of structured claims make this too uncertain to act on confidently.",
+  "text_preview": "{\"probabilities\":{\"home\":0.401,\"draw\":0.331,\"away\":0.268},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources align home favorite 40-43%\",\"Low signal conflict 0.0\",\"Bookmaker confidence in home 42.5%\",\"Consistent draw probability 32-35%\"],\"contradicting_signals\":[\"Missing supabase priors\",\"Lineup unconfirmed\",\"No claim signals available\",\"Moderate uncertainty 0.6\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"moderate_confidence_only\",\"no_clear_edge\"],\"rationale\":\"Home favored at 40% with draw 33% and away 27%. Sources align but missing lineup and priors reduce confidence. No exploitable edge detected with 60% uncertainty.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

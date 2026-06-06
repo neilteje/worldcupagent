@@ -33,6 +33,7 @@ The package agent reads settings from `agent/config.py`.
 | `ANTHROPIC_KEY` or `ANTHROPIC_API_KEY` | empty | Enables optional Anthropic features. |
 | `LLM_SIGNAL_DELTA_CAP` | `0.02` | Caps LLM-derived signal influence. |
 | `BACKTEST_LLM_BUDGET_USD` | `5.0` | Budget guard for optional backtest critique. |
+| `DECISION_MODE` | `deterministic` | Forecasting mode: deterministic-first or `llm_central`. |
 
 ## Main commands
 
@@ -76,6 +77,15 @@ python -m agent.main --once --dry-run --use-llm-claims
 python -m agent.main --once --dry-run --use-llm-analyst
 python -m agent.main --once --dry-run --use-anthropic-critic
 ```
+
+LLM-central mode:
+
+```bash
+python -m agent.main --once --dry-run --decision-mode llm_central
+python -m agent.main --once --dry-run --decision-mode llm_central --use-llm-claims
+```
+
+In `llm_central` mode, the LLM becomes the primary forecaster and synthesizes the full feature bundle into the main probability forecast. Deterministic gates still handle edge checks, sizing, and order safety.
 
 ## Safety model
 

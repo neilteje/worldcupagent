@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2379,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 888,
+    "output_tokens_details": {
+      "thinking_tokens": 647
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.4,
+      "draw": 0.3,
+      "away": 0.3
+    },
+    "confidence": 0.66,
+    "uncertainty": 0.5,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Sportmonks heavily favors home (54%)",
+      "Supabase priors support home edge (49%)",
+      "Deterministic blend shows home advantage",
+      "All sources agree draw is least likely"
+    ],
+    "contradicting_signals": [
+      "Bookmaker/market tilt away (38% vs 34% home)",
+      "Large divergence between Sportmonks and bookmaker",
+      "Lineups unconfirmed for both teams",
+      "Missing probability sources reduce reliability"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "data_completeness_below_full",
+      "source_divergence_detected"
+    ],
+    "rationale": "Home slight edge from model blend but lineup uncertainty and 20-point spread between Sportmonks and bookmaker creates unreliable forecast. Skip until lineups confirmed.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Looking at the decision context, I need to synthesize all the features into a final forecast:\n\n**Key Inputs:**\n1. **Bookmaker probs**: home=0.34, draw=0.28, away=0.38\n2. **Market probs (Polymarket)**: home=0.35, draw=0.28, away=0.37\n3. **Sportmonks probs**: home=0.54, draw=0.25, away=0.21\n4. **Supabase priors**: home=0.49, draw=0.27, away=0.24\n5. **Deterministic model**: home=0.4007, draw=0.2983, away=0.3010 (confidence 0.66, uncertainty 0.50)\n\n**Key Observations:**\n- Data completeness score: 0.8 (missing lineup_confirmed)\n- Lineup: unconfirmed for both teams, confidence only 0.35\n- Risk flags: \"probability_sources_missing\", \"lineup_unconfirmed\"\n- No claim signals, no halftime data (PRE_MATCH)\n- No signal conflict or source reconciliation issues\n- Market stale: null (not detected as stale)\n\n**Supporting signals:**\n- Sportmonks and Supabase both favor home (54% and 49%)\n- Deterministic model shows home edge (40.1%)\n- Bookmaker and market consensus relatively close\n\n**Contradicting signals:**\n- Bookmaker/market favor away slightly (38% vs 34% home)\n- Large divergence between Sportmonks (home 54%) and bookmaker (home 34%)\n- Lineup unconfirmed adds uncertainty\n- Missing probability sources\n\n**Risk Assessment:**\n- Lineup unconfirmed is a significant risk\n- Probability sources missing and moderate uncertainty (0.50) compound the concern\n- Dry run mode and model confidence of only 0.66 suggest caution\n\nThe deterministic model provides the most balanced synthesis across all sources. I'll use those calibrated values: home 0.4007, draw 0.2983, away 0.3010. Given the unconfirmed lineups, missing data sources, and moderate confidence levels, this warrants a SKIP recommendation with a cautious risk posture.",
+  "text_preview": "{\"probabilities\":{\"home\":0.40,\"draw\":0.30,\"away\":0.30},\"confidence\":0.66,\"uncertainty\":0.50,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Sportmonks heavily favors home (54%)\",\"Supabase priors support home edge (49%)\",\"Deterministic blend shows home advantage\",\"All sources agree draw is least likely\"],\"contradicting_signals\":[\"Bookmaker/market tilt away (38% vs 34% home)\",\"Large divergence between Sportmonks and bookmaker\",\"Lineups unconfirmed for both teams\",\"Missing probability sources reduce reliability\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"probability_sources_missing\",\"data_completeness_below_full\",\"source_divergence_detected\"],\"rationale\":\"Home slight edge from model blend but lineup uncertainty and 20-point spread between Sportmonks and bookmaker creates unreliable forecast. Skip until lineups confirmed.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

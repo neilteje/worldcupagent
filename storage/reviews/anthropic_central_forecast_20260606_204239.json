@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2609,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1059,
+    "output_tokens_details": {
+      "thinking_tokens": 780
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.498,
+      "draw": 0.234,
+      "away": 0.268
+    },
+    "confidence": 0.68,
+    "uncertainty": 0.42,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Home leads 1-0 at HT",
+      "Halftime model weighted 51.7%",
+      "Bookmaker and Sportmonks align ~47-48% home",
+      "Deterministic model confidence 0.68"
+    ],
+    "contradicting_signals": [
+      "Red card distortion at halftime",
+      "Home scoreline luck +0.45 suggests fragility",
+      "xG nearly even 0.55-0.50",
+      "Lineup unconfirmed both teams"
+    ],
+    "additional_risk_flags": [
+      "red_card_distortion",
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "high_scoreline_variance"
+    ],
+    "rationale": "Home leads 1-0 but red card distortion creates major uncertainty. Card adjustment penalizes home -12% suggesting they're down a player. High scoreline luck and even xG indicate fragile lead. Unconfirmed lineups add risk. Halftime-weighted model produces reasonable estimate but volatility too high for betting.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to create a comprehensive forecast:\n\n**Key Inputs:**\n1. **Bookmaker probs**: home=0.47, draw=0.28, away=0.25\n2. **Market probs (Polymarket)**: home=0.55, draw=0.25, away=0.20\n3. **Sportmonks**: home=0.48, draw=0.27, away=0.25\n4. **Supabase priors**: home=0.40, draw=0.28, away=0.32\n5. **Halftime state**: \n   - Score 1-0 (home leading)\n   - xG 0.55-0.50 (very close)\n   - RED CARD DISTORTION label - critical flag!\n   - HT probs: home=0.483, draw=0.240, away=0.277\n   - Card adjustment: home=-0.12, draw=0.04, away=0.08\n   - Home has scoreline luck of +0.45, away has -0.50\n6. **Deterministic model**: home=0.498, draw=0.234, away=0.268 (confidence 0.68)\n7. **Lineup**: NOT confirmed for either team (confidence only 0.35)\n\n**Critical Signals:**\n- RED CARD DISTORTION at halftime - this is a major event that significantly affects probabilities\n- Card adjustment shows home penalized (-0.12) suggesting they may have the red card\n- Score is 1-0 but xG is nearly even (0.55-0.50)\n- Home has positive scoreline luck (+0.45) - they're winning despite similar performance\n- Lineup unconfirmed for both teams - adds uncertainty\n\n**Analysis:**\nThe red card distortion is the most critical factor. If home received a red card:\n- They're ahead 1-0 but now defending with 10 men for the remainder\n- Expected goals nearly balanced suggests neither side dominated the first half\n- Their +0.45 scoreline luck indicates fortune rather than superior play\n- The second half becomes significantly more challenging when outnumbered\n\nThe deterministic model (51.7% weight on halftime) produces home=0.498, draw=0.234, away=0.268, which appropriately reflects the red card penalty while preserving home's lead advantage. Several factors introduce meaningful uncertainty: the red card distortion itself, unconfirmed lineups, and data completeness at 85.7%, plus the elevated scoreline luck variance suggesting potential for swings.\n\n**Recommendation:**\nGiven the red card situation and lineup uncertainty, this warrants SKIP or WATCH at best. The volatility is too high to confidently project outcomes. I'd set confidence around 0.65-0.68 due to the clear red card impact, but uncertainty remains elevated at 0.40-0.45 from the unpredictability of how the numerical disadvantage plays out. The cautious approach here is warranted.",
+  "text_preview": "{\"probabilities\":{\"home\":0.498,\"draw\":0.234,\"away\":0.268},\"confidence\":0.68,\"uncertainty\":0.42,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Home leads 1-0 at HT\",\"Halftime model weighted 51.7%\",\"Bookmaker and Sportmonks align ~47-48% home\",\"Deterministic model confidence 0.68\"],\"contradicting_signals\":[\"Red card distortion at halftime\",\"Home scoreline luck +0.45 suggests fragility\",\"xG nearly even 0.55-0.50\",\"Lineup unconfirmed both teams\"],\"additional_risk_flags\":[\"red_card_distortion\",\"lineup_unconfirmed\",\"probability_sources_missing\",\"high_scoreline_variance\"],\"rationale\":\"Home leads 1-0 but red card distortion creates major uncertainty. Card adjustment penalizes home -12% suggesting they're down a player. High scoreline luck and even xG indicate fragile lead. Unconfirmed lineups add risk. Halftime-weighted model produces reasonable estimate but volatility too high for betting.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

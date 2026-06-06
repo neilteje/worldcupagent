@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2365,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 868,
+    "output_tokens_details": {
+      "thinking_tokens": 646
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.51,
+      "draw": 0.26,
+      "away": 0.23
+    },
+    "confidence": 0.66,
+    "uncertainty": 0.5,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources favor home 52-56%",
+      "Bookmaker shows strong home edge 54%",
+      "Sportmonks highest home confidence 56%",
+      "Calibrated draw floor applied"
+    ],
+    "contradicting_signals": [
+      "Lineups unconfirmed both teams",
+      "Polymarket diverges lower home 45%",
+      "Missing probability sources",
+      "Moderate uncertainty 0.50"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "polymarket_divergence",
+      "moderate_uncertainty"
+    ],
+    "rationale": "Home favored across all sources but lineup uncertainty and source gaps warrant caution. Polymarket shows weaker home edge vs bookmaker/sportmonks consensus. Skip until lineups confirmed.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this decision context systematically:\n\n**Key Inputs:**\n1. **Bookmaker probabilities**: home 0.54, draw 0.25, away 0.21\n2. **Market (Polymarket) probabilities**: home 0.45, draw 0.29, away 0.26\n3. **Sportmonks probabilities**: home 0.56, draw 0.24, away 0.20\n4. **Supabase priors**: home 0.52, draw 0.26, away 0.22\n5. **Deterministic model output**: home 0.5098, draw 0.2633, away 0.2269\n6. **Confidence**: 0.66\n7. **Uncertainty**: 0.50\n8. **Window**: PRE_MATCH\n9. **Lineup**: Not confirmed for either team (risk flag: lineup_unconfirmed)\n10. **Data completeness**: 0.8 (missing lineup_confirmed)\n11. **Risk flags**: probability_sources_missing, lineup_unconfirmed\n\n**Supporting Signals:**\n- All major sources (bookmaker, sportmonks, supabase) favor home win (52-56%)\n- Consistent home advantage across all sources\n- Reasonable model confidence at 0.66\n- Draw probabilities calibrated with floor at 0.16\n\n**Contradicting Signals:**\n- Polymarket shows lower home probability (0.45) vs other sources (0.52-0.56)\n- Lineups not confirmed - adds uncertainty\n- Missing probability sources (lineup, draw_model, llm_claims)\n- Moderate uncertainty at 0.50\n\n**Risk Assessment:**\n- lineup_unconfirmed is a significant risk\n- probability_sources_missing\n- Data completeness at 0.8 (not terrible but not ideal)\n- No halftime data available in pre-match window\n- Notable divergence between Polymarket and traditional sources\n\nThe deterministic model output of home 0.5098, draw 0.2633, away 0.2269 represents a reasonable synthesis across sources with applied calibration. However, the moderate confidence paired with moderate uncertainty, combined with unconfirmed lineups and missing probability sources, suggests caution. Given the dry_run status and incomplete team information, leaning toward SKIP rather than proceeding with the prediction seems prudent.",
+  "text_preview": "{\"probabilities\":{\"home\":0.51,\"draw\":0.26,\"away\":0.23},\"confidence\":0.66,\"uncertainty\":0.50,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources favor home 52-56%\",\"Bookmaker shows strong home edge 54%\",\"Sportmonks highest home confidence 56%\",\"Calibrated draw floor applied\"],\"contradicting_signals\":[\"Lineups unconfirmed both teams\",\"Polymarket diverges lower home 45%\",\"Missing probability sources\",\"Moderate uncertainty 0.50\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"probability_sources_missing\",\"polymarket_divergence\",\"moderate_uncertainty\"],\"rationale\":\"Home favored across all sources but lineup uncertainty and source gaps warrant caution. Polymarket shows weaker home edge vs bookmaker/sportmonks consensus. Skip until lineups confirmed.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

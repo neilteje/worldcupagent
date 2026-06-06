@@ -4,6 +4,11 @@
 
 The maintained agent is the package under `agent/`, with `python -m agent.main` as the CLI entrypoint.
 
+The agent now supports two forecast modes:
+
+- `deterministic`: current deterministic-first blend with optional LLM support roles
+- `llm_central`: the LLM synthesizes the full feature bundle into the primary forecast, while deterministic gates still police execution
+
 At a high level:
 
 1. `agent.main` parses CLI flags and loads env-backed settings.
@@ -81,6 +86,17 @@ If `--use-llm-analyst` is enabled:
 - `models.llm_decision.merge_llm_analysis_into_risk()` can add blocking flags
 
 This means the LLM can add caution or veto, but it does not become the source of truth for order placement.
+
+### 5a. LLM-central forecast mode
+
+If `decision_mode=llm_central`:
+
+- the run still gathers the same full feature set
+- a central Anthropic forecast step synthesizes those features into the primary `home/draw/away` distribution
+- the result includes confidence, uncertainty, supporting signals, contradicting signals, and extra risk flags
+- if the LLM result is missing or invalid, the run falls back to the deterministic probabilities for artifact continuity, but it adds blocking flags so orders remain disallowed
+
+This mode is designed for experimentation where the LLM is the main forecaster rather than a bounded sidecar.
 
 ### 6. Risk and order gating
 

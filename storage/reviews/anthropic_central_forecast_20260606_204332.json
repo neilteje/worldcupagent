@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2388,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 891,
+    "output_tokens_details": {
+      "thinking_tokens": 657
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.496,
+      "draw": 0.266,
+      "away": 0.239
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.5,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources converge on home favorite",
+      "Bookmaker strong home bias 0.57",
+      "Deterministic model confidence 0.66",
+      "Multi-source alignment on outcome"
+    ],
+    "contradicting_signals": [
+      "Lineup unconfirmed both teams",
+      "Supabase priors show closer match 0.40-0.32",
+      "Market-bookmaker divergence 0.48 vs 0.57",
+      "High uncertainty 0.50"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "synthetic_fixture",
+      "data_completeness_80pct"
+    ],
+    "rationale": "Home favored across all sources but lineup uncertainty and synthetic fixture warrant caution. Missing confirmed lineups reduce reliability. Recommend waiting for lineup confirmation before action.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided decision context to synthesize a final 3-way probability forecast.\n\nKey features to consider:\n1. **Bookmaker probabilities**: home: 0.57, draw: 0.24, away: 0.19\n2. **Market probabilities**: home: 0.48, draw: 0.28, away: 0.24\n3. **Sportmonks probabilities**: home: 0.51, draw: 0.26, away: 0.23\n4. **Supabase priors**: home: 0.4, draw: 0.28, away: 0.32\n5. **Deterministic model**: home: 0.496, draw: 0.266, away: 0.239\n6. **Confidence**: 0.66\n7. **Uncertainty**: 0.5\n8. **Lineup**: Not confirmed for both teams, lineup_confidence: 0.35\n9. **Risk flags**: probability_sources_missing, lineup_unconfirmed\n10. **Window**: PRE_MATCH\n11. **Data completeness**: 0.8 (missing lineup_confirmed)\n12. **Halftime**: null (not halftime)\n13. **Fixture code**: SYN-STALE-LINEUP (synthetic stale lineup case)\n\nSupporting signals:\n- All probability sources (bookmaker, market, sportmonks, deterministic) favor home win\n- Bookmaker shows strong home bias (0.57)\n- Deterministic model confidence is moderate (0.66)\n- Multiple sources aligned on home favorite\n\nContradicting signals:\n- Supabase priors show closer match (home: 0.4, away: 0.32)\n- Lineup not confirmed (35% confidence)\n- Bookmaker and market diverge meaningfully on home probability (0.57 vs 0.48), suggesting disagreement about home advantage\n- Substantial uncertainty at 0.5 level indicates limited predictive clarity\n\nGiven the unconfirmed lineups and incomplete data (80% completeness), I should anchor to the deterministic model but temper confidence due to these gaps. The synthetic fixture classification and missing probability sources warrant a cautious approach\u2014either recommending SKIP or WATCH status rather than a confident forecast. I'll use the deterministic model output as the foundation since it already incorporates multiple signal sources.\n\nThis gives me home at 0.496, draw at 0.266, away at 0.239. I'm reducing confidence from the model's 0.66 down to around 0.60 to account for the lineup uncertainty. The recommendation is SKIP given the unconfirmed team sheets and synthetic nature of the fixture, with risk posture set to caution due to the convergence of flags, though none individually critical.",
+  "text_preview": "{\"probabilities\":{\"home\":0.496,\"draw\":0.266,\"away\":0.239},\"confidence\":0.60,\"uncertainty\":0.50,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources converge on home favorite\",\"Bookmaker strong home bias 0.57\",\"Deterministic model confidence 0.66\",\"Multi-source alignment on outcome\"],\"contradicting_signals\":[\"Lineup unconfirmed both teams\",\"Supabase priors show closer match 0.40-0.32\",\"Market-bookmaker divergence 0.48 vs 0.57\",\"High uncertainty 0.50\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"probability_sources_missing\",\"synthetic_fixture\",\"data_completeness_80pct\"],\"rationale\":\"Home favored across all sources but lineup uncertainty and synthetic fixture warrant caution. Missing confirmed lineups reduce reliability. Recommend waiting for lineup confirmation before action.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2016,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 846,
+    "output_tokens_details": {
+      "thinking_tokens": 622
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.401,
+      "draw": 0.331,
+      "away": 0.268
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources favor home (0.386-0.425)",
+      "Zero signal conflict across inputs",
+      "Bookmaker weighted 40% shows home 0.425",
+      "Source blend stable after calibration"
+    ],
+    "contradicting_signals": [
+      "Missing supabase priors",
+      "Lineup unconfirmed",
+      "4 probability sources missing",
+      "Data completeness only 75%"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "dry_run_fixture",
+      "moderate_high_uncertainty"
+    ],
+    "rationale": "Home favored consistently across bookmaker, sportmonks, and polymarket but missing critical inputs (lineups, supabase, draw model). Moderate confidence with elevated uncertainty warrants caution.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data to generate a final 3-way probability forecast:\n\n**Key Inputs:**\n1. **Bookmaker probs**: Home 0.425, Draw 0.328, Away 0.247\n2. **Sportmonks probs**: Home 0.398, Draw 0.320, Away 0.282\n3. **Market probs (Polymarket)**: Home 0.386, Draw 0.346, Away 0.268\n4. **Deterministic model output**: Home 0.401, Draw 0.331, Away 0.268\n5. **Confidence**: 0.6 (moderate)\n6. **Uncertainty**: 0.6 (moderate-high)\n\n**Missing Data:**\n- Supabase priors\n- Confirmed lineups\n- Draw model\n- LLM claims\n- Data completeness score: 0.75\n\n**Risk Flags:**\n- probability_sources_missing\n- lineup_unconfirmed\n- dry_run mode\n\n**Analysis:**\n- All three sources (bookmaker, sportmonks, polymarket) generally agree on home being favored\n- Home probability ranges: 0.386-0.425 (fairly consistent)\n- Draw probability ranges: 0.320-0.346 (consistent)\n- Away probability ranges: 0.247-0.282 (consistent)\n- No halftime data (PRE_MATCH window)\n- No claim signals or structured claims\n- Signal conflict: 0.0 (good alignment)\n- This is a dry_run fixture\n\n**Supporting Signals:**\n- Consistent home favorite across all sources\n- Low signal conflict (0.0)\n- Moderate source agreement\n- Weighted blend includes bookmaker at 40%, sportmonks at 33%, polymarket at 27%\n\n**Contradicting Signals:**\n- Missing supabase priors\n- Lineup unconfirmed\n- Multiple probability sources missing\n- Moderate-high uncertainty (0.6)\n\nThe deterministic model already incorporates the available sources appropriately, so I'll use those outputs directly: Home 0.401, Draw 0.331, Away 0.268. However, given the missing lineups, absent supabase priors, and only 75% data completeness, I should recommend skipping this forecast. The moderate confidence level combined with dry run status and unconfirmed team sheets suggests holding off rather than publishing.",
+  "text_preview": "{\"probabilities\":{\"home\":0.401,\"draw\":0.331,\"away\":0.268},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources favor home (0.386-0.425)\",\"Zero signal conflict across inputs\",\"Bookmaker weighted 40% shows home 0.425\",\"Source blend stable after calibration\"],\"contradicting_signals\":[\"Missing supabase priors\",\"Lineup unconfirmed\",\"4 probability sources missing\",\"Data completeness only 75%\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"dry_run_fixture\",\"moderate_high_uncertainty\"],\"rationale\":\"Home favored consistently across bookmaker, sportmonks, and polymarket but missing critical inputs (lineups, supabase, draw model). Moderate confidence with elevated uncertainty warrants caution.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

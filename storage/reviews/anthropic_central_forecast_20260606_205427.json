@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2014,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 850,
+    "output_tokens_details": {
+      "thinking_tokens": 602
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.498,
+      "draw": 0.254,
+      "away": 0.248
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources converge on home favorite ~50%",
+      "Low signal conflict 0.0 across sources",
+      "Bookmaker and Polymarket align on home win",
+      "Deterministic blend shows clear home edge"
+    ],
+    "contradicting_signals": [
+      "Missing supabase priors no historical context",
+      "Lineup unconfirmed roster uncertainty",
+      "Data completeness only 75%",
+      "High uncertainty 0.6 limits conviction"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "dry_run_mode",
+      "missing_supabase_priors"
+    ],
+    "rationale": "Home favored at 49.8% across all sources with moderate confidence. However missing lineup confirmation and supabase priors plus 75% data completeness warrant caution. Dry run status reinforces SKIP recommendation until critical data available.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data to create a final 3-way probability forecast:\n\n**Key Inputs:**\n1. **Bookmaker probs**: home 0.511, draw 0.248, away 0.241\n2. **Sportmonks probs**: home 0.491, draw 0.300, away 0.209\n3. **Market probs (Polymarket)**: home 0.515, draw 0.202, away 0.283\n4. **Deterministic model**: home 0.498, draw 0.254, away 0.248\n5. **Data completeness**: 0.75 (missing supabase_priors and lineup_confirmed)\n6. **Confidence**: 0.6\n7. **Uncertainty**: 0.6\n8. **Risk flags**: probability_sources_missing, lineup_unconfirmed\n9. **Dry run**: true\n10. **No halftime data** (pre-match)\n11. **No claim signals**\n12. **Signal conflict**: 0.0\n\n**Analysis:**\n- All sources favor home win (~49-51%)\n- Draw probability ranges from 20-30% (Sportmonks higher, Polymarket lower)\n- Away probability ranges from 21-28%\n- Missing key data: supabase priors, confirmed lineups\n- Moderate confidence (0.6) and high uncertainty (0.6)\n- This is a dry run\n- Lineup unconfirmed adds risk\n\n**Supporting signals:**\n- All sources converge on home favorite\n- Bookmaker, Polymarket, and Sportmonks align on home win\n- Low signal conflict (0.0)\n- Deterministic model shows clear home advantage\n\n**Contradicting signals:**\n- Missing supabase priors (no historical context)\n- Roster uncertainty from unconfirmed lineups and incomplete data (75%)\n- Elevated uncertainty level (0.6) compounds the risk\n\n**Final probabilities** (weighted synthesis):\nUsing the deterministic model as the foundation since it already incorporates source weighting appropriately:\n- Home: 0.498\n- Draw: 0.254\n- Away: 0.248\n\n**Recommendation**: SKIP due to dry run status, missing critical inputs (lineup confirmation and supabase priors), and insufficient data completeness.\n\n**Risk posture**: cautious given the combination of unconfirmed roster information, moderate-to-high uncertainty, and test mode conditions.\n\n**Confidence**: 0.6 (moderate, aligned with model assessment)\n\n**Uncertainty**: 0.6 (moderate-high due to incomplete data and unconfirmed lineups)",
+  "text_preview": "{\"probabilities\":{\"home\":0.498,\"draw\":0.254,\"away\":0.248},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources converge on home favorite ~50%\",\"Low signal conflict 0.0 across sources\",\"Bookmaker and Polymarket align on home win\",\"Deterministic blend shows clear home edge\"],\"contradicting_signals\":[\"Missing supabase priors no historical context\",\"Lineup unconfirmed roster uncertainty\",\"Data completeness only 75%\",\"High uncertainty 0.6 limits conviction\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"dry_run_mode\",\"missing_supabase_priors\"],\"rationale\":\"Home favored at 49.8% across all sources with moderate confidence. However missing lineup confirmation and supabase priors plus 75% data completeness warrant caution. Dry run status reinforces SKIP recommendation until critical data available.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

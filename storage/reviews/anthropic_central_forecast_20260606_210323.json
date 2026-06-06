@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2017,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 827,
+    "output_tokens_details": {
+      "thinking_tokens": 571
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.519,
+      "draw": 0.347,
+      "away": 0.134
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources agree home is favored",
+      "Bookmaker shows strong home advantage 61.7%",
+      "Deterministic model confidence 0.6",
+      "Draw probability stable 32-37% across sources"
+    ],
+    "contradicting_signals": [
+      "Large divergence: bookmaker 61.7% vs sportmonks 47.1% home",
+      "Away probability ranges 6% to 18.5% across sources",
+      "Missing supabase priors and confirmed lineup",
+      "Data completeness only 75%"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "source_divergence_high",
+      "incomplete_data"
+    ],
+    "rationale": "Home favored by all sources but significant probability divergence between bookmaker and market/sportmonks creates uncertainty. Missing lineup confirmation and supabase priors reduce reliability. Moderate confidence with multiple data gaps warrants caution.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the decision context systematically:\n\n**Key Inputs:**\n1. **Bookmaker probabilities**: Home 61.7%, Draw 32.3%, Away 6.0%\n2. **Sportmonks probabilities**: Home 47.1%, Draw 34.5%, Away 18.5%\n3. **Market probabilities**: Home 47.4%, Draw 37.6%, Away 15.0%\n4. **Deterministic model**: Home 51.9%, Draw 34.7%, Away 13.3%\n5. **Confidence**: 0.6 (moderate)\n6. **Uncertainty**: 0.6 (moderate-high)\n\n**Missing Data:**\n- Supabase priors\n- Lineup confirmation\n- Draw model\n- LLM claims\n- Data completeness: 0.75\n\n**Risk Flags:**\n- probability_sources_missing\n- lineup_unconfirmed\n\n**Analysis:**\n- There's significant divergence between bookmaker (61.7% home) and Sportmonks/Market (47% home)\n- Bookmaker shows very low away probability (6%) vs Sportmonks (18.5%)\n- No halftime data (PRE_MATCH window)\n- This is a dry_run test\n- No claim signals available\n- Signal conflict: 0.0\n\n**Supporting Signals:**\n- Bookmaker strongly favors home (61.7%)\n- All sources agree home is most likely\n- Draw probability moderately high across sources (32-38%)\n- Multiple independent sources align on home advantage\n\n**Contradicting Signals:**\n- Large spread between bookmaker and other sources on home win\n- Sportmonks gives away team 3x higher probability than bookmaker\n- Missing critical data (lineup, supabase priors)\n- Only 75% data completeness limits confidence in any single forecast\n\nThe moderate confidence paired with moderate-high uncertainty creates a challenging position. The missing lineup confirmation and source divergence\u2014particularly the bookmaker's outlier assessment of away probability\u2014suggest I should be cautious. The deterministic model produces Home 52%, Draw 35%, Away 13%, but these estimates rest on incomplete information.\n\n**Recommendation**: SKIP - the combination of unconfirmed lineups, missing priors, and substantial probability disagreement between sources warrants holding off rather than committing to a position.",
+  "text_preview": "{\"probabilities\":{\"home\":0.519,\"draw\":0.347,\"away\":0.134},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources agree home is favored\",\"Bookmaker shows strong home advantage 61.7%\",\"Deterministic model confidence 0.6\",\"Draw probability stable 32-37% across sources\"],\"contradicting_signals\":[\"Large divergence: bookmaker 61.7% vs sportmonks 47.1% home\",\"Away probability ranges 6% to 18.5% across sources\",\"Missing supabase priors and confirmed lineup\",\"Data completeness only 75%\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"source_divergence_high\",\"incomplete_data\"],\"rationale\":\"Home favored by all sources but significant probability divergence between bookmaker and market/sportmonks creates uncertainty. Missing lineup confirmation and supabase priors reduce reliability. Moderate confidence with multiple data gaps warrants caution.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

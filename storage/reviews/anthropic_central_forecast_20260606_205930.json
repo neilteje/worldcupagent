@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2019,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 827,
+    "output_tokens_details": {
+      "thinking_tokens": 586
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.289,
+      "draw": 0.246,
+      "away": 0.465
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Consistent away favoritism across bookmaker, sportmonks, and market sources",
+      "Low signal conflict (0.0) indicates source alignment",
+      "Deterministic model blended 3 independent sources with calibration"
+    ],
+    "contradicting_signals": [
+      "Missing lineup confirmation reduces confidence",
+      "Supabase priors unavailable - no historical context",
+      "Data completeness only 75%",
+      "Market probs (52% away) diverge from deterministic model (46.5% away)"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "missing_supabase_priors",
+      "dry_run_mode"
+    ],
+    "rationale": "Away team favored but missing lineup and priors reduce confidence to 0.6. Moderate uncertainty and incomplete data warrant skip recommendation until more information available.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the features provided:\n\n1. **Bookmaker probabilities**: away=0.44, draw=0.24, home=0.32\n2. **Sportmonks probabilities**: away=0.46, draw=0.22, home=0.32\n3. **Market probabilities**: away=0.52, draw=0.28, home=0.20\n4. **Deterministic model**: away=0.465, draw=0.246, home=0.289\n5. **Data completeness**: 0.75 (missing supabase_priors, lineup_confirmed)\n6. **Risk flags**: probability_sources_missing, lineup_unconfirmed\n7. **Confidence**: 0.6\n8. **Uncertainty**: 0.6\n9. **No claim signals**\n10. **No halftime state** (PRE_MATCH)\n11. **Signal conflict**: 0.0\n12. **Dry run**: true\n\nThe deterministic model has already blended bookmaker (40%), polymarket (26.7%), and sportmonks (33.3%) sources and applied calibration.\n\nKey observations:\n- Away team is favored across all sources (44-52%)\n- Draw is moderate (22-28%)\n- Home is weakest (20-32%)\n- Missing lineup confirmation and supabase priors reduces confidence\n- Moderate confidence (0.6) and uncertainty (0.6)\n- No claim signals to incorporate\n- Market probs show stronger away bias (52%) vs deterministic model (46.5%)\n\nSupporting signals:\n- Consistent away team favoritism across all sources\n- Bookmaker, sportmonks, and deterministic model aligned\n- Low signal conflict (0.0)\n\nContradicting signals:\n- Market probabilities show stronger away bias than other sources\n- Missing lineup confirmation adds uncertainty\n- Missing supabase priors reduces historical context\n- Data completeness only 75%\n- The gaps in data and moderate confidence levels suggest holding back rather than committing to a bet. I'll anchor to the deterministic model since it's already properly weighted and calibrated, but flag the elevated uncertainty. Given the missing lineup confirmation and incomplete data, the recommendation is SKIP with a cautious risk posture.",
+  "text_preview": "{\"probabilities\":{\"home\":0.289,\"draw\":0.246,\"away\":0.465},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Consistent away favoritism across bookmaker, sportmonks, and market sources\",\"Low signal conflict (0.0) indicates source alignment\",\"Deterministic model blended 3 independent sources with calibration\"],\"contradicting_signals\":[\"Missing lineup confirmation reduces confidence\",\"Supabase priors unavailable - no historical context\",\"Data completeness only 75%\",\"Market probs (52% away) diverge from deterministic model (46.5% away)\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"missing_supabase_priors\",\"dry_run_mode\"],\"rationale\":\"Away team favored but missing lineup and priors reduce confidence to 0.6. Moderate uncertainty and incomplete data warrant skip recommendation until more information available.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2478,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 904,
+    "output_tokens_details": {
+      "thinking_tokens": 672
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.402,
+      "draw": 0.309,
+      "away": 0.289
+    },
+    "confidence": 0.65,
+    "uncertainty": 0.52,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All data sources complete and converging",
+      "Lineup confirmed both teams",
+      "Home missing first GK verified",
+      "Multiple probability sources aligned"
+    ],
+    "contradicting_signals": [
+      "Bookmaker shows home 46% vs model 40%",
+      "Supabase priors higher on away 32%",
+      "Risk flag probability_sources_missing",
+      "GK impact magnitude uncertain"
+    ],
+    "additional_risk_flags": [
+      "lineup_shock",
+      "missing_starting_gk",
+      "goalkeeper_substitution",
+      "moderate_source_divergence"
+    ],
+    "rationale": "Home missing first GK creates 3.5% negative impact. Deterministic model at 40.2/30.9/28.9 reflects this lineup shock. Bookmaker may not fully price GK absence. Watch for market adjustment.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this decision context carefully:\n\n**Key Data Points:**\n1. **Bookmaker probabilities**: Home 46%, Draw 27%, Away 27%\n2. **Market probabilities**: Home 45%, Draw 28%, Away 27%\n3. **Sportmonks probabilities**: Home 45%, Draw 28%, Away 27%\n4. **Supabase priors**: Home 40%, Draw 28%, Away 32%\n5. **Deterministic model**: Home 40.2%, Draw 30.9%, Away 28.9%\n\n**Critical Lineup Issue:**\n- Home missing First GK (expected starter)\n- Home using Backup GK (unexpected starter)\n- Lineup shock = true\n- This created a probability delta: Away +2.45%, Draw +0.525%, Home -2.975%\n- Impact assessment: Home missing impact = 0.035\n\n**Data Completeness:**\n- Score: 1.0 (100% complete)\n- All sources present: bookmaker, lineup, market, sportmonks, supabase\n\n**Model Outputs:**\n- Confidence: 0.67 (moderate-high)\n- Uncertainty: 0.50 (moderate)\n- Risk flags: [\"probability_sources_missing\"] in deterministic model\n\n**Supporting Signals:**\n- Lineup confirmed for both teams\n- All data sources available and recent\n- Missing first GK is a significant signal\n- Multiple sources converge on similar probabilities\n\n**Contradicting Signals:**\n- Supabase priors show higher away probability (32% vs 27%)\n- Some discrepancy between sources but not major\n- Risk flag about probability sources missing (though completeness is 100%)\n\n**Final Probabilities:**\nGiven the lineup shock with home missing their first GK, I should adjust from the deterministic model slightly. The model shows:\n- Home: 40.2% (affected by missing GK)\n- Draw: 30.9%\n- Away: 28.9%\n\nThese seem reasonable given the GK situation. The bookmaker has Home at 46%, but that might not fully account for the confirmed GK absence.\n\n**Recommendation:**\nThis is PRE_MATCH with moderate confidence and uncertainty. The missing first GK represents a meaningful lineup shock that the bookmaker odds may not have fully priced in yet. I should WATCH this situation to see if markets adjust to the confirmed absence, rather than SKIP given the information advantage this creates.\n\n**Risk Posture:**\nCaution warranted due to the lineup shock, missing key player, and moderate uncertainty around the GK impact.\n\n**Confidence & Uncertainty:**\nConfidence sits at 0.65 from the lineup analysis, though the GK situation introduces some downside risk. Uncertainty is 0.52, slightly elevated by the goalkeeper absence and its potential match effects.",
+  "text_preview": "{\"probabilities\":{\"home\":0.402,\"draw\":0.309,\"away\":0.289},\"confidence\":0.65,\"uncertainty\":0.52,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All data sources complete and converging\",\"Lineup confirmed both teams\",\"Home missing first GK verified\",\"Multiple probability sources aligned\"],\"contradicting_signals\":[\"Bookmaker shows home 46% vs model 40%\",\"Supabase priors higher on away 32%\",\"Risk flag probability_sources_missing\",\"GK impact magnitude uncertain\"],\"additional_risk_flags\":[\"lineup_shock\",\"missing_starting_gk\",\"goalkeeper_substitution\",\"moderate_source_divergence\"],\"rationale\":\"Home missing first GK creates 3.5% negative impact. Deterministic model at 40.2/30.9/28.9 reflects this lineup shock. Bookmaker may not fully price GK absence. Watch for market adjustment.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2401,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 831,
+    "output_tokens_details": {
+      "thinking_tokens": 591
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.42,
+      "draw": 0.29,
+      "away": 0.29
+    },
+    "confidence": 0.66,
+    "uncertainty": 0.5,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Bookmaker and Sportmonks converge on home favorite at 44%",
+      "All major probability sources present and aligned",
+      "Deterministic blend shows home edge at 41.9%",
+      "Source weights appropriately balanced across 4 inputs"
+    ],
+    "contradicting_signals": [
+      "Lineup confirmation missing for both teams",
+      "Moderate uncertainty at 0.50 limits conviction",
+      "Supabase priors show higher away probability at 0.32",
+      "Market probabilities more balanced than bookmaker"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "dry_run_fixture",
+      "moderate_uncertainty"
+    ],
+    "rationale": "Home favored across all sources but missing lineup data and 50% uncertainty warrant caution. 80% data completeness acceptable but gaps material for betting.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to synthesize the final probability forecast:\n\n**Key Inputs:**\n1. Bookmaker probabilities: Home 0.44, Draw 0.28, Away 0.28\n2. Market probabilities: Home 0.4, Draw 0.3, Away 0.3\n3. Sportmonks probabilities: Home 0.44, Draw 0.28, Away 0.28\n4. Supabase priors: Home 0.4, Draw 0.28, Away 0.32\n5. Deterministic model: Home 0.419, Draw 0.287, Away 0.294\n6. Confidence: 0.66\n7. Uncertainty: 0.50\n8. Data completeness score: 0.8 (missing lineup_confirmed)\n\n**Supporting signals:**\n- Bookmaker, Sportmonks align strongly on home favorite (44%)\n- Multiple sources converge on home advantage\n- Reasonable confidence at 0.66\n- All major data sources present\n\n**Contradicting signals:**\n- Lineups not confirmed (risk flag)\n- Moderate uncertainty at 0.50\n- Market probabilities slightly more balanced than bookmaker\n- Missing lineup data reduces confidence\n\n**Risk flags:**\n- probability_sources_missing\n- lineup_unconfirmed\n- Dry run mode (SYN-WEAK-WEB fixture code suggests synthetic/test data)\n\n**Risk assessment:**\n- Missing lineup confirmation is a material risk\n- Moderate uncertainty suggests caution\n- Dry run context means this is test data\n- Data completeness at 80% is acceptable but not ideal\n\n**Recommendation:**\nGiven the missing lineup data, moderate uncertainty, and dry run context, this should be SKIP or WATCH. The convergence of sources provides some confidence, but the gaps are material.\n\n**Final probabilities:**\nI'll use the deterministic model output as it has already blended all sources appropriately:\n- Home: 0.42\n- Draw: 0.29\n- Away: 0.29\n\nThese round cleanly and sum to 1.00. The confidence level of 0.66 reflects the reasonable but not exceptional alignment across sources, while the 0.50 uncertainty and missing lineup data warrant a cautious stance. Given these constraints, I'm recommending SKIP rather than a full forecast.",
+  "text_preview": "{\"probabilities\":{\"home\":0.42,\"draw\":0.29,\"away\":0.29},\"confidence\":0.66,\"uncertainty\":0.50,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Bookmaker and Sportmonks converge on home favorite at 44%\",\"All major probability sources present and aligned\",\"Deterministic blend shows home edge at 41.9%\",\"Source weights appropriately balanced across 4 inputs\"],\"contradicting_signals\":[\"Lineup confirmation missing for both teams\",\"Moderate uncertainty at 0.50 limits conviction\",\"Supabase priors show higher away probability at 0.32\",\"Market probabilities more balanced than bookmaker\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"probability_sources_missing\",\"dry_run_fixture\",\"moderate_uncertainty\"],\"rationale\":\"Home favored across all sources but missing lineup data and 50% uncertainty warrant caution. 80% data completeness acceptable but gaps material for betting.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

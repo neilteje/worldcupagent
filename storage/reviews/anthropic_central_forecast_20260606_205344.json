@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2019,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 834,
+    "output_tokens_details": {
+      "thinking_tokens": 625
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.297,
+      "draw": 0.261,
+      "away": 0.441
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources converge on away favorite (38-51%)",
+      "Low signal conflict (0.0) indicates source agreement",
+      "Deterministic blend weights three reliable sources",
+      "Moderate confidence from probability model"
+    ],
+    "contradicting_signals": [
+      "Draw probability highly variable across sources (20-33%)",
+      "Missing lineup confirmation",
+      "Missing supabase historical priors",
+      "Data completeness only 75%"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "moderate_uncertainty",
+      "incomplete_data"
+    ],
+    "rationale": "Away team favored across all sources with moderate confidence, but missing lineup and priors data warrant caution in pre-match window",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to synthesize a final 3-way probability forecast:\n\n**Key Data Points:**\n1. **Bookmaker probabilities**: Away 38.4%, Draw 33.4%, Home 28.2%\n2. **Sportmonks probabilities**: Away 51.2%, Draw 20.2%, Home 28.6%\n3. **Market probabilities (Polymarket)**: Away 45.5%, Draw 22.3%, Home 32.2%\n4. **Deterministic model output**: Away 44.1%, Draw 26.1%, Home 29.7%\n5. **Confidence**: 0.6 (moderate)\n6. **Uncertainty**: 0.6 (moderate-high)\n7. **Missing data**: supabase_priors, lineup_confirmed\n8. **Data completeness score**: 0.75\n9. **Risk flags**: probability_sources_missing, lineup_unconfirmed\n10. **No claim signals** or structured claims\n11. **Signal conflict**: 0.0 (no contradictions)\n12. **Window**: PRE_MATCH\n13. **Dry run**: true\n\n**Analysis:**\n- All sources lean toward away team victory (38-51%)\n- Draw probability varies significantly (20-33% across sources)\n- Home team is underdog across all sources (28-32%)\n- The deterministic model has already blended these sources with weights: bookmaker 40%, sportmonks 33%, polymarket 27%\n- Missing supabase priors and lineup confirmation add uncertainty\n- No halftime data (pre-match)\n- Signal conflict is 0, suggesting reasonable source agreement on away favorite\n\n**Supporting Signals:**\n- All three major sources favor away team\n- Bookmaker, Sportmonks, and Polymarket align on away as favorite\n- Moderate confidence from deterministic model\n- Low signal conflict indicates source agreement\n- The draw probability variance (20-33%) and missing lineup data create meaningful uncertainty. Without confirmed lineups and historical context from supabase, I'm working with incomplete information. The 75% data completeness score reflects these gaps. Given the moderate confidence paired with moderate-high uncertainty, plus being in the pre-match window, this warrants a cautious approach\u2014either skipping the forecast or flagging it for monitoring rather than committing to a strong recommendation. The model's blended probabilities (Away 44.1%, Draw 26.1%, Home 29.7%) represent the best synthesis available, but the missing critical inputs limit conviction.",
+  "text_preview": "{\"probabilities\":{\"home\":0.297,\"draw\":0.261,\"away\":0.441},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources converge on away favorite (38-51%)\",\"Low signal conflict (0.0) indicates source agreement\",\"Deterministic blend weights three reliable sources\",\"Moderate confidence from probability model\"],\"contradicting_signals\":[\"Draw probability highly variable across sources (20-33%)\",\"Missing lineup confirmation\",\"Missing supabase historical priors\",\"Data completeness only 75%\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"moderate_uncertainty\",\"incomplete_data\"],\"rationale\":\"Away team favored across all sources with moderate confidence, but missing lineup and priors data warrant caution in pre-match window\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

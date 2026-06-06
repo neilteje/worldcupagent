@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2365,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 782,
+    "output_tokens_details": {
+      "thinking_tokens": 556
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.51,
+      "draw": 0.26,
+      "away": 0.23
+    },
+    "confidence": 0.66,
+    "uncertainty": 0.5,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All 4 sources agree home favorite 45-56%",
+      "Bookmaker strongest home signal at 54%",
+      "Source blend coherent across models",
+      "No signal conflicts detected"
+    ],
+    "contradicting_signals": [
+      "Polymarket weaker on home vs bookmaker (45% vs 54%)",
+      "Lineups unconfirmed both teams",
+      "Moderate uncertainty 0.50",
+      "Missing lineup and claim sources"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "dry_run_mode",
+      "moderate_uncertainty"
+    ],
+    "rationale": "Home favored consistently across all sources but missing lineup confirmation and moderate uncertainty warrant caution. Data completeness 80% with missing lineups reduces confidence for prematch betting.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the features provided:\n\n1. **Bookmaker probs**: Home 0.54, Draw 0.25, Away 0.21\n2. **Market probs (Polymarket)**: Home 0.45, Draw 0.29, Away 0.26\n3. **Sportmonks probs**: Home 0.56, Draw 0.24, Away 0.20\n4. **Supabase priors**: Home 0.52, Draw 0.26, Away 0.22\n5. **Deterministic model**: Home 0.5098, Draw 0.2633, Away 0.2269\n   - Confidence: 0.66\n   - Uncertainty: 0.50\n   - Risk flags: probability_sources_missing\n\n6. **Lineup**: Not confirmed for either team, confidence 0.35, risk_flags: lineup_unconfirmed\n7. **Data completeness**: 0.8 score, missing lineup_confirmed\n8. **Claim signals**: Empty\n9. **Halftime**: null (pre-match)\n10. **Window**: PRE_MATCH\n11. **Dry run**: true\n\n**Analysis**:\n- All sources point to home favorite (45-56% range)\n- Draw probability ranges 24-29%\n- Away probability ranges 20-26%\n- Moderate confidence (0.66), moderate uncertainty (0.5)\n- Missing lineup confirmation is a notable risk\n- No halftime data, no claim signals, no market stale detection\n\n**Supporting signals**:\n- All 4 sources agree on home favorite\n- Bookmaker shows strongest home edge (54%)\n- Deterministic model blends sources reasonably\n- No conflicting signals detected\n\n**Contradicting signals**:\n- Polymarket shows weaker home probability (45% vs 54-56%)\n- Lineup not confirmed for either team\n- Moderate uncertainty level (0.5)\n- Some probability sources are unavailable, and both teams lack confirmed lineups\n\nThe risk profile includes unconfirmed lineups, incomplete probability data, and the moderate uncertainty level. Given these gaps in information and the dry run status, I should recommend SKIP rather than commit to a position. The deterministic model provides a reasonable synthesis of available sources, but the missing lineup confirmation and data gaps create too much uncertainty to act confidently.",
+  "text_preview": "{\"probabilities\":{\"home\":0.51,\"draw\":0.26,\"away\":0.23},\"confidence\":0.66,\"uncertainty\":0.50,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All 4 sources agree home favorite 45-56%\",\"Bookmaker strongest home signal at 54%\",\"Source blend coherent across models\",\"No signal conflicts detected\"],\"contradicting_signals\":[\"Polymarket weaker on home vs bookmaker (45% vs 54%)\",\"Lineups unconfirmed both teams\",\"Moderate uncertainty 0.50\",\"Missing lineup and claim sources\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"probability_sources_missing\",\"dry_run_mode\",\"moderate_uncertainty\"],\"rationale\":\"Home favored consistently across all sources but missing lineup confirmation and moderate uncertainty warrant caution. Data completeness 80% with missing lineups reduces confidence for prematch betting.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

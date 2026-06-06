@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2019,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 825,
+    "output_tokens_details": {
+      "thinking_tokens": 606
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.289,
+      "draw": 0.246,
+      "away": 0.465
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "away_favored_all_sources",
+      "consistent_cross_source_alignment",
+      "moderate_confidence_0.6",
+      "zero_signal_conflict"
+    ],
+    "contradicting_signals": [
+      "lineup_unconfirmed",
+      "missing_supabase_priors",
+      "missing_draw_model",
+      "data_completeness_75%"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "moderate_uncertainty",
+      "pre_match_volatility"
+    ],
+    "rationale": "Away win favored (46.5%) with consistent source alignment, but critical data gaps (lineup, priors, draw model) and 0.6 uncertainty warrant caution. Insufficient information for betting recommendation.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided decision context to generate a final forecast:\n\nKey observations:\n1. **Probabilities from different sources:**\n   - Bookmaker: away 0.44, draw 0.24, home 0.32\n   - Sportmonks: away 0.46, draw 0.22, home 0.32\n   - Market: away 0.52, draw 0.28, home 0.20\n   - Deterministic model: away 0.46, draw 0.25, home 0.29\n\n2. **Missing data:**\n   - supabase_priors missing\n   - lineup_unconfirmed\n   - draw_model missing\n   - llm_claims missing\n   - Data completeness score: 0.75\n\n3. **Risk flags:**\n   - probability_sources_missing\n   - lineup_unconfirmed\n\n4. **Confidence and uncertainty:**\n   - Confidence: 0.6 (moderate)\n   - Uncertainty: 0.6 (moderate-high)\n\n5. **Signal conflict:** 0.0 (no contradicting signals)\n\n6. **Match state:** PRE_MATCH, no halftime data\n\nThe deterministic model has weighted sources and applied calibration. The away win is favored across all sources (0.44-0.52), with home win second (0.20-0.32) and draw lowest (0.22-0.28).\n\nGiven the missing critical data (lineup, supabase priors, claims), moderate confidence (0.6), and lineup_unconfirmed flag, this suggests a SKIP or WATCH recommendation with caution risk posture.\n\nFor final probabilities, I'll use the deterministic_model output as the base since it has already blended sources and applied calibration:\n- Away: 0.465\n- Draw: 0.246\n- Home: 0.289\n\nThe away outcome shows consistent backing across all methodologies with no conflicting signals, though unconfirmed lineups and incomplete data (75% coverage) introduce meaningful uncertainty. Pre-match volatility and missing supabase priors present additional caution, suggesting this forecast should be treated as provisional pending lineup confirmation.",
+  "text_preview": "{\"probabilities\":{\"home\":0.289,\"draw\":0.246,\"away\":0.465},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"away_favored_all_sources\",\"consistent_cross_source_alignment\",\"moderate_confidence_0.6\",\"zero_signal_conflict\"],\"contradicting_signals\":[\"lineup_unconfirmed\",\"missing_supabase_priors\",\"missing_draw_model\",\"data_completeness_75%\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"moderate_uncertainty\",\"pre_match_volatility\"],\"rationale\":\"Away win favored (46.5%) with consistent source alignment, but critical data gaps (lineup, priors, draw model) and 0.6 uncertainty warrant caution. Insufficient information for betting recommendation.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

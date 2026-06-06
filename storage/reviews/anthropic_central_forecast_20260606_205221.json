@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2018,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 821,
+    "output_tokens_details": {
+      "thinking_tokens": 585
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.626,
+      "draw": 0.266,
+      "away": 0.108
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources agree home favorite 54-63%",
+      "Bookmaker and Sportmonks closely aligned",
+      "Deterministic blend shows 62.6% home win",
+      "Three probability sources available"
+    ],
+    "contradicting_signals": [
+      "Polymarket diverges significantly at 79.7% home",
+      "Missing supabase priors and confirmed lineup",
+      "Draw estimate varies 13.6%-34.1% across sources",
+      "Data completeness only 75%"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "polymarket_outlier",
+      "moderate_uncertainty"
+    ],
+    "rationale": "Home favorite well-supported at 62.6% but lineup unconfirmed and Polymarket divergence suggests caution. Missing key data sources reduce confidence to moderate levels.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data to generate a comprehensive forecast:\n\n**Key Data Points:**\n1. **Bookmaker probabilities**: Home 59.1%, Draw 29.4%, Away 11.5%\n2. **Sportmonks probabilities**: Home 54.1%, Draw 34.1%, Away 11.8%\n3. **Polymarket (market) probabilities**: Home 79.7%, Draw 13.6%, Away 6.7%\n4. **Deterministic model output**: Home 62.6%, Draw 26.6%, Away 10.8%\n5. **Confidence**: 0.6 (moderate)\n6. **Uncertainty**: 0.6 (moderate-high)\n7. **Missing data**: supabase_priors, lineup_confirmed\n8. **Risk flags**: probability_sources_missing, lineup_unconfirmed\n9. **Data completeness**: 0.75\n10. **This is PRE_MATCH window**\n11. **Dry run mode**: true\n\n**Analysis:**\n\nSupporting signals:\n- All sources agree home is favorite (54-80%)\n- Bookmaker and Sportmonks relatively aligned\n- Deterministic model provides blended view at 62.6% home\n- Three major sources available (bookmaker, sportmonks, polymarket)\n\nContradicting signals:\n- Large divergence in Polymarket (79.7% home) vs others (54-62%)\n- Polymarket shows much lower draw (13.6%) vs Sportmonks (34.1%)\n- Missing supabase priors and lineup confirmation\n- Data completeness only 75%\n\nRisk considerations:\n- Lineup unconfirmed\n- Probability sources missing\n- Moderate uncertainty (0.6)\n- Polymarket divergence suggests potential stale/thin market\n- Signal conflict is 0.0 which is good\n\n**Final probabilities:**\nI'll weight the deterministic model output heavily since it blends sources appropriately:\n- Home: 62.6% (strong favorite, consistent across sources except Polymarket)\n- Draw: 26.6% (between bookmaker and sportmonks estimates)\n- Away: 10.8% (consistently low across all sources)\n\nGiven the missing lineup data and moderate confidence level, I should skip this forecast. The divergence between Polymarket and traditional sources, combined with incomplete information, suggests proceeding with caution rather than making a confident prediction.",
+  "text_preview": "{\"probabilities\":{\"home\":0.626,\"draw\":0.266,\"away\":0.108},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources agree home favorite 54-63%\",\"Bookmaker and Sportmonks closely aligned\",\"Deterministic blend shows 62.6% home win\",\"Three probability sources available\"],\"contradicting_signals\":[\"Polymarket diverges significantly at 79.7% home\",\"Missing supabase priors and confirmed lineup\",\"Draw estimate varies 13.6%-34.1% across sources\",\"Data completeness only 75%\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"polymarket_outlier\",\"moderate_uncertainty\"],\"rationale\":\"Home favorite well-supported at 62.6% but lineup unconfirmed and Polymarket divergence suggests caution. Missing key data sources reduce confidence to moderate levels.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

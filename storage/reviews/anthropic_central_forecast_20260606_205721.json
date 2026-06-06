@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2011,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 737,
+    "output_tokens_details": {
+      "thinking_tokens": 511
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.244,
+      "draw": 0.285,
+      "away": 0.471
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources consensus away favorite 44-52%",
+      "Deterministic model convergence across 3 sources",
+      "Bookmaker and market alignment on away outcome",
+      "Source blend confidence stable at 0.6"
+    ],
+    "contradicting_signals": [
+      "Draw probability variance 24-33% across sources",
+      "Missing lineup confirmation",
+      "Missing Supabase historical priors",
+      "No claim signals available for validation"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "dry_run_mode",
+      "data_completeness_75pct"
+    ],
+    "rationale": "Away team favored but missing lineup and Supabase priors reduce actionable confidence. 25% data gap and dry-run status warrant skip until full data available.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data to create a comprehensive forecast:\n\n**Key Data Points:**\n1. **Bookmaker probabilities**: Away 44.17%, Draw 33.03%, Home 22.80%\n2. **Sportmonks probabilities**: Away 48.15%, Draw 23.73%, Home 28.12%\n3. **Market probabilities**: Away 51.88%, Draw 27.07%, Home 21.05%\n4. **Deterministic model**: Away 47.10%, Draw 28.54%, Home 24.36%\n5. **Confidence**: 0.6\n6. **Uncertainty**: 0.6\n7. **Missing data**: supabase_priors, lineup_confirmed\n8. **Data completeness score**: 0.75\n9. **Risk flags**: probability_sources_missing, lineup_unconfirmed\n10. **This is a dry run** (dry_run: true)\n\n**Analysis:**\n- All sources strongly favor the away team (42-52%)\n- Draw probabilities range from 23-33%\n- Home team is the underdog (21-28%)\n- Missing lineup confirmation and Supabase priors reduces confidence\n- No claim signals or structured signals available\n- Moderate uncertainty and confidence (0.6)\n\n**Supporting signals:**\n- All sources agree on away team as favorite\n- Bookmaker, Sportmonks, and market consensus\n- Deterministic model shows consistent weighting\n\n**Contradicting signals:**\n- Wide spread in draw probability (23-33%) across sources\n- Missing lineup confirmation\n- Missing Supabase historical priors\n- No claim signals to validate\n\n**Risk Assessment:**\n- Missing key data sources (lineup, supabase)\n- This is a dry run\n- Moderate confidence only\n- Data completeness at 75%\n\n**Final probabilities**: I'll use the deterministic model output as primary, as it already blends the sources appropriately:\n- Away: 47.10%\n- Draw: 28.54%\n- Home: 24.36%\n\n**Recommendation**: SKIP - Due to missing data, dry run status, and moderate uncertainty\n**Risk posture**: caution - Missing critical inputs and moderate confidence",
+  "text_preview": "{\"probabilities\":{\"home\":0.244,\"draw\":0.285,\"away\":0.471},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources consensus away favorite 44-52%\",\"Deterministic model convergence across 3 sources\",\"Bookmaker and market alignment on away outcome\",\"Source blend confidence stable at 0.6\"],\"contradicting_signals\":[\"Draw probability variance 24-33% across sources\",\"Missing lineup confirmation\",\"Missing Supabase historical priors\",\"No claim signals available for validation\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"dry_run_mode\",\"data_completeness_75pct\"],\"rationale\":\"Away team favored but missing lineup and Supabase priors reduce actionable confidence. 25% data gap and dry-run status warrant skip until full data available.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2016,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 787,
+    "output_tokens_details": {
+      "thinking_tokens": 544
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.4507,
+      "draw": 0.2162,
+      "away": 0.3331
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources converge on home favorite",
+      "Low signal conflict (0.0) across sources",
+      "Three independent probability sources available",
+      "Reasonable data completeness (0.75)"
+    ],
+    "contradicting_signals": [
+      "Lineup unconfirmed",
+      "Missing supabase priors",
+      "Missing draw_model and llm_claims",
+      "Moderate uncertainty (0.6)"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "moderate_confidence_only",
+      "pre_match_incomplete_data"
+    ],
+    "rationale": "Home favored at 45% across bookmaker, Sportmonks, and market data with good source agreement. However, missing lineups, supabase priors, and draw model reduce confidence to 0.6. Recommend SKIP until lineup confirmation.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features:\n\n1. **Bookmaker probabilities**: Home: 48.18%, Draw: 18.31%, Away: 33.51%\n2. **Sportmonks probabilities**: Home: 45.11%, Draw: 22.89%, Away: 31.99%\n3. **Market probabilities**: Home: 43.00%, Draw: 22.82%, Away: 34.18%\n4. **Deterministic model output**: Home: 45.07%, Draw: 21.62%, Away: 33.31%\n\n**Key observations**:\n- All sources favor the home team (45-48% range)\n- Away team second (32-34% range)\n- Draw least likely (18-23% range)\n- Confidence is moderate at 0.6\n- Uncertainty is 0.6 (moderate to high)\n- Missing sources: supabase_priors, lineup_confirmed, draw_model, llm_claims\n- Data completeness score: 0.75 (reasonable but not complete)\n- Risk flags: \"probability_sources_missing\", \"lineup_unconfirmed\"\n- This is a PRE_MATCH scenario\n- Dry run is true\n- No halftime data\n- No claim signals\n- Signal conflict: 0.0 (good - sources agree)\n\n**Supporting signals**:\n- All sources converge on home favorite\n- Low signal conflict (0.0)\n- Three independent sources available\n- Reasonable data completeness (0.75)\n\n**Contradicting signals**:\n- Missing supabase priors\n- Lineup unconfirmed\n- Missing draw_model\n- Moderate uncertainty (0.6)\n\n**Risk assessment**:\n- Missing some key data sources\n- Lineup not confirmed\n- Moderate confidence only\n- Should be cautious given incomplete data\n- The deterministic model's blended output suggests home at 45.07%, draw at 21.62%, away at 33.31%, but the gaps in data\u2014particularly unconfirmed lineups and missing prior distributions\u2014warrant skipping this match. Confidence and uncertainty both sit at 0.6, indicating insufficient conviction to act on these probabilities.",
+  "text_preview": "{\"probabilities\":{\"home\":0.4507,\"draw\":0.2162,\"away\":0.3331},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources converge on home favorite\",\"Low signal conflict (0.0) across sources\",\"Three independent probability sources available\",\"Reasonable data completeness (0.75)\"],\"contradicting_signals\":[\"Lineup unconfirmed\",\"Missing supabase priors\",\"Missing draw_model and llm_claims\",\"Moderate uncertainty (0.6)\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"moderate_confidence_only\",\"pre_match_incomplete_data\"],\"rationale\":\"Home favored at 45% across bookmaker, Sportmonks, and market data with good source agreement. However, missing lineups, supabase priors, and draw model reduce confidence to 0.6. Recommend SKIP until lineup confirmation.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

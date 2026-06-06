@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2011,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 892,
+    "output_tokens_details": {
+      "thinking_tokens": 600
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.244,
+      "draw": 0.285,
+      "away": 0.471
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources agree away favored (0.44-0.52)",
+      "Low signal conflict (0.0) across sources",
+      "Deterministic blend stable across bookmaker/sportmonks/polymarket",
+      "Source contribution well-distributed"
+    ],
+    "contradicting_signals": [
+      "Missing supabase priors and historical context",
+      "Lineup unconfirmed",
+      "Probability sources incomplete (no draw model or llm claims)",
+      "Medium-high uncertainty (0.6) with 75% data completeness"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "missing_supabase_priors",
+      "dry_run_mode"
+    ],
+    "rationale": "Away team favored consistently across all sources (bookmaker 0.442, sportmonks 0.482, market 0.519). However, missing critical inputs (supabase priors, confirmed lineups) and 75% data completeness warrant caution. Deterministic model blends available sources but flags incomplete data. Skip until lineup confirmation and additional sources available.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data systematically:\n\n**Key Inputs:**\n1. **Bookmaker probs**: away: 0.442, draw: 0.330, home: 0.228\n2. **Sportmonks probs**: away: 0.482, draw: 0.237, home: 0.281\n3. **Market probs (likely Polymarket)**: away: 0.519, draw: 0.271, home: 0.210\n4. **Deterministic model output**: away: 0.471, draw: 0.285, home: 0.244\n5. **Confidence**: 0.6 (medium)\n6. **Uncertainty**: 0.6 (medium-high)\n7. **Data completeness**: 0.75 (missing supabase_priors and lineup_confirmed)\n8. **Risk flags**: probability_sources_missing, lineup_unconfirmed\n9. **Signal conflict**: 0.0 (low conflict)\n10. **Window**: PRE_MATCH\n11. **dry_run**: true\n\n**Analysis:**\n- All sources favor the away team (0.442-0.519 range)\n- Draw probabilities range from 0.237-0.330\n- Home probabilities are lowest (0.210-0.281)\n- Missing critical data: Supabase priors, confirmed lineups\n- No claim signals available\n- No halftime data (pre-match)\n- Multiple risk flags present\n\n**Supporting signals:**\n- All three sources (bookmaker, sportmonks, market) agree away is favorite\n- Low signal conflict (0.0)\n- Deterministic model shows consistent away advantage\n- Source blend is stable\n\n**Contradicting signals:**\n- Missing supabase priors (historical context)\n- Lineup unconfirmed\n- Incomplete probability sources and elevated uncertainty (0.6) create gaps in the analysis. The deterministic model's blended output\u2014away 0.471, draw 0.285, home 0.244\u2014provides the most reliable estimate given available data. However, the combination of missing historical priors, unconfirmed team compositions, and dry_run status suggests exercising caution rather than committing to a position. The recommendation leans toward SKIP or WATCH given these constraints.",
+  "text_preview": "{\"probabilities\":{\"home\":0.244,\"draw\":0.285,\"away\":0.471},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources agree away favored (0.44-0.52)\",\"Low signal conflict (0.0) across sources\",\"Deterministic blend stable across bookmaker/sportmonks/polymarket\",\"Source contribution well-distributed\"],\"contradicting_signals\":[\"Missing supabase priors and historical context\",\"Lineup unconfirmed\",\"Probability sources incomplete (no draw model or llm claims)\",\"Medium-high uncertainty (0.6) with 75% data completeness\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"missing_supabase_priors\",\"dry_run_mode\"],\"rationale\":\"Away team favored consistently across all sources (bookmaker 0.442, sportmonks 0.482, market 0.519). However, missing critical inputs (supabase priors, confirmed lineups) and 75% data completeness warrant caution. Deterministic model blends available sources but flags incomplete data. Skip until lineup confirmation and additional sources available.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

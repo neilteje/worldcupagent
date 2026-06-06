@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2014,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 802,
+    "output_tokens_details": {
+      "thinking_tokens": 551
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.498,
+      "draw": 0.254,
+      "away": 0.248
+    },
+    "confidence": 0.58,
+    "uncertainty": 0.62,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources consensus home favorite 49-52%",
+      "Bookmaker and Polymarket home alignment",
+      "Moderate home edge across three independent sources",
+      "Low signal conflict score 0.0"
+    ],
+    "contradicting_signals": [
+      "Draw probability variance 20-30% across sources",
+      "Missing supabase priors and confirmed lineup",
+      "Data completeness only 75%",
+      "Lineup unconfirmed risk flag"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "moderate_confidence_only",
+      "missing_historical_priors"
+    ],
+    "rationale": "Home favored but missing key inputs (lineup, supabase priors). Moderate confidence 0.6 with high uncertainty 0.6 and incomplete data (75%) warrant cautious stance. Draw probability shows significant source divergence. Pre-match without lineup confirmation increases risk.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this soccer match prediction data:\n\n**Key Inputs:**\n1. **Bookmaker probabilities**: Home 51.06%, Draw 24.81%, Away 24.14%\n2. **Sportmonks probabilities**: Home 49.06%, Draw 30.00%, Away 20.94%\n3. **Polymarket (market) probabilities**: Home 51.51%, Draw 20.19%, Away 28.30%\n4. **Deterministic model**: Home 49.75%, Draw 25.44%, Away 24.81%\n   - Confidence: 0.6\n   - Uncertainty: 0.6\n\n**Data Completeness:**\n- Missing: supabase_priors, lineup_confirmed\n- Score: 0.75\n- Risk flags: probability_sources_missing, lineup_unconfirmed\n\n**Analysis:**\n- Home team is favored across all sources (49-52%)\n- Draw ranges from 20-30% (significant variance)\n- Away ranges from 21-28%\n- No halftime data (pre-match)\n- No claim signals available\n- Signal conflict: 0.0\n- This is a dry run (dry_run: true)\n\n**Consensus View:**\nAll sources agree home is favored but not overwhelmingly. The deterministic model suggests Home ~50%, Draw ~25%, Away ~25%.\n\n**Risk Assessment:**\n- Missing supabase priors and confirmed lineup\n- Moderate confidence (0.6)\n- High uncertainty (0.6)\n- No halftime adjustment needed (pre-match)\n- lineup_unconfirmed is a risk flag\n\n**Supporting signals:**\n- All sources favor home team\n- Bookmaker and Polymarket aligned on home probability\n- Moderate home advantage consensus\n\n**Contradicting signals:**\n- High variance in draw probability (20-30%)\n- Missing critical inputs like supabase priors and confirmed lineups, plus the unconfirmed lineup status creates additional uncertainty. With moderate confidence at 0.6 and equally high uncertainty, the probabilities lack the conviction needed for a strong play. I'd lean toward skipping this or monitoring it further until more data becomes available.\n\n**Final Probabilities:**\nWeighting the deterministic model with consideration for all sources yields Home ~50%, Draw ~25%, Away ~25%.",
+  "text_preview": "{\"probabilities\":{\"home\":0.498,\"draw\":0.254,\"away\":0.248},\"confidence\":0.58,\"uncertainty\":0.62,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources consensus home favorite 49-52%\",\"Bookmaker and Polymarket home alignment\",\"Moderate home edge across three independent sources\",\"Low signal conflict score 0.0\"],\"contradicting_signals\":[\"Draw probability variance 20-30% across sources\",\"Missing supabase priors and confirmed lineup\",\"Data completeness only 75%\",\"Lineup unconfirmed risk flag\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"moderate_confidence_only\",\"missing_historical_priors\"],\"rationale\":\"Home favored but missing key inputs (lineup, supabase priors). Moderate confidence 0.6 with high uncertainty 0.6 and incomplete data (75%) warrant cautious stance. Draw probability shows significant source divergence. Pre-match without lineup confirmation increases risk.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

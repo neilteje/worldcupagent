@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2597,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 997,
+    "output_tokens_details": {
+      "thinking_tokens": 686
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.47,
+      "draw": 0.26,
+      "away": 0.27
+    },
+    "confidence": 0.62,
+    "uncertainty": 0.45,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Home massive xG advantage 1.40 vs 0.20",
+      "Away lucky_lead label with +0.8 luck scoreline unsustainable",
+      "Bookmaker heavily favors home 58% despite 0-1 deficit",
+      "Shot pressure delta +0.62 favoring home comeback"
+    ],
+    "contradicting_signals": [
+      "Polymarket favors away 39% vs bookmaker 18% huge discrepancy",
+      "Away currently winning 0-1 scoreline protection",
+      "Market may know something bookmakers missed",
+      "Lineup unconfirmed adds uncertainty to projections"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "market_polymarket_discrepancy",
+      "stale_market_suspected"
+    ],
+    "rationale": "Away leads 0-1 but is heavily outplayed per xG and shot metrics. Bookmakers price home 58% recognizing unsustainable lucky lead, but Polymarket 39% away creates major source conflict. Home has strong comeback probability but current scoreline adds draw risk. Lineup uncertainty and market discrepancy warrant caution.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this halftime scenario carefully:\n\n**Key Data Points:**\n- Current score: 0-1 (away leading)\n- xG: 1.40-0.20 (home dominating)\n- Label: \"lucky_lead\" - away is leading despite being outplayed\n- Away has significant luck (+0.8), home has bad luck (-1.4)\n- Shot pressure delta: 0.62 favoring home\n\n**Source Probabilities:**\n- Bookmaker: Home 58%, Draw 24%, Away 18%\n- Market (Polymarket): Home 30%, Draw 31%, Away 39% \n- Sportmonks: Home 60%, Draw 23%, Away 17%\n- Supabase priors: Home 40%, Draw 28%, Away 32%\n- Halftime model: Home 44.7%, Draw 23.3%, Away 32.0%\n- Deterministic model: Home 44.9%, Draw 23.5%, Away 31.6%\n\n**Key Observations:**\n1. Huge discrepancy between bookmaker/Sportmonks (home favored 58-60%) vs Polymarket (away favored 39%)\n2. Away is winning 0-1 but getting heavily outplayed (xG 0.20 vs 1.40)\n3. This is a classic \"lucky_lead\" scenario - away likely to concede\n4. Polymarket appears stale or mispriced - likely hasn't adjusted for the lucky nature of away's lead\n5. Lineups not confirmed (minor risk)\n\n**Analysis:**\nThe deterministic model blending all sources gives Home 44.9%, Draw 23.5%, Away 31.6% with 68% confidence. However, this seems to be dragged down heavily by the Polymarket odds which favor away at 39%.\n\nGiven:\n- Away's lead is extremely lucky (xG deficit of 1.2)\n- Shot pressure heavily favors home\n- Bookmaker (most reliable) strongly favors home at 58%\n- Sportmonks also strongly favors home at 60%\n\nI should lean closer to bookmaker/Sportmonks while acknowledging the current scoreline creates draw potential. The traditional oddsmakers are aligned on home dominance, and the underlying metrics support this. Away's fortunate position is unlikely to hold given the xG gap and pressure metrics.\n\n**My Assessment:**\n- Home: ~48% (strong xG dominance, likely to score)\n- Draw: ~26% (current 0-1 could become 1-1)\n- Away: ~26% (lucky lead likely unsustainable)\n\n**Risk Factors:**\n- Market discrepancy (Polymarket vs bookmakers)\n- Lineup uncertainty\n- Away currently winning (scoreline risk)\n- Probability sources missing\n\n**Recommendation:** WATCH - significant\n\nThe market split between Polymarket and traditional bookmakers points to real uncertainty, though if I had to commit, home's xG advantage makes it the more compelling option. Confidence sits around 0.62 given the conflicting signals across sources, with elevated uncertainty at 0.45 reflecting the gap between prediction models and betting markets.",
+  "text_preview": "{\"probabilities\":{\"home\":0.47,\"draw\":0.26,\"away\":0.27},\"confidence\":0.62,\"uncertainty\":0.45,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Home massive xG advantage 1.40 vs 0.20\",\"Away lucky_lead label with +0.8 luck scoreline unsustainable\",\"Bookmaker heavily favors home 58% despite 0-1 deficit\",\"Shot pressure delta +0.62 favoring home comeback\"],\"contradicting_signals\":[\"Polymarket favors away 39% vs bookmaker 18% huge discrepancy\",\"Away currently winning 0-1 scoreline protection\",\"Market may know something bookmakers missed\",\"Lineup unconfirmed adds uncertainty to projections\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"probability_sources_missing\",\"market_polymarket_discrepancy\",\"stale_market_suspected\"],\"rationale\":\"Away leads 0-1 but is heavily outplayed per xG and shot metrics. Bookmakers price home 58% recognizing unsustainable lucky lead, but Polymarket 39% away creates major source conflict. Home has strong comeback probability but current scoreline adds draw risk. Lineup uncertainty and market discrepancy warrant caution.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

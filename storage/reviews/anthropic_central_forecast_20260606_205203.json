@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2016,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 720,
+    "output_tokens_details": {
+      "thinking_tokens": 479
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.45,
+      "draw": 0.21,
+      "away": 0.34
+    },
+    "confidence": 0.55,
+    "uncertainty": 0.62,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources favor home win 43-48%",
+      "Bookmaker and Sportmonks alignment on home advantage",
+      "Consistent away second-place probability 32-34%",
+      "Deterministic model confidence 0.6"
+    ],
+    "contradicting_signals": [
+      "Missing supabase priors - no historical context",
+      "Lineup unconfirmed adds selection uncertainty",
+      "Data completeness only 75%",
+      "Missing draw_model and llm_claims sources"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "dry_run_mode",
+      "moderate_high_uncertainty"
+    ],
+    "rationale": "Home favored across all sources (45%) but missing critical data (lineups, priors) elevates uncertainty. Consensus exists but incomplete information warrants caution. Skip until lineup confirmation.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to create a comprehensive forecast:\n\n1. **Bookmaker probabilities**: Home 0.482, Draw 0.183, Away 0.335\n2. **Sportmonks probabilities**: Home 0.451, Draw 0.229, Away 0.320\n3. **Market probabilities**: Home 0.430, Draw 0.228, Away 0.342\n4. **Deterministic model**: Home 0.451, Draw 0.216, Away 0.333\n5. **Confidence**: 0.6 (moderate)\n6. **Uncertainty**: 0.6 (moderate-high)\n\n**Key observations**:\n- All sources favor home win (43-48%)\n- Away second likely (32-34%)\n- Draw least likely (18-23%)\n- Missing data: supabase_priors, lineup_confirmed\n- Data completeness: 0.75\n- Risk flags: probability_sources_missing, lineup_unconfirmed\n- No claim signals\n- No halftime data (PRE_MATCH)\n- Dry run mode enabled\n\n**Supporting signals**:\n- Consistent home favoritism across all sources\n- Bookmaker, Sportmonks, and Polymarket alignment\n- Moderate confidence from deterministic model\n\n**Contradicting signals**:\n- Missing supabase priors (no historical context)\n- Lineup unconfirmed (team selection uncertainty)\n- Moderate-high uncertainty (0.6)\n- Missing draw_model and llm_claims\n\n**Risk assessment**:\n- Missing critical data sources\n- Lineup uncertainty\n- Dry run mode\n- Data completeness only 75%\n\n**Final probabilities** (weighted synthesis):\nI'll use the deterministic model as base but adjust slightly toward bookmaker odds given they typically have best information:\n- Home: ~0.45\n- Draw: ~0.21\n- Away: ~0.34\n\nGiven the gaps in data and elevated uncertainty, I should recommend SKIP or WATCH rather than a confident prediction. The missing historical context and unconfirmed lineups create too much risk, so CAUTION is the appropriate posture here.",
+  "text_preview": "{\"probabilities\":{\"home\":0.45,\"draw\":0.21,\"away\":0.34},\"confidence\":0.55,\"uncertainty\":0.62,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources favor home win 43-48%\",\"Bookmaker and Sportmonks alignment on home advantage\",\"Consistent away second-place probability 32-34%\",\"Deterministic model confidence 0.6\"],\"contradicting_signals\":[\"Missing supabase priors - no historical context\",\"Lineup unconfirmed adds selection uncertainty\",\"Data completeness only 75%\",\"Missing draw_model and llm_claims sources\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"dry_run_mode\",\"moderate_high_uncertainty\"],\"rationale\":\"Home favored across all sources (45%) but missing critical data (lineups, priors) elevates uncertainty. Consensus exists but incomplete information warrants caution. Skip until lineup confirmation.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

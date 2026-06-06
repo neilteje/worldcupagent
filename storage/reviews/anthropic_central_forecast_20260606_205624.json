@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2019,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 826,
+    "output_tokens_details": {
+      "thinking_tokens": 582
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.289,
+      "draw": 0.246,
+      "away": 0.465
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources favor away outcome",
+      "Bookmaker and Sportmonks closely aligned",
+      "Deterministic model calibrated across 3 sources",
+      "Away probability consistent 44-52% range"
+    ],
+    "contradicting_signals": [
+      "Polymarket diverges 8% higher on away vs bookmaker",
+      "Missing lineup confirmation",
+      "Missing supabase priors removes historical context",
+      "Data completeness only 75%"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "polymarket_bookmaker_divergence",
+      "moderate_confidence_only"
+    ],
+    "rationale": "Away favored at 46.5% with moderate confidence but missing critical inputs (lineup, priors). Polymarket-bookmaker spread of 8% on away outcome suggests market uncertainty. Skip until lineup confirmed and data completeness improves.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "I need to synthesize all the provided features into a final 3-way probability forecast. Let me analyze the key information:\n\n**Probabilities from different sources:**\n- Bookmaker: home 0.324, draw 0.236, away 0.440\n- Sportmonks: home 0.323, draw 0.216, away 0.461\n- Market (Polymarket): home 0.203, draw 0.276, away 0.521\n- Deterministic model: home 0.289, draw 0.246, away 0.465\n\n**Key observations:**\n1. All sources favor away win, but with varying confidence\n2. Polymarket shows strongest away preference (52.1%) vs bookmaker (44.0%)\n3. Missing data: supabase_priors, lineup_confirmed\n4. Data completeness score: 0.75\n5. Confidence: 0.6, Uncertainty: 0.6\n6. Risk flags: probability_sources_missing, lineup_unconfirmed\n7. No halftime data (PRE_MATCH)\n8. No claim signals\n9. This is a dry run (dry_run: true)\n\n**Supporting signals:**\n- Consistent away favoritism across all sources\n- Multiple independent sources align on direction\n- Deterministic model provides calibrated estimate\n- Bookmaker and Sportmonks closely aligned\n\n**Contradicting signals:**\n- Polymarket diverges significantly from bookmaker odds (52% vs 44% away)\n- Missing lineup confirmation adds uncertainty\n- Missing supabase priors removes historical context\n- Data completeness only 75%\n\n**Risk assessment:**\n- Missing key data sources (lineup, supabase)\n- Signal divergence between Polymarket and traditional bookmakers\n- Moderate confidence (0.6)\n- High uncertainty (0.6)\n- Dry run environment\n\nThe deterministic model serves as my calibrated baseline across all weighted sources. I'm settling on home 28.9%, draw 24.6%, away 46.5%. Given the missing lineup data and source disagreement between market and bookmaker odds, I should skip this forecast\u2014the moderate confidence combined with incomplete information and divergence between Polymarket and traditional bookmakers suggests a cautious approach is warranted.",
+  "text_preview": "{\"probabilities\":{\"home\":0.289,\"draw\":0.246,\"away\":0.465},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources favor away outcome\",\"Bookmaker and Sportmonks closely aligned\",\"Deterministic model calibrated across 3 sources\",\"Away probability consistent 44-52% range\"],\"contradicting_signals\":[\"Polymarket diverges 8% higher on away vs bookmaker\",\"Missing lineup confirmation\",\"Missing supabase priors removes historical context\",\"Data completeness only 75%\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"polymarket_bookmaker_divergence\",\"moderate_confidence_only\"],\"rationale\":\"Away favored at 46.5% with moderate confidence but missing critical inputs (lineup, priors). Polymarket-bookmaker spread of 8% on away outcome suggests market uncertainty. Skip until lineup confirmed and data completeness improves.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

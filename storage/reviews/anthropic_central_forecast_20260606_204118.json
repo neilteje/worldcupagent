@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2598,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 926,
+    "output_tokens_details": {
+      "thinking_tokens": 613
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.275,
+      "draw": 0.489,
+      "away": 0.236
+    },
+    "confidence": 0.68,
+    "uncertainty": 0.4,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "HT 0-0 dead_match label supports high draw probability",
+      "Low xG both sides (0.20-0.18) indicates tight low-event match",
+      "Halftime model weighted 51.7% shifts heavily toward draw",
+      "Both teams underperforming xG (luck -0.20 home, -0.18 away)"
+    ],
+    "contradicting_signals": [
+      "Prematch sources favored home 37-40% vs current 27.5%",
+      "Bookmaker still prices home 37% vs model 27.5%",
+      "No lineup confirmation reduces prediction reliability",
+      "Sportmonks prematch 38% home differs from HT-adjusted 27.5%"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "low_xg_dead_match",
+      "halftime_model_dominance"
+    ],
+    "rationale": "0-0 halftime in low-xG dead match drives draw probability to 48.9%. Halftime dynamics override prematch home edge. Moderate confidence but lineup missing and low-event matches harder to forecast. No clear betting edge.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this halftime situation:\n\n**Key Inputs:**\n- Fixture code: SYN-HT-LOW-XG (synthetic halftime, low expected goals)\n- Halftime score: 0-0\n- Halftime xG: Home 0.20 - Away 0.18 (very tight, slight home edge)\n- Halftime label: \"dead_match\" (low event match)\n\n**Source Probabilities:**\n- Bookmaker: Home 37%, Draw 31%, Away 32%\n- Sportmonks: Home 38%, Draw 30%, Away 32%\n- Polymarket/Market: Home 35%, Draw 34%, Away 31%\n- Supabase priors: Home 40%, Draw 28%, Away 32%\n- Halftime model: Home 27.3%, Draw 50.3%, Away 22.5%\n\n**Deterministic Model Output:**\n- Home: 27.5%, Draw: 48.9%, Away: 23.6%\n- Confidence: 0.68\n- Uncertainty: 0.40\n\n**Key Observations:**\n1. The halftime model heavily weights toward draw (50.3%) given the 0-0 scoreline and low xG\n2. Both teams underperforming xG (home -0.2, away -0.18 luck)\n3. \"Dead match\" label suggests low intensity/quality\n4. No lineup confirmation (risk flag)\n5. Prematch had home slightly favored, but halftime dynamics shift heavily to draw\n6. The deterministic model gives 51.7% weight to halftime factors\n\n**Reconciliation:**\n- The halftime model dominates (51.7% weight) and shifts heavily toward draw\n- Prematch sources all had home slightly ahead\n- The 0-0 scoreline with low xG supports high draw probability\n- The 48.9% draw probability aligns with a stalled, low-intensity match where neither side is creating much\n\n**Risk Assessment:**\nMissing lineup confirmation and probability source data. Data completeness sits at 85.7%. No claim signals or market staleness indicators available to validate the model output.\n\n**Decision:**\nThe draw probability seems justified given the scoreline and xG metrics, but moderate confidence combined with incomplete data and no additional signals makes this a skip. The edge isn't compelling enough to overcome the uncertainty and missing information.",
+  "text_preview": "{\"probabilities\":{\"home\":0.275,\"draw\":0.489,\"away\":0.236},\"confidence\":0.68,\"uncertainty\":0.40,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"HT 0-0 dead_match label supports high draw probability\",\"Low xG both sides (0.20-0.18) indicates tight low-event match\",\"Halftime model weighted 51.7% shifts heavily toward draw\",\"Both teams underperforming xG (luck -0.20 home, -0.18 away)\"],\"contradicting_signals\":[\"Prematch sources favored home 37-40% vs current 27.5%\",\"Bookmaker still prices home 37% vs model 27.5%\",\"No lineup confirmation reduces prediction reliability\",\"Sportmonks prematch 38% home differs from HT-adjusted 27.5%\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"probability_sources_missing\",\"low_xg_dead_match\",\"halftime_model_dominance\"],\"rationale\":\"0-0 halftime in low-xG dead match drives draw probability to 48.9%. Halftime dynamics override prematch home edge. Moderate confidence but lineup missing and low-event matches harder to forecast. No clear betting edge.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

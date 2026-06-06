@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2014,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 784,
+    "output_tokens_details": {
+      "thinking_tokens": 570
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.274,
+      "draw": 0.226,
+      "away": 0.5
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources favor away team",
+      "Low signal conflict (0.0)",
+      "Bookmaker away 0.520 aligns with model",
+      "Three-source consensus on outcome"
+    ],
+    "contradicting_signals": [
+      "Lineup unconfirmed",
+      "Missing supabase priors",
+      "Data completeness only 75%",
+      "No claim signals available"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "dry_run_mode",
+      "moderate_uncertainty"
+    ],
+    "rationale": "Away favorite with 50% probability but missing critical inputs (lineup, priors, claims). Moderate confidence and high uncertainty warrant caution. Recommend skip until lineup confirmed and data complete.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features:\n\n1. **Bookmaker probabilities**: Away 0.520, Draw 0.195, Home 0.285\n2. **Sportmonks probabilities**: Away 0.474, Draw 0.266, Home 0.260\n3. **Market probabilities (likely Polymarket)**: Away 0.528, Draw 0.207, Home 0.264\n4. **Deterministic model output**: Away 0.500, Draw 0.226, Home 0.274\n   - Confidence: 0.6\n   - Uncertainty: 0.6\n   - Missing sources: supabase, lineup, draw_model, llm_claims\n   - Risk flags: probability_sources_missing\n\n5. **Data completeness**: \n   - Score: 0.75\n   - Missing: supabase_priors, lineup_confirmed\n\n6. **Lineup**: Risk flag for lineup_unconfirmed\n7. **Halftime**: null (pre-match)\n8. **Claim signals**: empty\n9. **Signal conflict**: 0.0\n10. **Dry run**: true\n\n**Analysis**:\n- All three sources (bookmaker, sportmonks, polymarket) favor the away team\n- Away probability ranges from 0.474 to 0.528\n- Draw probability ranges from 0.195 to 0.266\n- Home probability ranges from 0.260 to 0.285\n- The deterministic model blends these to: Away 0.500, Draw 0.226, Home 0.274\n\n**Supporting signals**:\n- All three major sources agree away team is favored\n- Low signal conflict (0.0)\n- Consistent probability direction across sources\n\n**Contradicting/Risk signals**:\n- Missing supabase priors\n- Lineup unconfirmed\n- Missing draw model and llm claims\n- Data completeness only 75%\n- Moderate uncertainty (0.6)\n- The missing lineup confirmation and supabase priors are significant gaps that limit confidence in the prediction. With dry_run=true and moderate confidence (0.6) paired with high uncertainty (0.6), I should treat this cautiously. The deterministic model's away lean is supported by market consensus, but the incomplete data picture suggests holding back on a strong recommendation\u2014this warrants either skipping or watching rather than committing to a position.",
+  "text_preview": "{\"probabilities\":{\"home\":0.274,\"draw\":0.226,\"away\":0.500},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources favor away team\",\"Low signal conflict (0.0)\",\"Bookmaker away 0.520 aligns with model\",\"Three-source consensus on outcome\"],\"contradicting_signals\":[\"Lineup unconfirmed\",\"Missing supabase priors\",\"Data completeness only 75%\",\"No claim signals available\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"dry_run_mode\",\"moderate_uncertainty\"],\"rationale\":\"Away favorite with 50% probability but missing critical inputs (lineup, priors, claims). Moderate confidence and high uncertainty warrant caution. Recommend skip until lineup confirmed and data complete.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

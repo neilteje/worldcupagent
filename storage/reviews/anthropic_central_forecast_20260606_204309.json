@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2377,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1069,
+    "output_tokens_details": {
+      "thinking_tokens": 813
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.34,
+      "draw": 0.357,
+      "away": 0.303
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.5,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Deterministic model calibrated at 0.66 confidence",
+      "Multiple sources show tight 3-way balance",
+      "Bookmaker and Sportmonks aligned on probabilities",
+      "Fixture code suggests draw-prone match"
+    ],
+    "contradicting_signals": [
+      "Polymarket draw 0.24 vs model 0.357 - major variance",
+      "Lineup unconfirmed for both teams",
+      "Missing probability sources reduce reliability",
+      "High uncertainty 0.50 limits edge potential"
+    ],
+    "additional_risk_flags": [
+      "lineup_unconfirmed",
+      "probability_sources_missing",
+      "high_draw_variance",
+      "synthetic_test_fixture"
+    ],
+    "rationale": "Balanced 3-way market with home slight edge but elevated draw probability per model calibration. Missing lineup confirmation and source divergence on draw warrants skip. Synthetic fixture code SYN-DRAW-UNDER suggests testing scenario.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to synthesize a final forecast:\n\n**Key Inputs:**\n1. Bookmaker probs: home=0.35, draw=0.33, away=0.32\n2. Market probs (Polymarket): home=0.40, draw=0.24, away=0.36\n3. Sportmonks probs: home=0.36, draw=0.32, away=0.32\n4. Supabase priors: home=0.40, draw=0.28, away=0.32\n5. Deterministic model: home=0.340, draw=0.357, away=0.302 (confidence=0.66, uncertainty=0.50)\n\n**Data Completeness:**\n- Score: 0.8\n- Missing: lineup_confirmed\n- Lineup confidence: 0.35\n- Risk flags: probability_sources_missing, lineup_unconfirmed\n\n**Analysis:**\n- This is a PRE_MATCH window\n- Dry run: true\n- Fixture code: SYN-DRAW-UNDER (synthetic fixture optimized for draws)\n- All sources show relatively balanced probabilities (close 3-way)\n- Home slightly favored across most sources (0.35-0.40)\n- Draw probabilities vary: bookmaker 0.33, market 0.24, sportmonks 0.32, supabase 0.28, model 0.357\n- Away probabilities: 0.32-0.36 range\n- No halftime state, no claim signals, no lineup confirmations\n\n**Supporting Signals:**\n- Deterministic model calibrated with 0.66 confidence\n- Multiple probability sources agree on tight 3-way match\n- Bookmaker and Sportmonks relatively aligned\n- Supabase and market priors suggest slight home edge\n\n**Contradicting Signals:**\n- Polymarket shows lower draw (0.24) vs model (0.357) - significant variance\n- Lineup unconfirmed reduces confidence\n- Missing probability sources noted\n- High uncertainty (0.50) from model\n\n**Risk Assessment:**\n- Data completeness 0.8 (good but not perfect)\n- Lineup unconfirmed is a material risk\n- Probability sources diverge on draw probability\n- This is a synthetic/dry run fixture\n- Risk flags: probability_sources_missing, lineup_unconfirmed\n\n**Final Probabilities:**\nThe model's blended estimates already incorporate source weighting and calibration adjustments. The draw probability shows the most divergence across inputs, with Polymarket notably lower than the deterministic model's estimate. Given the unconfirmed lineups and missing data sources, I'm applying a modest confidence discount to the final forecast.\n\nHome: 0.34, Draw: 0.35, Away: 0.31\n\n**Confidence & Uncertainty:**\nModerate confidence (0.60) due to lineup gaps and source disagreement; high uncertainty (0.50) from tight odds and incomplete information.\n\n**Recommendation:**\nSKIP this fixture. The balanced probabilities, synthetic nature, and unconfirmed lineups create too much risk relative to edge potential. Multiple flags warrant caution: unconfirmed lineup, missing probability sources, synthetic fixture, and elevated draw variance.",
+  "text_preview": "{\"probabilities\":{\"home\":0.34,\"draw\":0.357,\"away\":0.303},\"confidence\":0.60,\"uncertainty\":0.50,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Deterministic model calibrated at 0.66 confidence\",\"Multiple sources show tight 3-way balance\",\"Bookmaker and Sportmonks aligned on probabilities\",\"Fixture code suggests draw-prone match\"],\"contradicting_signals\":[\"Polymarket draw 0.24 vs model 0.357 - major variance\",\"Lineup unconfirmed for both teams\",\"Missing probability sources reduce reliability\",\"High uncertainty 0.50 limits edge potential\"],\"additional_risk_flags\":[\"lineup_unconfirmed\",\"probability_sources_missing\",\"high_draw_variance\",\"synthetic_test_fixture\"],\"rationale\":\"Balanced 3-way market with home slight edge but elevated draw probability per model calibration. Missing lineup confirmation and source divergence on draw warrants skip. Synthetic fixture code SYN-DRAW-UNDER suggests testing scenario.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-sonnet-4-5-20250929",
+  "usage": {
+    "input_tokens": 2019,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 785,
+    "output_tokens_details": {
+      "thinking_tokens": 544
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.297,
+      "draw": 0.261,
+      "away": 0.441
+    },
+    "confidence": 0.6,
+    "uncertainty": 0.6,
+    "recommendation": "SKIP",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources favor away team (38-51%)",
+      "Bookmaker, Sportmonks, Polymarket aligned",
+      "Deterministic blend shows away 44.1%",
+      "Cross-source convergence on away preference"
+    ],
+    "contradicting_signals": [
+      "Draw probability varies 20-33% across sources",
+      "Missing supabase priors for historical context",
+      "Lineup unconfirmed adds situational risk",
+      "No claim signals to validate probabilities"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "lineup_unconfirmed",
+      "data_incomplete",
+      "moderate_uncertainty"
+    ],
+    "rationale": "Away team favored across all sources but missing lineup confirmation and supabase priors reduce confidence. 75% data completeness and 0.6 uncertainty warrant caution. Dry run context supports conservative SKIP.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data:\n\n1. **Bookmaker probabilities**: Away 0.384, Draw 0.334, Home 0.282\n2. **Sportmonks probabilities**: Away 0.512, Draw 0.202, Home 0.286\n3. **Market probabilities (likely Polymarket)**: Away 0.455, Draw 0.223, Home 0.322\n4. **Deterministic model output**: Away 0.441, Draw 0.261, Home 0.297\n\nKey observations:\n- All sources favor away team (38-51%)\n- Draw probabilities range from 20-33%\n- Home team is weakest (28-32%)\n- Data completeness: 0.75 (missing supabase_priors and lineup_confirmed)\n- Confidence: 0.6, Uncertainty: 0.6\n- Risk flags: probability_sources_missing, lineup_unconfirmed\n- No claim signals, no halftime data (PRE_MATCH)\n- This is a dry run (dry_run: true)\n\nSupporting signals:\n- All major sources agree away team is favored\n- Bookmaker, Sportmonks, and Polymarket aligned on away win\n- Deterministic model shows consistent away preference\n- Multiple probability sources converge\n\nContradicting signals:\n- Draw probability varies significantly (20% to 33%)\n- Missing supabase priors limits historical context\n- Lineup unconfirmed adds uncertainty\n- No claim signals to validate\n\nRisk flags:\n- probability_sources_missing\n- lineup_unconfirmed\n- data_incomplete\n- moderate_uncertainty\n\nGiven the moderate confidence (0.6), high uncertainty (0.6), missing data, and this being a dry run, recommendation should be SKIP or WATCH. Risk posture should be CAUTION.\n\nI'll use the deterministic model output as the base with slight adjustments recognizing the convergence but also the uncertainty.\n- Away: 0.441, Draw: 0.261, Home: 0.297\n\nThe recommendation is SKIP given the incomplete data and moderate confidence levels, with a cautious risk posture maintained throughout.",
+  "text_preview": "{\"probabilities\":{\"home\":0.297,\"draw\":0.261,\"away\":0.441},\"confidence\":0.6,\"uncertainty\":0.6,\"recommendation\":\"SKIP\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources favor away team (38-51%)\",\"Bookmaker, Sportmonks, Polymarket aligned\",\"Deterministic blend shows away 44.1%\",\"Cross-source convergence on away preference\"],\"contradicting_signals\":[\"Draw probability varies 20-33% across sources\",\"Missing supabase priors for historical context\",\"Lineup unconfirmed adds situational risk\",\"No claim signals to validate probabilities\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"lineup_unconfirmed\",\"data_incomplete\",\"moderate_uncertainty\"],\"rationale\":\"Away team favored across all sources but missing lineup confirmation and supabase priors reduce confidence. 75% data completeness and 0.6 uncertainty warrant caution. Dry run context supports conservative SKIP.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}
