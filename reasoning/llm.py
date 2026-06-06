@@ -21,6 +21,7 @@ _anthropic_client = None
 _openai_client = None
 _openrouter_client = None
 _gemini_client = None
+_deepseek_client = None
 _primary: str = (
     "openrouter" if config.OPENROUTER_KEY else
     "anthropic" if config.ANTHROPIC_KEY else
@@ -73,6 +74,17 @@ def _get_gemini():
         except ImportError:
             pass
     return _gemini_client
+
+
+def _get_deepseek():
+    global _deepseek_client
+    if _deepseek_client is None and config.DEEPSEEK_KEY:
+        from openai import OpenAI
+        _deepseek_client = OpenAI(
+            api_key=config.DEEPSEEK_KEY,
+            base_url=config.DEEPSEEK_BASE_URL,
+        )
+    return _deepseek_client
 
 
 # ── Extraction helpers ─────────────────────────────────────────────────────
@@ -225,6 +237,48 @@ def _call_openai_compatible_result(
         tokens_in=getattr(resp.usage, "prompt_tokens", 0) if resp.usage else 0,
         tokens_out=getattr(resp.usage, "completion_tokens", 0) if resp.usage else 0,
     )
+
+
+def call_deepseek(
+    system: str,
+    user_content: str,
+    model: str | None = None,
+) -> LLMResult:
+    """
+    Call DeepSeek-R1 (deepseek-reasoner) for the devil's-advocate role.
+
+    DeepSeek exposes the *raw* chain-of-thought in `reasoning_content` — the
+    richest possible payload for the ledger's internal_reasoning field. If
+    DeepSeek is unavailable we fall back to Claude so the council still runs.
+    """
+    client = _get_deepseek()
+    if client:
+        try:
+            m = model or config.DEVIL_MODEL
+            resp = client.chat.completions.create(
+                model=m,
+                messages=[
+                    {"role": "system", "content": system},
+                    {"role": "user", "content": user_content},
+                ],
+                timeout=config.DEVIL_TIMEOUT_SECONDS,
+            )
+            msg = resp.choices[0].message
+            text = msg.content or ""
+            thinking = getattr(msg, "reasoning_content", "") or ""
+            usage = getattr(resp, "usage", None)
+            return LLMResult(
+                parsed=_parse_json(text),
+                raw_text=text,
+                thinking=thinking,
+                model=m,
+                provider="deepseek",
+                tokens_in=getattr(usage, "prompt_tokens", 0) or 0,
+                tokens_out=getattr(usage, "completion_tokens", 0) or 0,
+            )
+        except Exception as e:
+            print(f"  [DeepSeek error: {e}] — falling back to Claude for devil's advocate")
+    return call_claude(system, user_content, thinking_budget=2048)
 
 
 def _call_gemini(system: str, user_content: str) -> dict | None:

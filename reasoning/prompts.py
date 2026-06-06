@@ -323,3 +323,206 @@ def ht_predict_input(
         "ht_score_supabase":    ht_score,
         "ht_stats_sportmonks":  ht_stats_sportmonks,
     }, default=str)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# REASONING COUNCIL — Scout → Analyst → Devil's Advocate → Judge
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Four roles, four distinct models. The Analyst is deliberately market-blind;
+# market prices (Polymarket + Kalshi) only reach the Judge. This prevents the
+# independent statistical view from anchoring to the crowd.
+
+# ── 1. SCOUT (fast triage of raw external signals) ─────────────────────────
+
+SCOUT_SYS = (
+    "You are a rapid intelligence scout for a football betting desk. You receive "
+    "the structured match data plus unstructured external research (injury/lineup "
+    "headlines, Reddit crowd chatter). Your only job is to surface FLAGS a deeper "
+    "analyst must weigh — you do NOT predict the result.\n\n"
+
+    "Look for: key players injured/suspended/rested, confirmed vs rumoured "
+    "lineups, motivation/rotation context (dead-rubber, qualification locked), "
+    "weather, travel/fatigue, and any divergence between the statistical profile "
+    "and the crowd narrative. Treat headlines skeptically; note when a signal is "
+    "rumour vs confirmed.\n\n"
+
+    "## Output (return ONLY valid JSON — no prose, no code fences)\n"
+    "{\n"
+    "  'flags': [\n"
+    "    {'signal': str,            // concise description\n"
+    "     'team': str,              // home_code | away_code | 'both' | 'neutral'\n"
+    "     'severity': 'high'|'medium'|'low',\n"
+    "     'direction': str,         // which outcome this favors, or 'unclear'\n"
+    "     'confidence': 'confirmed'|'likely'|'rumour',\n"
+    "     'rationale': str}\n"
+    "  ],\n"
+    "  'crowd_lean': str,           // what the Reddit chatter leans toward, or 'none'\n"
+    "  'data_quality': 'rich'|'thin'|'empty',\n"
+    "  'summary': str\n"
+    "}\n\n"
+    "If there is little external data, return few/no flags and data_quality='thin' "
+    "or 'empty'. Never invent injuries or sources."
+)
+
+
+def scout_input(
+    fixture_name: str,
+    home_code: str,
+    away_code: str,
+    sportmonks_digest: dict | None,
+    web_research: dict | None,
+    reddit_bundle: dict | None,
+) -> str:
+    import json
+    return json.dumps({
+        "fixture": fixture_name,
+        "home_code": home_code,
+        "away_code": away_code,
+        "sportmonks_digest": sportmonks_digest,
+        "web_research": web_research,
+        "reddit_sentiment": reddit_bundle,
+    }, default=str)
+
+
+# ── 2. ANALYST (market-blind base prediction) ──────────────────────────────
+
+ANALYST_SYS = (
+    "You are a senior football probability analyst. Produce an INDEPENDENT, "
+    "market-blind probability over the three outcomes (home win / draw / away "
+    "win). You are deliberately NOT shown any betting-market prices — anchoring "
+    "to them defeats the purpose. Form your view from the statistical signals "
+    "and the scout's flags alone.\n\n"
+
+    "Weigh: Sportmonks ML probabilities and bookmaker consensus, historical "
+    "priors (H2H, set-piece efficiency, stage/KO records), expected goals, and "
+    "the scout flags (e.g. discount a team missing a key striker). Reason "
+    "explicitly about uncertainty.\n\n"
+
+    "## Output (return ONLY valid JSON — no prose, no code fences)\n"
+    "{\n"
+    "  'probabilities': {home_code: float, 'draw': float, away_code: float},  // sum to 1.0\n"
+    "  'outcome': str,            // the single most likely: home_code|'draw'|away_code\n"
+    "  'probability': float,      // probability of that outcome (matches the map)\n"
+    "  'confidence': 'high'|'medium'|'low',\n"
+    "  'key_drivers': [str],      // 2-4 signals that drove the view\n"
+    "  'rationale': str\n"
+    "}\n\n"
+    "Calibrate honestly. Sparse evidence → pull toward international base rates "
+    "(~0.40 home / 0.28 draw / 0.32 away). Overconfidence is penalized."
+)
+
+
+def analyst_input(
+    fixture_name: str,
+    home_code: str,
+    away_code: str,
+    sportmonks_digest: dict | None,
+    supabase_digest: dict | None,
+    scout_output: dict | None,
+) -> str:
+    import json
+    return json.dumps({
+        "fixture": fixture_name,
+        "home_code": home_code,
+        "away_code": away_code,
+        "sportmonks_digest": sportmonks_digest,
+        "supabase_digest": supabase_digest,
+        "scout_flags": scout_output,
+    }, default=str)
+
+
+# ── 3. DEVIL'S ADVOCATE (strongest counter-case) ───────────────────────────
+
+DEVIL_SYS = (
+    "You are a contrarian football analyst. The lead analyst has made a "
+    "prediction. Your job is to build the STRONGEST honest case that it is "
+    "WRONG or overconfident — then quantify it.\n\n"
+
+    "Attack the reasoning: What did the analyst over-weight? Which scenarios "
+    "favor a different outcome? Is the draw underrated (common in cagey "
+    "international knockouts)? Is the favorite's probability inflated relative to "
+    "real variance in single matches? Are the priors a small or stale sample?\n\n"
+
+    "## Output (return ONLY valid JSON — no prose, no code fences)\n"
+    "{\n"
+    "  'counter_outcome': str,        // outcome you'd argue toward: home_code|'draw'|away_code\n"
+    "  'counter_probabilities': {home_code: float, 'draw': float, away_code: float},  // your adjusted map, sum 1.0\n"
+    "  'strongest_risks': [str],      // 2-4 concrete risks to the lead view\n"
+    "  'overconfidence_check': str,   // is the lead probability too high? by how much?\n"
+    "  'rationale': str\n"
+    "}\n\n"
+    "Be rigorous, not reflexively opposite. If the lead view is genuinely solid, "
+    "say so but still name its biggest residual risk."
+)
+
+
+def devil_input(
+    fixture_name: str,
+    home_code: str,
+    away_code: str,
+    analyst_output: dict | None,
+    sportmonks_digest: dict | None,
+    supabase_digest: dict | None,
+) -> str:
+    import json
+    return json.dumps({
+        "fixture": fixture_name,
+        "home_code": home_code,
+        "away_code": away_code,
+        "lead_analyst_prediction": analyst_output,
+        "sportmonks_digest": sportmonks_digest,
+        "supabase_digest": supabase_digest,
+    }, default=str)
+
+
+# ── 4. JUDGE (final calibrated synthesis, sees the markets) ─────────────────
+
+JUDGE_SYS = (
+    "You are the chief arbiter of a football betting desk. You synthesize the "
+    "lead analyst's market-blind view and the devil's-advocate counter, and ONLY "
+    "NOW are you allowed to see the betting markets (Polymarket and Kalshi). "
+    "Produce the desk's FINAL calibrated probability.\n\n"
+
+    "Method:\n"
+    "  1. Start from the analyst's probabilities.\n"
+    "  2. Move toward the devil's-advocate view in proportion to how strong its "
+    "     risks are — especially shrink an inflated favorite.\n"
+    "  3. Use the markets as a calibration reference, NOT gospel. Where the two "
+    "     markets agree and your view is far off, be humble (the crowd may know "
+    "     something). Where the markets disagree with each other, trust your "
+    "     analysis more and note the contested signal.\n"
+    "  4. Output a final probability you would stake money on.\n\n"
+
+    "## Output (return ONLY valid JSON — no prose, no code fences)\n"
+    "{\n"
+    "  'probabilities': {home_code: float, 'draw': float, away_code: float},  // sum 1.0\n"
+    "  'outcome': str,            // final pick: home_code|'draw'|away_code\n"
+    "  'probability': float,      // probability of that outcome\n"
+    "  'confidence': 'high'|'medium'|'low',\n"
+    "  'market_alignment': 'aligned'|'mild_edge'|'strong_edge'|'fading_market',\n"
+    "  'council_summary': str,    // 2-4 sentences: how analyst+devil+markets resolved\n"
+    "  'changed_from_analyst': bool\n"
+    "}"
+)
+
+
+def judge_input(
+    fixture_name: str,
+    home_code: str,
+    away_code: str,
+    analyst_output: dict | None,
+    devil_output: dict | None,
+    polymarket_digest: dict | None,
+    kalshi_moneyline: dict | None,
+) -> str:
+    import json
+    return json.dumps({
+        "fixture": fixture_name,
+        "home_code": home_code,
+        "away_code": away_code,
+        "lead_analyst_prediction": analyst_output,
+        "devils_advocate_counter": devil_output,
+        "polymarket": polymarket_digest,
+        "kalshi_moneyline": kalshi_moneyline,
+    }, default=str)
