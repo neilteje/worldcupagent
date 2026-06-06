@@ -1,0 +1,53 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2349,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1157,
+    "output_tokens_details": {
+      "thinking_tokens": 907
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.4258,
+      "draw": 0.2151,
+      "away": 0.3592
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "All sources converged on home favorite (41-47%)",
+      "Bookmaker/polymarket/sportmonks/supabase aligned",
+      "Signal conflict 0.0, no contradictions detected",
+      "Lineups confirmed, data completeness 1.0"
+    ],
+    "contradicting_signals": [
+      "Polymarket draw odds (15%) lower than consensus (21-23%)",
+      "Missing draw_model and llm_claims in sources"
+    ],
+    "additional_risk_flags": [
+      "polymarket_draw_outlier",
+      "missing_draw_model_source",
+      "moderate_confidence_cap"
+    ],
+    "rationale": "Multi-source consensus on home favorite with confirmed lineups and complete data. Deterministic model synthesized 4-source blend with calibration floor. Moderate confidence haircut for missing draw modeling, but no structural contradictions warrant skip.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the features provided:\n\n1. **Bookmaker probs**: home 0.4154, draw 0.2400, away 0.3446\n2. **Polymarket (market_probs)**: home 0.4690, draw 0.1531, away 0.3779\n3. **Sportmonks probs**: home 0.4130, draw 0.2212, away 0.3658\n4. **Supabase priors**: home 0.4225, draw 0.2273, away 0.3502\n5. **Deterministic model**: home 0.4258, draw 0.2151, away 0.3592 (confidence 0.67)\n6. **Data completeness**: score 1.0 (complete)\n7. **Lineup**: confirmed (both home and away)\n8. **Halftime**: null (pre-match)\n9. **Claim signals**: empty\n10. **Signal conflict**: 0.0 (no conflict)\n11. **Structured claims**: empty\n12. **Market stale**: empty (not stale)\n\n**Analysis:**\n\nAll sources are reasonably aligned:\n- Home: 0.4130-0.4690 (narrow range, very consistent)\n- Draw: 0.1531-0.2273 (wider range but polymarket is an outlier at 0.1531)\n- Away: 0.3446-0.3779 (consistent)\n\nThe polymarket draw odds are notably lower (0.1531) compared to other sources (0.2151-0.2273), suggesting market might be overpricing home/away relative to draw.\n\n**Deterministic model synthesis:**\n- Home: 0.4258\n- Draw: 0.2151\n- Away: 0.3592\n- Confidence: 0.67\n- Uncertainty: 0.50\n\nThe model has calibrated with:\n- Draw floor at 0.16 with shrink strength 0.05\n- Temperature 1.05\n- All sources well-represented\n\nSome inputs are missing (draw_model and llm_claims), which explains the moderate confidence level, though data_completeness is maxed out and lineups are confirmed. No contradictory signals present.\n\nAll major sources converge on home as the favorite (41-47%), with no stale markets or signal conflicts. This points to a **BET** on home.\n\nThe polymarket draw odds (15%) do stand out as lower than other sources (21-23%), and the missing draw modeling creates some uncertainty. Still, the strong alignment across bookmaker, polymarket, and sportmonks, combined with complete data and verified lineups, supports approval with 0.67 confidence and 0.50 uncertainty.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.4258,\"draw\":0.2151,\"away\":0.3592},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"All sources converged on home favorite (41-47%)\",\"Bookmaker/polymarket/sportmonks/supabase aligned\",\"Signal conflict 0.0, no contradictions detected\",\"Lineups confirmed, data completeness 1.0\"],\"contradicting_signals\":[\"Polymarket draw odds (15%) lower than consensus (21-23%)\",\"Missing draw_model and llm_claims in sources\"],\"additional_risk_flags\":[\"polymarket_draw_outlier\",\"missing_draw_model_source\",\"moderate_confidence_cap\"],\"rationale\":\"Multi-source consensus on home favorite with confirmed lineups and complete data. Deterministic model synthesized 4-source blend with calibration floor. Moderate confidence haircut for missing draw modeling, but no structural contradictions warrant skip.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

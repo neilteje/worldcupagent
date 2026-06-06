@@ -1,0 +1,53 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2351,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1226,
+    "output_tokens_details": {
+      "thinking_tokens": 904
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.2946985061404873,
+      "draw": 0.2680965356270379,
+      "away": 0.4372049582324748
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "Multi-source consensus: Away 43-48% across Polymarket, Sportmonks, Supabase, model",
+      "Complete data with confirmed lineups and zero signal conflicts",
+      "Bookmaker (35% home) overvalues home relative to consensus; arbitrage signal",
+      "Deterministic calibration applied with draw floor 16%"
+    ],
+    "contradicting_signals": [
+      "Bookmaker 35.3% home vs model 29.5% (relative outlier)",
+      "Draw probability range 23-30% across sources shows variance"
+    ],
+    "additional_risk_flags": [
+      "missing_draw_model",
+      "missing_llm_claims",
+      "bookmaker_home_divergence"
+    ],
+    "rationale": "Away is robust consensus across all weighted sources (polymarket 46.6%, sportmonks 47.7%, supabase 44.7%). Deterministic model output 43.7% away, 29.5% home balances bookmaker outlier. Confidence 0.67 justified by complete data, confirmed lineups, zero conflicts. BET approved\u2014no veto conditions present.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features into a final 3-way probability forecast.\n\nKey data points:\n1. **Bookmaker probs**: Home 0.353, Draw 0.256, Away 0.392\n2. **Polymarket (market_probs)**: Home 0.235, Draw 0.299, Away 0.466\n3. **Sportmonks probs**: Home 0.260, Draw 0.263, Away 0.477\n4. **Supabase priors**: Home 0.323, Draw 0.230, Away 0.447\n5. **Deterministic model**: Home 0.295, Draw 0.268, Away 0.437\n   - Confidence: 0.67\n   - Missing: lineup (but confirmed), draw_model, llm_claims\n   - Risk flags: probability_sources_missing\n\n**Source Analysis:**\n- Bookmaker: Home 35.3%, Away 39.2% (relatively balanced, slight lean away)\n- Polymarket: Home 23.5%, Away 46.6% (strong away lean)\n- Sportmonks: Home 26.0%, Away 47.7% (strong away lean)\n- Supabase: Home 32.3%, Away 44.7% (moderate away lean)\n- Model consensus: Home 29.5%, Away 43.7% (moderate away lean)\n\n**Signal Alignment:**\n- All sources lean toward away, with polymarket and sportmonks being strongest\n- Bookmaker is most bullish on home (35.3%)\n- Draw is relatively stable across sources (23-30%)\n- Model weights: bookmaker 33.3%, sportmonks 27.8%, polymarket 22.2%, supabase 16.7%\n\n**Confidence Assessment:**\n- Data completeness score: 1.0 (all data complete)\n- Lineups confirmed (synthetic but confirmed)\n- Model confidence at 0.67 with uncertainty at 0.5, operating in PRE_MATCH window. Missing draw_model and llm_claims aren't critical gaps. No signal conflicts detected (0.0), no stale market warnings, and all major sources align directionally toward away despite bookmaker being the outlier. Data integrity is solid with confirmed lineups and no severe contradictions between sources.\n\nThe deterministic model probabilities (Home 0.295, Draw 0.268, Away 0.437) serve as the primary signal after proper weighting. Multi-source consensus across Polymarket, Sportmonks, Supabase, and the model all point away, which outweighs the bookmaker's relative home bias (35.3% vs 29.5%). The recommendation is to approve the bet\u2014confidence is moderate but justified by complete data, no veto conditions exist, and supporting signals are aligned. Bookmaker and model weights are balanced appropriately despite the draw variance.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.2946985061404873,\"draw\":0.2680965356270379,\"away\":0.4372049582324748},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"Multi-source consensus: Away 43-48% across Polymarket, Sportmonks, Supabase, model\",\"Complete data with confirmed lineups and zero signal conflicts\",\"Bookmaker (35% home) overvalues home relative to consensus; arbitrage signal\",\"Deterministic calibration applied with draw floor 16%\"],\"contradicting_signals\":[\"Bookmaker 35.3% home vs model 29.5% (relative outlier)\",\"Draw probability range 23-30% across sources shows variance\"],\"additional_risk_flags\":[\"missing_draw_model\",\"missing_llm_claims\",\"bookmaker_home_divergence\"],\"rationale\":\"Away is robust consensus across all weighted sources (polymarket 46.6%, sportmonks 47.7%, supabase 44.7%). Deterministic model output 43.7% away, 29.5% home balances bookmaker outlier. Confidence 0.67 justified by complete data, confirmed lineups, zero conflicts. BET approved\u2014no veto conditions present.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

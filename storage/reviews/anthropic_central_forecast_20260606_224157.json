@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1464,
+    "output_tokens_details": {
+      "thinking_tokens": 1067
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.46,
+      "draw": 0.214,
+      "away": 0.326
+    },
+    "confidence": 0.68,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "Home consensus across bookmaker (0.466), model (0.449), Supabase (0.453); zero signal conflict",
+      "Perfect data completeness (1.0) with confirmed lineups",
+      "Polymarket and bookmaker strengthen home backing; tight away clustering (0.322\u20130.337)",
+      "Pre-match state with multi-source calibration applied"
+    ],
+    "contradicting_signals": [
+      "Sportmonks draw floor 0.270 vs consensus 0.21\u20130.22 suggests model uncertainty on draw",
+      "Polymarket outlier at 0.500 home vs bookmaker 0.466 (3.4% variance)",
+      "Model confidence moderate 0.67 with missing draw_model and llm_claims",
+      "No halftime or live state data for confirmation"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing_noted_despite_complete_data",
+      "draw_volatility_across_sources",
+      "polymarket_home_outlier_vs_bookmaker",
+      "pre_match_window_limits_live_adjustments"
+    ],
+    "rationale": "Home moderately favored (46%) with strong cross-source alignment (zero conflict). Bookmaker, model, and Supabase converge; Polymarket slightly bullish. Away at 32.6% is well-supported but not exceptional value. Draw sits 21.4% with Sportmonks showing weakness. Complete data and confirmed lineups offset moderate model confidence. Single source risk mitigated by multi-model consensus.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this comprehensive soccer prediction data systematically.\n\n**Data Overview:**\n- Bookmaker: Home 0.466, Draw 0.204, Away 0.330\n- Polymarket: Home 0.500, Draw 0.142, Away 0.357\n- Sportmonks: Home 0.397, Draw 0.270, Away 0.333\n- Supabase: Home 0.453, Draw 0.225, Away 0.322\n- Deterministic Model: Home 0.449, Draw 0.213, Away 0.337\n- Data Completeness: Perfect (1.0)\n- Lineups: Both confirmed (synthetic for backtest fairness)\n- Halftime: null (pre-match)\n- Signal Conflict: 0.0 (well-aligned)\n- Window: PRE_MATCH\n\n**Key Observations:**\n\n1. **Source Alignment:**\n   - Home backing: Bookmaker (0.466), Polymarket (0.500), Supabase (0.453), Model (0.449) - strong consensus\n   - Sportmonks somewhat lower at 0.397 but still home-favoring\n   - Away backing: Polymarket highest at 0.357, others 0.330-0.333\n   - Draw: Sportmonks highest at 0.270, others 0.204-0.225\n\n2. **Model Confidence:** 0.67 - moderate confidence\n   - Missing: lineup details (though marked as confirmed), draw_model, llm_claims\n   - But data_completeness score is 1.0, indicating complete data received\n\n3. **Market vs Model:**\n   - Polymarket (0.500 home) is notably higher than bookmaker (0.466) and model (0.449)\n   - This 3-5% uplift on home could indicate market is slightly bullish on home\n   - Draw probabilities vary considerably across sources (0.142 to 0.270), with Sportmonks notably more bullish on draws than Polymarket. The model applies calibration adjustments with a shrink strength of 0.05 and draw floor of 0.16, settling on final probabilities of Home 0.449, Draw 0.213, Away 0.337. No conflicting signals detected, though there's a flagged risk around missing probability sources despite the complete data score.\n\nAcross the four major data sources, there's strong consensus on the outcome distribution. The model's calibrated estimates align closely with bookmaker odds (0.466 for home) and market pricing, with away probabilities clustering tightly around 0.33-0.34. The main divergence appears in draw probability, where Sportmonks sits notably higher. Given the bookmaker's established track record and the market's implicit pricing at 0.500 for home, I'll weight the final recommendation slightly toward the bookmaker consensus while maintaining the model's disciplined calibration as the foundation.\n\nThe confidence level sits around 0.68, supported by perfect signal alignment across sources and complete data coverage. This warrants approval for betting\u2014the multiple independent sources all point toward home as the favored outcome, with minimal conflict between them. The only notable contradictions are Sportmonks' elevated draw probability and Polymarket's outlier home price, but these don't undermine the broader consensus.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.460,\"draw\":0.214,\"away\":0.326},\"confidence\":0.68,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"Home consensus across bookmaker (0.466), model (0.449), Supabase (0.453); zero signal conflict\",\"Perfect data completeness (1.0) with confirmed lineups\",\"Polymarket and bookmaker strengthen home backing; tight away clustering (0.322\u20130.337)\",\"Pre-match state with multi-source calibration applied\"],\"contradicting_signals\":[\"Sportmonks draw floor 0.270 vs consensus 0.21\u20130.22 suggests model uncertainty on draw\",\"Polymarket outlier at 0.500 home vs bookmaker 0.466 (3.4% variance)\",\"Model confidence moderate 0.67 with missing draw_model and llm_claims\",\"No halftime or live state data for confirmation\"],\"additional_risk_flags\":[\"probability_sources_missing_noted_despite_complete_data\",\"draw_volatility_across_sources\",\"polymarket_home_outlier_vs_bookmaker\",\"pre_match_window_limits_live_adjustments\"],\"rationale\":\"Home moderately favored (46%) with strong cross-source alignment (zero conflict). Bookmaker, model, and Supabase converge; Polymarket slightly bullish. Away at 32.6% is well-supported but not exceptional value. Draw sits 21.4% with Sportmonks showing weakness. Complete data and confirmed lineups offset moderate model confidence. Single source risk mitigated by multi-model consensus.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

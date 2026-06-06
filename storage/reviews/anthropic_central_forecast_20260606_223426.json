@@ -1,0 +1,51 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1472,
+    "output_tokens_details": {
+      "thinking_tokens": 1201
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.558,
+      "draw": 0.204,
+      "away": 0.238
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "Bookmaker consensus H:57.7% aligns with market",
+      "Polymarket H:61.1% reinforces home bias",
+      "Supabase prior H:58.9% consistent with institutional signals",
+      "No signal conflicts detected (0.0)"
+    ],
+    "contradicting_signals": [
+      "Sportmonks more bullish away (31.9% vs 19-23% consensus)"
+    ],
+    "additional_risk_flags": [
+      "sportmonks_divergence",
+      "draw_model_missing"
+    ],
+    "rationale": "Convergence across bookmaker, Polymarket, and Supabase on home favorite (57-61%). Deterministic model integrates to 55.4%, calibrated with confirmed lineups and complete data. Sportmonks outlier on away tail mitigated by 3-source alignment. No stale market or structural conflicts. Confidence 0.67 sufficient for BET given signal concordance.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features systematically:\n\n1. **Bookmaker Probs**: H: 0.5766, D: 0.2317, A: 0.1917\n2. **Market Probs (Polymarket)**: H: 0.6112, D: 0.1756, A: 0.2131\n3. **Sportmonks Probs**: H: 0.4879, D: 0.1936, A: 0.3185\n4. **Supabase Priors**: H: 0.5885, D: 0.1784, A: 0.2331\n5. **Deterministic Model**: H: 0.5537, D: 0.2042, A: 0.2421\n\n**Data Completeness**: Score 1.0 (complete)\n**Lineups**: Confirmed for both teams\n**Halftime**: null (pre-match)\n**Claim Signals**: Empty\n**Signal Conflict**: 0.0\n\n**Consensus Analysis**:\n- Bookmaker: Strong home bias (57.66%)\n- Polymarket: Strongest home bias (61.12%)\n- Sportmonks: Most bearish on home (48.79%), bullish on away (31.85%)\n- Supabase: Strong home bias (58.85%)\n- Model: Balanced, home 55.37%\n\nThere's general agreement on home being the favorite, though Sportmonks is a bit more cautious. The model confidence is 0.67, uncertainty 0.5.\n\n**Key observations**:\n1. Bookmaker, Polymarket, and Supabase all converge on HOME between 57-61%\n2. Sportmonks is the outlier but still favors home at 48.79%\n3. Model aggregates to HOME 55.37%, which is between bookmaker (57.66%) and sportmonks (48.79%)\n4. Away odds show the most variance across sources, with Sportmonks pricing it significantly higher. No structural contradictions exist\u2014the signal conflict score confirms this. Lineups are confirmed despite the flag, and data completeness is perfect, so all necessary information is available. The primary sources (bookmaker, market, model, supabase) are aligned on home as the favorite, with confidence at 0.67 and uncertainty at 0.50.\n\nThe forecast is straightforward: home advantage is clear, away sits in a 19-32% probability band with moderate tail risk, and draws remain stable around 17-20%. Markets aren't stale, red flags are minimal, and bookmaker-polymarket alignment on home (57-61%) combined with reasonable model confidence suggests this qualifies as a BET rather than just a WATCH. Final weighted probabilities converge on home around 55%, draw near 20%, with away taking the remainder. The model's calibrated output of 55.37% for home aligns well with the institutional consensus, so I'll anchor there with a slight upward adjustment. Bookmaker (57.7%), market (61.1%), and Supabase prior (58.9%) all cluster around 58-59%, suggesting the true home probability sits in the 0.56-0.58 range. I'll settle on H: 0.558, D: 0.204, A: 0.238 as my final forecast.\n\nThree reliable signals converge on home\u2014bookmaker consensus at 57.7%, Polymarket at 61.1%, and the Supabase prior at 58.9%\u2014with no conflicting indicators among them. Sportmonks stands as the lone outlier, pushing away probability to 31.9% compared to the 19-23% consensus elsewhere, which warrants flagging as a divergence risk. The recommendation is to proceed with a bet, though confidence sits at 0.67 given the 0.50 uncertainty level and the draw model's absence from the analysis.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.558,\"draw\":0.204,\"away\":0.238},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"Bookmaker consensus H:57.7% aligns with market\",\"Polymarket H:61.1% reinforces home bias\",\"Supabase prior H:58.9% consistent with institutional signals\",\"No signal conflicts detected (0.0)\"],\"contradicting_signals\":[\"Sportmonks more bullish away (31.9% vs 19-23% consensus)\"],\"additional_risk_flags\":[\"sportmonks_divergence\",\"draw_model_missing\"],\"rationale\":\"Convergence across bookmaker, Polymarket, and Supabase on home favorite (57-61%). Deterministic model integrates to 55.4%, calibrated with confirmed lineups and complete data. Sportmonks outlier on away tail mitigated by 3-source alignment. No stale market or structural conflicts. Confidence 0.67 sufficient for BET given signal concordance.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

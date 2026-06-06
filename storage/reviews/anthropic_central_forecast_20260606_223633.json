@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2349,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1162,
+    "output_tokens_details": {
+      "thinking_tokens": 840
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.277,
+      "draw": 0.247,
+      "away": 0.476
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all_sources_aligned_signal_conflict_0",
+      "perfect_data_completeness_lineups_confirmed",
+      "bookmaker_sportmonks_consensus_away_52_51pct",
+      "deterministic_blend_stable_across_calibration"
+    ],
+    "contradicting_signals": [
+      "polymarket_away_43pct_vs_bookmaker_52pct",
+      "supabase_home_31pct_outlier_vs_27pct_model",
+      "draw_floor_calibration_may_mask_true_uncertainty"
+    ],
+    "additional_risk_flags": [
+      "optional_sources_missing_draw_model_llm",
+      "moderate_uncertainty_50pct_discount_confidence",
+      "pre_match_no_halftime_signals"
+    ],
+    "rationale": "Away favored by unified multi-source consensus (476% model probability). Bookmaker (52%) and Sportmonks (51%) align; Polymarket lower (43%) but no conflict. Supabase home spike (31%) absorbed into blend. Perfect data, confirmed lineups, zero signal conflict. Moderate confidence (67%) and high uncertainty (50%) warrant standard bet sizing, not aggressive.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features into a final 3-way probability forecast.\n\nKey inputs:\n1. **Bookmaker probs**: Away 0.519, Draw 0.197, Home 0.284\n2. **Market probs (Polymarket)**: Away 0.433, Draw 0.289, Home 0.279\n3. **Sportmonks probs**: Away 0.509, Draw 0.254, Home 0.236\n4. **Supabase priors**: Away 0.448, Draw 0.242, Home 0.310\n5. **Deterministic model**: Away 0.476, Draw 0.247, Home 0.277\n6. **Confidence**: 0.67 (from deterministic model)\n7. **Uncertainty**: 0.50\n8. **Data completeness**: Perfect (1.0)\n9. **Lineups**: Both confirmed\n10. **Missing sources**: lineup, draw_model, llm_claims (but lineups ARE confirmed, so that's a discrepancy)\n11. **Signal conflict**: 0.0 (aligned)\n12. **No halftime data**: PRE_MATCH window\n\nObservations:\n- Bookmaker and Sportmonks are heavily weighted toward AWAY (519%, 509%)\n- Polymarket is lower for away (433%) but higher for draw (289%)\n- Supabase is more balanced, favoring HOME slightly (310%)\n- Deterministic model blends all sources: Away 47.6%, Home 27.7%, Draw 24.7%\n- The model has calibrated with a draw floor of 16% and 5% shrink\n- All sources are aligned (signal_conflict = 0.0)\n- No contradictory signals\n- Data completeness is perfect\n- Lineups confirmed and pre-match state\n\nThe deterministic model's synthesis (Away 47.6%, Home 27.7%, Draw 24.7%) reflects a weighted blend across sources: bookmaker 33%, sportmonks 28%, polymarket 22%, supabase 17%. Away dominance emerges from bookmaker and sportmonks consensus, though Polymarket introduces more draw probability (29%) than traditional odds (20%), while Supabase tilts toward home (31%) relative to other inputs.\n\nWith model confidence at 0.67 and zero signal conflict, the data alignment supports returning probabilities near the deterministic output. Bookmaker and Sportmonks agreement on away strengthens this direction, though Polymarket's caution on away and Supabase's home lean represent minor divergences that don't warrant adjustment. Missing optional sources like draw_model and llm_claims don't materially impact the assessment given perfect data completeness elsewhere.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.277,\"draw\":0.247,\"away\":0.476},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all_sources_aligned_signal_conflict_0\",\"perfect_data_completeness_lineups_confirmed\",\"bookmaker_sportmonks_consensus_away_52_51pct\",\"deterministic_blend_stable_across_calibration\"],\"contradicting_signals\":[\"polymarket_away_43pct_vs_bookmaker_52pct\",\"supabase_home_31pct_outlier_vs_27pct_model\",\"draw_floor_calibration_may_mask_true_uncertainty\"],\"additional_risk_flags\":[\"optional_sources_missing_draw_model_llm\",\"moderate_uncertainty_50pct_discount_confidence\",\"pre_match_no_halftime_signals\"],\"rationale\":\"Away favored by unified multi-source consensus (476% model probability). Bookmaker (52%) and Sportmonks (51%) align; Polymarket lower (43%) but no conflict. Supabase home spike (31%) absorbed into blend. Perfect data, confirmed lineups, zero signal conflict. Moderate confidence (67%) and high uncertainty (50%) warrant standard bet sizing, not aggressive.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

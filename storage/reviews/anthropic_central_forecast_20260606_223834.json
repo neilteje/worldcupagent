@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1254,
+    "output_tokens_details": {
+      "thinking_tokens": 951
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.344,
+      "draw": 0.258,
+      "away": 0.398
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All primary sources converge on away bias (0.36-0.44 range)",
+      "Bookmaker-market-model alignment with zero signal conflict",
+      "Complete data with synthetic lineup confirmation",
+      "Calibration applied with draw floor 0.16"
+    ],
+    "contradicting_signals": [
+      "Model confidence moderate at 0.67",
+      "Secondary sources missing (draw_model, llm_claims)"
+    ],
+    "additional_risk_flags": [
+      "moderate_confidence_0_67",
+      "missing_draw_model_signal",
+      "calibration_shrinkage_applied",
+      "synthetic_lineup_confirmation"
+    ],
+    "rationale": "Away-favoring consensus across bookmaker (0.364), market (0.414), sportmonks (0.442), and supabase (0.383). Deterministic model synthesizes to home 0.344, draw 0.258, away 0.398 with 0.67 confidence. No contradictions. Data complete. Missing secondary sources (draw_model, llm_claims) warrant caution but not veto given strong alignment on primary signals.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided data systematically:\n\n**Key Data Points:**\n1. **Bookmaker Probs**: Home 0.347, Draw 0.289, Away 0.364\n2. **Market Probs (Polymarket)**: Home 0.313, Draw 0.273, Away 0.414\n3. **Sportmonks Probs**: Home 0.354, Draw 0.203, Away 0.442\n4. **Supabase Priors**: Home 0.373, Draw 0.243, Away 0.383\n5. **Deterministic Model**: Home 0.344, Draw 0.258, Away 0.398 (confidence 0.67)\n\n**Data Completeness:**\n- Score: 1.0 (complete)\n- Missing sources: lineup, draw_model, llm_claims\n- BUT lineups are synthetic confirmed, so effectively available\n- No claim_signals\n- No halftime data (PRE_MATCH)\n- No contradictions in source_reconciliation\n\n**Signal Analysis:**\n- Bookmaker, market, and model signals are broadly aligned\n- All point to Away having highest probability (~0.36-0.44)\n- Home second (~0.31-0.37)\n- Draw lowest (~0.20-0.29)\n- Sportmonks shows highest away bias (0.442)\n- Supabase shows more balanced view (0.383 away, 0.373 home)\n- Signal conflict: 0.0 (no conflicts)\n- Data completeness score: 1.0\n\n**Risk Flags:**\n- \"probability_sources_missing\" - but this seems to refer to draw_model and llm_claims which are secondary\n- Lineups confirmed (synthetic but acceptable for backtest)\n\n**Confidence Factors:**\n- Model confidence: 0.67\n- Uncertainty: 0.5\n- No stale signals or contradictions detected across the window\n\nThe sources converge around consistent ranges: Away clustering near 0.40 (0.364-0.442), Home around 0.34 (0.313-0.373), and Draw at 0.26 (0.203-0.289). The deterministic model's synthesis of Home 0.344, Draw 0.258, Away 0.398 effectively captures this consensus while balancing the variation across inputs.\n\nGiven full alignment, complete data, and a meaningful gap favoring Away over Home, this warrants a cautious bet recommendation. The model confidence of 0.67 is acceptable but suggests some secondary sources remain incomplete, so I'm adopting a measured risk posture rather than aggressive positioning. The final probabilities track the deterministic output, with Away as the primary signal and moderate uncertainty acknowledged at 0.50.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.344,\"draw\":0.258,\"away\":0.398},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All primary sources converge on away bias (0.36-0.44 range)\",\"Bookmaker-market-model alignment with zero signal conflict\",\"Complete data with synthetic lineup confirmation\",\"Calibration applied with draw floor 0.16\"],\"contradicting_signals\":[\"Model confidence moderate at 0.67\",\"Secondary sources missing (draw_model, llm_claims)\"],\"additional_risk_flags\":[\"moderate_confidence_0_67\",\"missing_draw_model_signal\",\"calibration_shrinkage_applied\",\"synthetic_lineup_confirmation\"],\"rationale\":\"Away-favoring consensus across bookmaker (0.364), market (0.414), sportmonks (0.442), and supabase (0.383). Deterministic model synthesizes to home 0.344, draw 0.258, away 0.398 with 0.67 confidence. No contradictions. Data complete. Missing secondary sources (draw_model, llm_claims) warrant caution but not veto given strong alignment on primary signals.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

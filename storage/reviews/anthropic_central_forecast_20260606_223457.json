@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2350,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1606,
+    "output_tokens_details": {
+      "thinking_tokens": 1304
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.301,
+      "draw": 0.3,
+      "away": 0.399
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "bookmaker_model_alignment_on_away_lean",
+      "confirmed_lineups_remove_composition_risk",
+      "perfect_data_completeness_score",
+      "sportmonks_consistent_with_consensus"
+    ],
+    "contradicting_signals": [
+      "polymarket_outlier_46_percent_away",
+      "supabase_home_bias_369_percent",
+      "high_uncertainty_in_tight_probability_spread"
+    ],
+    "additional_risk_flags": [
+      "polymarket_market_divergence",
+      "missing_draw_model_signal",
+      "signal_concentration_in_away_direction",
+      "pre_match_no_additional_intelligence"
+    ],
+    "rationale": "Deterministic model and bookmaker strongly aligned on ~30% home, ~30% draw, ~40% away. Lineups confirmed, data complete. Polymarket divergence (46% away) noted but does not contradict consensus. Pre-match window, no contradictory signals. Recommend WATCH due to high uncertainty (0.50) from tight three-way probabilities\u2014insufficient edge for confident BET despite data quality.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this soccer prediction comprehensively using all provided features.\n\n**Available Data:**\n1. **Bookmaker probs**: home 0.312, draw 0.320, away 0.368\n2. **Polymarket (market_probs)**: home 0.266, draw 0.274, away 0.460\n3. **Sportmonks probs**: home 0.276, draw 0.316, away 0.408\n4. **Supabase priors**: home 0.369, draw 0.264, away 0.367\n5. **Deterministic model**: home 0.301, draw 0.300, away 0.400\n6. **Lineups**: Both confirmed (synthetic for backtest fairness)\n7. **Data completeness**: 1.0 (perfect)\n8. **Model confidence**: 0.67\n9. **Missing sources**: lineup (actually confirmed), draw_model, llm_claims\n10. **Window**: PRE_MATCH\n11. **Halftime**: null (pre-match)\n12. **Signal conflict**: 0.0 (no conflicts)\n13. **No contradicting signals or risk flags in structured data**\n\n**Source Analysis:**\n- **Bookmaker (33.3% weight)**: home 31.2%, draw 32%, away 36.8% - relatively balanced\n- **Polymarket (22.2% weight)**: home 26.6%, draw 27.4%, away 46% - strong away bias\n- **Sportmonks (27.8% weight)**: home 27.6%, draw 31.6%, away 40.8% - away leaning\n- **Supabase (16.7% weight)**: home 36.9%, draw 26.4%, away 36.7% - balanced/home lean\n\n**Key Observations:**\n1. Polymarket is an outlier pushing away to 46%, while bookmaker is more balanced\n2. The deterministic model synthesizes these into home 30.1%, draw 30%, away 40% as a middle ground. Away support clusters around 37-40% across most sources, while draws remain stable between 27-32%. Home is consistently underdog except in Supabase's assessment. Confirmed lineups eliminate composition uncertainty, and with perfect data completeness and no claim signals or structured adjustments needed, the pre-match window provides a clean foundation for prediction.\n\n**Signal Reconciliation:**\nPolymarket's 46% away diverges notably from the bookmaker's 36.8%, yet both point toward away as the slight favorite. The larger gap between Supabase's home-lean (36.9%) and Polymarket's away-lean (46%) suggests some disagreement on home versus draw distribution, though the directional consensus remains consistent.\n\n**Confidence Assessment:**\nModel confidence sits at 0.67 with perfect data completeness (1.0). Confirmed lineups remove major uncertainty, signal conflict is minimal, but the balanced probability distribution itself introduces 0.5 uncertainty. Missing draw_model and llm_claims aren't critical given the data quality.\n\n**Recommendation Logic:**\nThe model output (home 30.1%, draw 30%, away 40%) aligns closely with bookmaker odds (home 31.2%, draw 32%, away 36.8%), suggesting strong internal consistency. Polymarket's 46% away divergence hints at potential market inefficiency or access to different information. With perfect data completeness, confirmed lineups, and source alignment on away as the slight favorite, this should be WATCH or BET depending on value availability.\n\n**Risk Assessment:**\nMissing draw_model and llm_claims don't materially impact the analysis given strong source alignment and complete data. Polymarket's outlier position is notable but doesn't contradict the primary signal. The pre-match window shows no contradicting signals.\n\n**Final Forecast:**\nHome ~30-31%, draw ~30%, away ~39-40%. Polymarket's divergence is interesting but doesn't undermine the consensus. Recommendation: WATCH due to tight probabilities, or BET if value exists. Confidence 0.67, uncertainty 0.50, risk posture CAUTION.\n\nSupporting evidence includes bookmaker-model alignment, sportmonks confirmation of the away lean, perfect data completeness, and confirmed lineups eliminating composition risk. Contradicting signals are limited to Polymarket's 46% away and Supabase's 36.9% home, both outliers relative to other sources. Final probabilities: home 0.301, draw 0.300, away 0.399.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.301,\"draw\":0.300,\"away\":0.399},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"bookmaker_model_alignment_on_away_lean\",\"confirmed_lineups_remove_composition_risk\",\"perfect_data_completeness_score\",\"sportmonks_consistent_with_consensus\"],\"contradicting_signals\":[\"polymarket_outlier_46_percent_away\",\"supabase_home_bias_369_percent\",\"high_uncertainty_in_tight_probability_spread\"],\"additional_risk_flags\":[\"polymarket_market_divergence\",\"missing_draw_model_signal\",\"signal_concentration_in_away_direction\",\"pre_match_no_additional_intelligence\"],\"rationale\":\"Deterministic model and bookmaker strongly aligned on ~30% home, ~30% draw, ~40% away. Lineups confirmed, data complete. Polymarket divergence (46% away) noted but does not contradict consensus. Pre-match window, no contradictory signals. Recommend WATCH due to high uncertainty (0.50) from tight three-way probabilities\u2014insufficient edge for confident BET despite data quality.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

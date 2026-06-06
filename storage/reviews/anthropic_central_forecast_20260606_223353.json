@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1310,
+    "output_tokens_details": {
+      "thinking_tokens": 1007
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.365,
+      "draw": 0.274,
+      "away": 0.361
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Bookmaker and deterministic model aligned at 35\u201336% home",
+      "Perfect data completeness with confirmed lineups",
+      "Zero signal conflict across all sources",
+      "Market probs within 1\u20132% of consensus blend"
+    ],
+    "contradicting_signals": [
+      "Sportmonks overweights home at 40% vs bookmaker 35%",
+      "Polymarket suggests higher away risk at 37.7%",
+      "Moderate confidence (0.67) limits conviction strength"
+    ],
+    "additional_risk_flags": [
+      "draw_model_missing",
+      "sportmonks_home_bias_noted",
+      "moderate_confidence_threshold",
+      "llm_claims_unavailable"
+    ],
+    "rationale": "Bookmaker, Polymarket, and deterministic model form tight consensus (home 35\u201336%, draw 27\u201329%, away 36\u201337%) with perfect data completeness and zero signal conflict. Lineups synthetic-confirmed. Sportmonks divergence (40% home) noted but insufficient to override consensus. Moderate confidence and missing draw-specific signals warrant cautious WATCH rather than BET authorization.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this soccer prediction-market forecasting task step by step.\n\n**Key Data Points:**\n1. **Bookmaker probs:** Home 35.5%, Draw 27.6%, Away 36.9%\n2. **Market probs (Polymarket):** Home 32.6%, Draw 29.7%, Away 37.7%\n3. **Sportmonks probs:** Home 40.3%, Draw 25.1%, Away 34.7%\n4. **Supabase priors:** Home 39.9%, Draw 25.1%, Away 35.0%\n5. **Deterministic model:** Home 36.5%, Draw 27.4%, Away 36.1%\n\n**Data Completeness:**\n- Perfect score (1.0) - all data present\n- Lineups: Both confirmed (synthetic for backtest)\n- Missing in deterministic_model: lineup (but synthetic confirmed), draw_model, llm_claims\n- No claim_signals provided\n- No halftime data (PRE_MATCH)\n- No structured_claims or top_signals\n\n**Signal Alignment Analysis:**\n- Bookmaker and deterministic_model are quite aligned (~35.5-36.5% home, ~27-27.4% draw, ~36.1-36.9% away)\n- Sportmonks and Supabase show stronger HOME bias (39.9-40.3% vs 35.5% bookmaker) and lower DRAW (25.1% vs 27.6%)\n- Market (Polymarket) is close to bookmaker but slightly higher away (37.7%)\n\n**Confidence Assessment:**\n- Deterministic model confidence: 0.67 (moderate)\n- Uncertainty: 0.5 (moderate)\n- Data completeness is perfect\n- Missing sources flag is raised but lineups are confirmed\n\n**Risk Analysis:**\n- signal_conflict: 0.0 (excellent, no contradictions)\n- No stale markets or data freshness issues despite the probability_sources_missing flag\n- Confirmed lineups provide solid grounding even though synthetic for backtesting purposes\n- All probability sources have been appropriately weighted and integrated\n\nThe deterministic model's output of Home 36.5%, Draw 27.4%, Away 36.1% represents a well-calibrated middle ground between the bookmaker consensus and the stronger home signals from Sportmonks and Supabase, with no conflicting signals to undermine confidence in this estimate.\n\nGiven the moderate confidence level of 0.67, I'm leaning toward WATCH rather than BET\u2014the alignment across sources is encouraging, but conviction isn't high enough to justify action. The missing draw_model and llm_claims inputs create some uncertainty despite otherwise complete data, so I'll maintain a cautious posture. Bookmaker and deterministic model convergence around 35-36.5% home probability, combined with perfect data completeness and zero signal conflicts, provides a reasonable foundation for monitoring this market further. Multiple data sources converge on similar probabilities\u2014bookmaker odds, market consensus, and the deterministic model all cluster around 35-36% for home, 27% for draw, and 36-37% for away. The dataset is complete with no missing values, which strengthens confidence in these estimates. Sportmonks leans slightly toward home (differing by 4-5%), but this doesn't fundamentally challenge the broader alignment. Still, the moderate confidence level of 0.67 and the absence of draw-specific modeling signals suggest watching rather than acting on this forecast. I'm not authorized to place orders anyway\u2014my role is forecasting only.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.365,\"draw\":0.274,\"away\":0.361},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Bookmaker and deterministic model aligned at 35\u201336% home\",\"Perfect data completeness with confirmed lineups\",\"Zero signal conflict across all sources\",\"Market probs within 1\u20132% of consensus blend\"],\"contradicting_signals\":[\"Sportmonks overweights home at 40% vs bookmaker 35%\",\"Polymarket suggests higher away risk at 37.7%\",\"Moderate confidence (0.67) limits conviction strength\"],\"additional_risk_flags\":[\"draw_model_missing\",\"sportmonks_home_bias_noted\",\"moderate_confidence_threshold\",\"llm_claims_unavailable\"],\"rationale\":\"Bookmaker, Polymarket, and deterministic model form tight consensus (home 35\u201336%, draw 27\u201329%, away 36\u201337%) with perfect data completeness and zero signal conflict. Lineups synthetic-confirmed. Sportmonks divergence (40% home) noted but insufficient to override consensus. Moderate confidence and missing draw-specific signals warrant cautious WATCH rather than BET authorization.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

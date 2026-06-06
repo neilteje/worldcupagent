@@ -1,0 +1,52 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1163,
+    "output_tokens_details": {
+      "thinking_tokens": 884
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.5441,
+      "draw": 0.3299,
+      "away": 0.126
+    },
+    "confidence": 0.7,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all_sources_tightly_aligned_home_54.4pct",
+      "signal_conflict_zero",
+      "data_completeness_perfect",
+      "bookmaker_polymarket_sportmonks_consensus"
+    ],
+    "contradicting_signals": [
+      "draw_model_missing",
+      "moderate_uncertainty"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing_minor",
+      "draw_floor_applied_calibration"
+    ],
+    "rationale": "Exceptional source alignment across bookmaker (0.5589), polymarket (0.5361), sportmonks (0.5525), supabase (0.5707) with deterministic blend at 0.5441. Perfect data completeness (1.0), zero signal conflict, confirmed lineups, pre-match window. Missing draw_model/llm_claims do not override strong consensus. Home is clear favorite backed by all major signals. Confidence elevated to 0.70 given multi-source corroboration.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided signals for this soccer prediction market.\n\n**Key Data Points:**\n- Bookmaker probs: Home 0.5589, Draw 0.3177, Away 0.1233\n- Polymarket probs: Home 0.5361, Draw 0.3605, Away 0.1034\n- Sportmonks probs: Home 0.5525, Draw 0.3231, Away 0.1244\n- Supabase priors: Home 0.5707, Draw 0.2991, Away 0.1302\n- Deterministic model: Home 0.5441, Draw 0.3299, Away 0.1260\n\n**Alignment Analysis:**\nAll sources are highly aligned:\n- Home: range 0.5361-0.5707, very tight clustering\n- Draw: range 0.2991-0.3605, reasonable consistency\n- Away: range 0.1034-0.1302, consistent\n\n**Model Confidence & Uncertainty:**\n- Deterministic model confidence: 0.67\n- Uncertainty: 0.50\n- Data completeness score: 1.0 (no missing data)\n- Missing sources: lineup (but lineups confirmed as synthetic), draw_model, llm_claims\n- Signal conflict: 0.0 (perfect alignment)\n- Halftime: null (pre-match)\n- No stale market issues\n- No contradicting signals in claims\n\n**Risk Flags:**\n- \"probability_sources_missing\" - but this is expected for pre-match\n- Lineups are confirmed (synthetic for backtest fairness)\n- No structural risks evident\n\n**Recommendation Logic:**\n- All four major sources (bookmaker, polymarket, sportmonks, supabase) are in strong agreement\n- Deterministic model blends these effectively\n- Data completeness is perfect (1.0)\n- Signal conflict is 0.0\n- No contradicting signals or stale market issues present. Confidence sits at 0.67, making this a clear BET scenario with APPROVE risk posture. Using weighted blend of sources (bookmaker 0.3333, polymarket 0.2222, sportmonks 0.2778, supabase 0.1667) yields Home 0.544, Draw 0.330, Away 0.126\u2014closely matching the deterministic model. Perfect data completeness and zero signal conflict reinforce the recommendation.\n\nMinor gaps exist: draw model unavailable and moderate uncertainty at 0.50, but these have limited impact given strong consensus across four major sources. The exceptional alignment across bookmaker, polymarket, and sportmonks on home preference justifies bumping confidence to 0.70. Final probabilities remain Home 0.544, Draw 0.330, Away 0.126, with BET recommendation favoring the home side as clear favorite.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.5441,\"draw\":0.3299,\"away\":0.1260},\"confidence\":0.70,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all_sources_tightly_aligned_home_54.4pct\",\"signal_conflict_zero\",\"data_completeness_perfect\",\"bookmaker_polymarket_sportmonks_consensus\"],\"contradicting_signals\":[\"draw_model_missing\",\"moderate_uncertainty\"],\"additional_risk_flags\":[\"probability_sources_missing_minor\",\"draw_floor_applied_calibration\"],\"rationale\":\"Exceptional source alignment across bookmaker (0.5589), polymarket (0.5361), sportmonks (0.5525), supabase (0.5707) with deterministic blend at 0.5441. Perfect data completeness (1.0), zero signal conflict, confirmed lineups, pre-match window. Missing draw_model/llm_claims do not override strong consensus. Home is clear favorite backed by all major signals. Confidence elevated to 0.70 given multi-source corroboration.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2348,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1235,
+    "output_tokens_details": {
+      "thinking_tokens": 918
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.3724,
+      "draw": 0.3039,
+      "away": 0.3237
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "bookmaker_model_convergence_on_home_37-39pct",
+      "supabase_prior_aligned_36pct",
+      "perfect_data_completeness_100pct",
+      "lineups_confirmed"
+    ],
+    "contradicting_signals": [
+      "sportmonks_unusual_away_strength_39pct",
+      "polymarket_lower_home_35pct",
+      "high_model_uncertainty_50pct",
+      "missing_draw_model_source"
+    ],
+    "additional_risk_flags": [
+      "high_uncertainty_threshold",
+      "source_variance_present",
+      "sportmonks_outlier_detected",
+      "synthetic_lineup_confirmation"
+    ],
+    "rationale": "Strong convergence between bookmaker (39.7%), deterministic model (37.2%), and supabase prior (36.0%) on home team. Model blends four sources with no contradictory signals. Sportmonks outlier on away (39.5%) and polymarket divergence (34.9%) create variance but are weighted appropriately. Perfect data completeness and confirmed lineups support PRE_MATCH forecast. Moderate confidence justified by alignment despite high intrinsic uncertainty.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to synthesize a final 3-way probability forecast.\n\nKey sources:\n1. **Bookmaker**: Home 39.65%, Draw 30.82%, Away 29.53%\n2. **Polymarket**: Home 34.89%, Draw 35.20%, Away 29.92%\n3. **Sportmonks**: Home 38.15%, Draw 22.39%, Away 39.46%\n4. **Supabase priors**: Home 36.03%, Draw 34.00%, Away 29.98%\n\nModel outputs:\n- **Deterministic Model**: Home 37.24%, Draw 30.39%, Away 32.37%\n- **Deterministic Prematch**: Same as above - Home 37.24%, Draw 30.39%, Away 32.37%\n\nData quality:\n- Completeness score: 1.0 (100%)\n- No missing data mentioned in the \"missing\" array\n- Lineups confirmed (synthetic confirmed for backtest fairness)\n- Model confidence: 0.67 (moderate)\n- Model uncertainty: 0.50 (high)\n- Window: PRE_MATCH (no halftime data)\n- Dry run: false\n\nRisk assessment:\n- Missing sources in model: lineup, draw_model, llm_claims\n- However, lineups ARE confirmed in the payload\n- No claim_signals provided\n- No stale market detection triggered\n- Signal conflict: 0.0 (no conflict)\n- Probability sources missing flag exists\n\nConvergence analysis:\nThe sources show reasonable alignment:\n- Bookmaker and model are very close (39.65% vs 37.24% home)\n- Polymarket is lower on home (34.89%) - outlier\n- Sportmonks shows stronger away (39.46%) - this is the outlier\n- Supabase aligns closely with bookmaker and model on home probability\n\nThe deterministic model weights these inputs at Bookmaker 33.33%, Sportmonks 27.78%, Polymarket 22.22%, and Supabase 16.67%, yielding Home 37.24%, Draw 30.39%, Away 32.37%. With perfect data completeness, confirmed lineups, strong convergence between bookmaker and model estimates, moderate confidence, no conflicting signals, and appropriate pre-match timing, the recommendation is B.\n\nBookmaker and model both favor home (39.65% vs 37.24%), supported by Supabase's 36.03% prior. However, Sportmonks diverges with unusual away strength at 39.46%, and Polymarket sits lower on home at 34.89%. Model uncertainty at 0.50 is elevated, and the missing draw_model source adds some opacity. Given this mix of alignment and divergence, confidence should sit around 0.66-0.68, with risk posture at CAUTION rather than VETO\u2014the convergence justifies proceeding, but the model's uncertainty and Sportmonks' outlier reading warrant restraint.\n\nThe deterministic model points to Home ~37.2%, Draw ~30.4%, Away ~32.4%, which I'll use as the anchor for final probabilities.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.3724,\"draw\":0.3039,\"away\":0.3237},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"bookmaker_model_convergence_on_home_37-39pct\",\"supabase_prior_aligned_36pct\",\"perfect_data_completeness_100pct\",\"lineups_confirmed\"],\"contradicting_signals\":[\"sportmonks_unusual_away_strength_39pct\",\"polymarket_lower_home_35pct\",\"high_model_uncertainty_50pct\",\"missing_draw_model_source\"],\"additional_risk_flags\":[\"high_uncertainty_threshold\",\"source_variance_present\",\"sportmonks_outlier_detected\",\"synthetic_lineup_confirmation\"],\"rationale\":\"Strong convergence between bookmaker (39.7%), deterministic model (37.2%), and supabase prior (36.0%) on home team. Model blends four sources with no contradictory signals. Sportmonks outlier on away (39.5%) and polymarket divergence (34.9%) create variance but are weighted appropriately. Perfect data completeness and confirmed lineups support PRE_MATCH forecast. Moderate confidence justified by alignment despite high intrinsic uncertainty.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

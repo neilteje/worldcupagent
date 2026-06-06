@@ -1,0 +1,53 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1140,
+    "output_tokens_details": {
+      "thinking_tokens": 847
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.501,
+      "draw": 0.285,
+      "away": 0.214
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "bookmaker/market/model consensus on home >50%",
+      "supabase prior strongly supports home 55%",
+      "no signal conflicts or market staleness",
+      "all sources rank away as weakest outcome"
+    ],
+    "contradicting_signals": [
+      "sportmonks estimates home at 44.5% vs consensus 50%+",
+      "baseline uncertainty 0.50 tempers conviction"
+    ],
+    "additional_risk_flags": [
+      "missing_llm_claims",
+      "missing_draw_model_detail",
+      "synthetic_lineups_backtest_context"
+    ],
+    "rationale": "Strong pre-match consensus across bookmaker (53.8%), polymarket (51.2%), and deterministic blend (50.1%) on home win. Supabase prior (55%) reinforces. Sportmonks outlier at 44.5% absorbed into blend. No contradictions, perfect data completeness, confirmed lineups. Missing secondary signal sources (llm, draw model) do not create conflict. Confidence 0.67 supports BET authorization on aligned primary sources.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided data to synthesize a final 3-way probability forecast.\n\n**Key Data Points:**\n1. **Bookmaker probs**: Home 0.5384, Draw 0.2523, Away 0.2094\n2. **Market probs (Polymarket)**: Home 0.5122, Draw 0.2700, Away 0.2177\n3. **Sportmonks probs**: Home 0.4454, Draw 0.3354, Away 0.2191\n4. **Supabase priors**: Home 0.5507, Draw 0.2724, Away 0.1769\n5. **Deterministic model**: Home 0.5009, Draw 0.2850, Away 0.2141, confidence 0.67, uncertainty 0.50\n\n**Analysis:**\n\n1. **Signal Alignment**: \n   - Bookmaker, Market (Polymarket), and deterministic model all align strongly on HOME win (>50%)\n   - Supabase also leans home (55.07%)\n   - Sportmonks is outlier with lower home estimate (44.54%)\n   - All sources agree AWAY is lowest probability (~17-22%)\n\n2. **Data Completeness**: Score 1.0 - no missing data\n\n3. **Lineups**: Both confirmed (synthetic but fair for backtest)\n\n4. **Risk Flags**: \n   - Only flag is \"probability_sources_missing\" but this is about secondary sources (lineup details, draw model, llm claims), not core signals\n   - No contradictions or conflicts (signal_conflict = 0.0)\n   - No stale market issues\n   - No claim signals or structured claims\n\n5. **Confidence**: 0.67 (moderate-good)\n   - Missing lineup details and llm claims but they're not contradiction sources\n   - The four primary sources (bookmaker, market, sportmonks, supabase) provide consistent directional signals\n\n6. **Uncertainty**: 0.50 (baseline)\n\n7. **Weighting**:\n   - Bookmaker 33.3%\n   - Polymarket 22.2%\n   - Sportmonks 27.8%\n   - Supabase 16.7%\n\n**Final Forecast Decision:**\n\nThe deterministic model output aligns well with the weighted consensus across sources. Home win probability of 0.5009 sits between the bookmaker's 0.5384 and Polymarket's 0.5122, while draw at 0.2850 reflects the broader range across sources. Away at 0.2141 matches the general agreement that this is the least likely outcome.\n\nThe model appropriately calibrated toward a draw floor of 0.16 and applied shrinkage. Sportmonks leans lower on home at 44.5%, but the overall weight of evidence still favors the home outcome.\n\n**Recommendation**: BET\n- Home emerges as the clear favorite across all sources\n- Confidence level of 0.67 is solid for pre-match conditions\n- No material contradictions between sources\n- All major signals point in the same direction\n\n**Risk Posture**: APPROVE\n- Strong consensus on home as the likely outcome\n- No severe conflicts in the data\n- Data completeness is perfect with confirmed lineups\n- Missing secondary sources don't introduce contradictions\n\n**Supporting Signals**:\n1. Bookmaker, market, and model all converge on home>50%\n2. Supabase prior strongly backs home at 55%\n3. All sources rank away as the weakest outcome\n4. No staleness or signal conflicts detected\n\n**Contradicting Signals**:\n1. Sportmonks estimates home at 44.5%, below the 50% threshold\n2. Baseline uncertainty at 0.50 indicates some model caution\n\n, though not enough to override the consensus",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.501,\"draw\":0.285,\"away\":0.214},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"bookmaker/market/model consensus on home >50%\",\"supabase prior strongly supports home 55%\",\"no signal conflicts or market staleness\",\"all sources rank away as weakest outcome\"],\"contradicting_signals\":[\"sportmonks estimates home at 44.5% vs consensus 50%+\",\"baseline uncertainty 0.50 tempers conviction\"],\"additional_risk_flags\":[\"missing_llm_claims\",\"missing_draw_model_detail\",\"synthetic_lineups_backtest_context\"],\"rationale\":\"Strong pre-match consensus across bookmaker (53.8%), polymarket (51.2%), and deterministic blend (50.1%) on home win. Supabase prior (55%) reinforces. Sportmonks outlier at 44.5% absorbed into blend. No contradictions, perfect data completeness, confirmed lineups. Missing secondary signal sources (llm, draw model) do not create conflict. Confidence 0.67 supports BET authorization on aligned primary sources.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

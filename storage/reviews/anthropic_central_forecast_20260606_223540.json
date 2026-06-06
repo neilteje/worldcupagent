@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2351,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1441,
+    "output_tokens_details": {
+      "thinking_tokens": 1148
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.279,
+      "draw": 0.202,
+      "away": 0.518
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "Four sources consensus: away favorite (0.48-0.62 range)",
+      "Model confidence 0.67 with complete data (1.0)",
+      "Zero signal conflicts across all sources",
+      "Deterministic blend reconciles bookmaker, polymarket, sportmonks, supabase"
+    ],
+    "contradicting_signals": [
+      "Polymarket away outlier (0.62) pulls high vs peers (0.48-0.52)",
+      "Sportmonks home outlier (0.35) vs consensus (0.21-0.30)",
+      "High uncertainty (0.50) moderates conviction",
+      "Missing draw_model feature limits calibration"
+    ],
+    "additional_risk_flags": [
+      "polymarket_away_outlier",
+      "sportmonks_home_outlier",
+      "high_uncertainty_bounds",
+      "moderate_model_confidence"
+    ],
+    "rationale": "Away favored across all sources. Model blends four independent signals with zero conflict. Moderate confidence balanced against high uncertainty. Outliers in polymarket and sportmonks create caution band but do not override consensus direction.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features systematically:\n\n1. **Bookmaker Probs**: Away 0.490, Draw 0.250, Home 0.260\n2. **Polymarket (market_probs)**: Away 0.620, Draw 0.167, Home 0.213\n3. **Sportmonks Probs**: Away 0.482, Draw 0.172, Home 0.346\n4. **Supabase Priors**: Away 0.522, Draw 0.182, Home 0.297\n5. **Deterministic Model**: Away 0.518, Draw 0.202, Home 0.279\n\n**Signal Alignment:**\n- Away: ranges from 0.48-0.62 (bookmaker 0.49, polymarket 0.62, sportmonks 0.48, supabase 0.52, model 0.52)\n- Draw: ranges from 0.17-0.25 (bookmaker 0.25, polymarket 0.17, sportmonks 0.17, supabase 0.18, model 0.20)\n- Home: ranges from 0.21-0.35 (bookmaker 0.26, polymarket 0.21, sportmonks 0.35, supabase 0.30, model 0.28)\n\n**Data Completeness**: Score 1.0 - complete\n**Confidence**: 0.67 (model confidence)\n**Uncertainty**: 0.50 (high uncertainty)\n\n**Missing Sources**: lineup, draw_model, llm_claims\n- But lineups are confirmed as \"Synthetic confirmed lineups for backtest fairness\"\n- So this is not truly missing\n\n**Key Observations:**\n1. Polymarket is an outlier on away (0.62 vs others ~0.48-0.52)\n2. Sportmonks diverges significantly on home (0.35 vs others ~0.21-0.30)\n3. Bookmaker and model sit in the middle ground across all outcomes\n4. No signal conflicts detected (signal_conflict: 0.0)\n5. Pre-match data only, no halftime information available\n6. Lineup validation passes without risk flags\n7. Despite \"probability_sources_missing\" flag, data_completeness remains at 1.0\n\nThe core tension is between Polymarket's away bias and Sportmonks' home bias, while the remaining sources\u2014bookmaker, supabase, and the model\u2014converge around a tighter middle range.\n\nThe weighted blend (bookmaker 33.3%, Polymarket 22.2%, Sportmonks 27.8%, supabase 16.7%) produces away 0.518, draw 0.202, home 0.279. Risk metrics show no conflicts, complete data coverage, but moderate-to-high uncertainty (0.50) paired with moderate confidence (0.67). All sources agree on the outcome hierarchy despite the magnitude differences, and no data contradictions exist.\n\nI'm recommending approval with caution\u2014the sources converge on away as the likely outcome, yet Polymarket's 0.62 away probability and Sportmonks' 0.35 home probability create some scatter around the consensus. The high uncertainty warrants noting this isn't a high-conviction scenario.",
+  "text_preview": "{\"probabilities\":{\"home\":0.279,\"draw\":0.202,\"away\":0.518},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"Four sources consensus: away favorite (0.48-0.62 range)\",\"Model confidence 0.67 with complete data (1.0)\",\"Zero signal conflicts across all sources\",\"Deterministic blend reconciles bookmaker, polymarket, sportmonks, supabase\"],\"contradicting_signals\":[\"Polymarket away outlier (0.62) pulls high vs peers (0.48-0.52)\",\"Sportmonks home outlier (0.35) vs consensus (0.21-0.30)\",\"High uncertainty (0.50) moderates conviction\",\"Missing draw_model feature limits calibration\"],\"additional_risk_flags\":[\"polymarket_away_outlier\",\"sportmonks_home_outlier\",\"high_uncertainty_bounds\",\"moderate_model_confidence\"],\"rationale\":\"Away favored across all sources. Model blends four independent signals with zero conflict. Moderate confidence balanced against high uncertainty. Outliers in polymarket and sportmonks create caution band but do not override consensus direction.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2351,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1222,
+    "output_tokens_details": {
+      "thinking_tokens": 874
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.286,
+      "draw": 0.252,
+      "away": 0.461
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Away consensus across bookmaker (0.440), Sportmonks (0.461), Supabase (0.446)",
+      "No signal conflicts; lineups confirmed; data completeness 1.0",
+      "Deterministic model calibrated via source blend + shrinkage",
+      "Market-bookmaker delta suggests liquid away interest"
+    ],
+    "contradicting_signals": [
+      "Missing draw_model and llm_claims sources reduces ground-truth coverage",
+      "Polymarket outlier high (away 0.521 vs bookmaker 0.440) creates calibration tension",
+      "Uncertainty 0.50 flags moderate confidence adequacy concerns",
+      "Synthetic lineups in backtest context reduce real-world signal strength"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "high_uncertainty_relative_to_confidence",
+      "market_bookmaker_divergence_on_away",
+      "missing_draw_specialist_input"
+    ],
+    "rationale": "Away leans across 4 sources; deterministic synthesis produces 0.461 away, 0.286 home, 0.252 draw. Confidence 0.67 justified by source alignment and zero conflicts, but uncertainty 0.50 and missing draw-model warrant caution. Recommend WATCH pending market moves or injury news before committing.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to synthesize a final 3-way probability forecast.\n\nKey data points:\n1. **Bookmaker probs**: Away 0.440, Draw 0.236, Home 0.324\n2. **Market probs (Polymarket)**: Away 0.521, Draw 0.276, Home 0.203\n3. **Sportmonks probs**: Away 0.461, Draw 0.216, Home 0.323\n4. **Supabase priors**: Away 0.446, Draw 0.282, Home 0.272\n5. **Deterministic model**: Away 0.461, Draw 0.252, Home 0.286\n   - Confidence: 0.67\n   - Uncertainty: 0.50\n   - Missing sources: lineup, draw_model, llm_claims\n   - Risk flag: probability_sources_missing\n\nAnalysis:\n- **Data completeness**: Score 1.0 (no missing data reported)\n- **Lineups**: Both confirmed (synthetic for backtest)\n- **Halftime**: null (PRE_MATCH window)\n- **Signal conflict**: 0.0 (no conflicts)\n- **Claim signals**: Empty (no LLM claims)\n- **Market stale**: No stale indicators\n- **Top signals**: Empty\n\nSource alignment:\n- Bookmaker: Away 0.440, Draw 0.236, Home 0.324\n- Polymarket: Away 0.521, Draw 0.276, Home 0.203\n- Sportmonks: Away 0.461, Draw 0.216, Home 0.323\n- Supabase: Away 0.446, Draw 0.282, Home 0.272\n- Deterministic: Away 0.461, Draw 0.252, Home 0.286\n\nThere's reasonable alignment across most sources on Away (0.440-0.521) and Home (0.203-0.323). \n\nPolymarket diverges with notably higher away probability (0.521) versus the bookmaker's more conservative 0.440, though the deterministic model's 0.461 sits comfortably in the middle. The model output appears well-balanced, synthesizing these perspectives effectively. Despite moderate confidence (0.67) and elevated uncertainty (0.50), I have complete data with no signal conflicts and strong consensus among primary sources on away being the favored outcome.\n\nThe missing draw_model and llm_claims inputs create some caution, but the alignment across bookmaker, market, and sportmonks data on away direction is clear. I'd recommend WATCH given the uncertainty, though the directional signal is strong enough to consider a cautious BET. The deterministic forecast of Away 0.461, Draw 0.252, Home 0.286 should serve as the primary guide.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.286,\"draw\":0.252,\"away\":0.461},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Away consensus across bookmaker (0.440), Sportmonks (0.461), Supabase (0.446)\",\"No signal conflicts; lineups confirmed; data completeness 1.0\",\"Deterministic model calibrated via source blend + shrinkage\",\"Market-bookmaker delta suggests liquid away interest\"],\"contradicting_signals\":[\"Missing draw_model and llm_claims sources reduces ground-truth coverage\",\"Polymarket outlier high (away 0.521 vs bookmaker 0.440) creates calibration tension\",\"Uncertainty 0.50 flags moderate confidence adequacy concerns\",\"Synthetic lineups in backtest context reduce real-world signal strength\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"high_uncertainty_relative_to_confidence\",\"market_bookmaker_divergence_on_away\",\"missing_draw_specialist_input\"],\"rationale\":\"Away leans across 4 sources; deterministic synthesis produces 0.461 away, 0.286 home, 0.252 draw. Confidence 0.67 justified by source alignment and zero conflicts, but uncertainty 0.50 and missing draw-model warrant caution. Recommend WATCH pending market moves or injury news before committing.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

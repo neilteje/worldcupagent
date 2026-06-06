@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1104,
+    "output_tokens_details": {
+      "thinking_tokens": 827
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.354,
+      "draw": 0.307,
+      "away": 0.339
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "perfect_data_completeness",
+      "lineups_confirmed_both_teams",
+      "bookmaker_supabase_sportmonks_consensus_around_home_35pct",
+      "zero_signal_conflict_across_sources"
+    ],
+    "contradicting_signals": [
+      "sportmonks_outlier_41pct_home",
+      "polymarket_38pct_away_vs_model_34pct",
+      "moderate_model_uncertainty_50pct",
+      "missing_draw_model_llm_sources"
+    ],
+    "additional_risk_flags": [
+      "moderate_confidence_67pct",
+      "source_blend_variance_high_4pct_swings"
+    ],
+    "rationale": "Model synthesizes 4 sources with perfect data and confirmed lineups. Home 35.4% consensus across bookmaker/supabase/deterministic blend. Polymarket and Sportmonks divergence noted but contained. Pre-match, no staleness. Confidence sufficient for small-to-medium bet.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided data to synthesize a 3-way probability forecast.\n\nKey data points:\n1. **Bookmaker probs**: Home 0.341, Draw 0.302, Away 0.357\n2. **Sportmonks probs**: Home 0.413, Draw 0.310, Away 0.277\n3. **Market (Polymarket) probs**: Home 0.307, Draw 0.313, Away 0.380\n4. **Supabase priors**: Home 0.366, Draw 0.294, Away 0.341\n5. **Deterministic model output**: Home 0.354, Draw 0.307, Away 0.339\n\nData completeness: Perfect (score 1.0, no missing data listed)\nModel confidence: 0.67\nUncertainty: 0.50\n\nAnalysis of signals:\n- **Sportmonks strongly favors home** (41.3% vs 34.1% from bookmaker)\n- **Market (Polymarket) favors away** (38.0% vs 35.7% from bookmaker)\n- **Supabase slightly favors home** (36.6% vs 34.1%)\n- **Bookmaker is middle ground**: 34.1% home, 35.7% away, 30.2% draw\n- **Deterministic model**: 35.4% home, 33.9% away, 30.7% draw\n\nThe model has blended these sources with weights:\n- Bookmaker: 33.33%\n- Sportmonks: 27.78%\n- Polymarket: 22.22%\n- Supabase: 16.67%\n\nThis gives the final model output: Home 35.4%, Draw 30.7%, Away 33.9%\nAll sources cluster reasonably close without major divergence, and the data is complete with confirmed lineups and no stale market signals. The moderate confidence level of 0.67 is sufficient for proceeding with a forecast, supported by the alignment between bookmaker, Supabase, and the deterministic model all hovering around 34-36% for the home outcome.\n\nSportmonks pushes notably higher at 41.3% for home while the market sits at 38.0% for away, creating some tension in the estimates. The uncertainty reading of 0.50 reflects this divergence. Though the model flags missing sources like draw_model and llm_claims, the confirmed lineups and pre-match timing without staleness issues mitigate this concern.\n\nThe deterministic model's distribution\u2014Home 35.4%, Draw 30.7%, Away 33.9%\u2014appears well-balanced and represents a reasonable middle ground across available inputs. Given the solid data quality and lineup confirmation, a bet recommendation is warranted, though the moderate confidence and missing tertiary sources suggest exercising some restraint rather than full approval.",
+  "text_preview": "{\"probabilities\":{\"home\":0.354,\"draw\":0.307,\"away\":0.339},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"perfect_data_completeness\",\"lineups_confirmed_both_teams\",\"bookmaker_supabase_sportmonks_consensus_around_home_35pct\",\"zero_signal_conflict_across_sources\"],\"contradicting_signals\":[\"sportmonks_outlier_41pct_home\",\"polymarket_38pct_away_vs_model_34pct\",\"moderate_model_uncertainty_50pct\",\"missing_draw_model_llm_sources\"],\"additional_risk_flags\":[\"moderate_confidence_67pct\",\"source_blend_variance_high_4pct_swings\"],\"rationale\":\"Model synthesizes 4 sources with perfect data and confirmed lineups. Home 35.4% consensus across bookmaker/supabase/deterministic blend. Polymarket and Sportmonks divergence noted but contained. Pre-match, no staleness. Confidence sufficient for small-to-medium bet.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

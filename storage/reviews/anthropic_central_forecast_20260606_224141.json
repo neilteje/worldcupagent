@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2351,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1186,
+    "output_tokens_details": {
+      "thinking_tokens": 857
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.286,
+      "draw": 0.252,
+      "away": 0.461
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.47,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "all_sources_aligned_signal_conflict_0",
+      "lineups_confirmed_pre_match",
+      "bookmaker_sportmonks_supabase_consensus_away_lean",
+      "perfect_data_completeness"
+    ],
+    "contradicting_signals": [
+      "polymarket_notably_higher_away_0521_vs_consensus_044",
+      "missing_draw_model_may_underweight_draw",
+      "moderate_confidence_insufficient_for_strong_bet"
+    ],
+    "additional_risk_flags": [
+      "moderate_model_confidence_0_67",
+      "missing_draw_model_source",
+      "polymarket_outlier_away_signal"
+    ],
+    "rationale": "Model output (Away 0.46, Draw 0.25, Home 0.29) reflects strong consensus across bookmaker, Sportmonks, Supabase with perfect alignment (conflict=0). Lineups confirmed. Polymarket outlier on away (0.52) noted but outweighed by 3-source agreement. Confidence 0.67 is adequate for pre-match but missing draw model creates haircut. No severe contradictions warrant SKIP. Data completeness perfect. Recommend WATCH\u2014signals aligned but confidence moderate.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this soccer prediction market data systematically.\n\nKey inputs:\n1. Bookmaker probs: Away 0.440, Draw 0.236, Home 0.324\n2. Polymarket: Away 0.521, Draw 0.276, Home 0.203\n3. Sportmonks: Away 0.461, Draw 0.216, Home 0.323\n4. Supabase priors: Away 0.446, Draw 0.282, Home 0.272\n5. Deterministic model output: Away 0.461, Draw 0.252, Home 0.286\n6. Model confidence: 0.67\n7. Data completeness: 1.0 (perfect)\n8. Lineups: Both confirmed (synthetic but confirmed)\n9. Window: PRE_MATCH\n10. Halftime: null (no in-play data)\n11. No claim signals provided\n12. Missing sources: lineup, draw_model, llm_claims (but lineups ARE confirmed)\n13. Signal conflict: 0.0 (perfect alignment)\n\nKey observations:\n- All sources are aligned (signal_conflict = 0.0)\n- Polymarket slightly bullish on away (0.521), while other bookmakers show away around 0.44-0.46\n- Home team probability ranges 0.203-0.323\n- Draw ranges 0.216-0.282\n- Model blends all sources with confidence 0.67\n- Data completeness is perfect (1.0)\n- No contradicting signals identified\n- No claim signals to evaluate\n- Lineups confirmed (both home and away)\n\nThe deterministic model output looks well-calibrated:\n- Away: 0.461\n- Draw: 0.252\n- Home: 0.286\n\nThis represents a slight away lean with reasonable draw probability.\nThe confidence level of 0.67 reflects moderate-to-good reliability without being exceptional. Bookmaker consensus (0.44-0.46 on away) aligns closely with the model's 0.461 estimate, while Polymarket's 0.521 suggests potential market repricing. No stale signals, contradictions, or claim-based conflicts exist to undermine the assessment. The model sits squarely within the consensus range, making it a reasonable baseline for this matchup.\n\nGiven the moderate confidence and absence of draw modeling inputs, I'd recommend a WATCH posture rather than committing to a full bet. The alignment across sources is encouraging, but the missing analytical components and Polymarket's outlier positioning warrant caution. Uncertainty should land around 0.45-0.50 to account for these gaps. Supporting factors include zero signal conflict, confirmed lineups, and consistent away-lean positioning across primary sources. The main risk is Polymarket's notably higher away probability (0.521) relative to the consensus, combined with the missing draw model that could shift draw probability estimates.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.286,\"draw\":0.252,\"away\":0.461},\"confidence\":0.67,\"uncertainty\":0.47,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"all_sources_aligned_signal_conflict_0\",\"lineups_confirmed_pre_match\",\"bookmaker_sportmonks_supabase_consensus_away_lean\",\"perfect_data_completeness\"],\"contradicting_signals\":[\"polymarket_notably_higher_away_0521_vs_consensus_044\",\"missing_draw_model_may_underweight_draw\",\"moderate_confidence_insufficient_for_strong_bet\"],\"additional_risk_flags\":[\"moderate_model_confidence_0_67\",\"missing_draw_model_source\",\"polymarket_outlier_away_signal\"],\"rationale\":\"Model output (Away 0.46, Draw 0.25, Home 0.29) reflects strong consensus across bookmaker, Sportmonks, Supabase with perfect alignment (conflict=0). Lineups confirmed. Polymarket outlier on away (0.52) noted but outweighed by 3-source agreement. Confidence 0.67 is adequate for pre-match but missing draw model creates haircut. No severe contradictions warrant SKIP. Data completeness perfect. Recommend WATCH\u2014signals aligned but confidence moderate.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}
