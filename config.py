@@ -25,9 +25,15 @@ SUPABASE_KEY: str = (
 ANTHROPIC_KEY: str = os.environ.get("ANTHROPIC_KEY") or os.environ.get("ANTHROPIC_API_KEY", "")
 OPENAI_KEY: str = os.environ.get("OPENAI_KEY") or os.environ.get("OPENAI_API_KEY", "")
 GEMINI_KEY: str = os.environ.get("GEMINI_KEY") or os.environ.get("GOOGLE_API_KEY", "")
+OPENROUTER_KEY: str = os.environ.get("OPENROUTER_KEY") or os.environ.get("OPENROUTER_API_KEY", "")
+OPENROUTER_BASE_URL: str = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
+OPENROUTER_SITE_URL: str = os.environ.get("OPENROUTER_SITE_URL", "")
+OPENROUTER_APP_NAME: str = os.environ.get("OPENROUTER_APP_NAME", "worldcupagent")
 
 # ── Model choices ──────────────────────────────────────────────────────────
-PRIMARY_MODEL: str = "claude-sonnet-4-5-20250929"  # extended thinking, confirmed valid
+ANTHROPIC_MODEL: str = "claude-sonnet-4-5-20250929"  # extended thinking, confirmed valid
+OPENROUTER_MODEL: str = os.environ.get("OPENROUTER_MODEL", "nvidia/nemotron-3-ultra-550b-a55b:free")
+PRIMARY_MODEL: str = os.environ.get("PRIMARY_MODEL", OPENROUTER_MODEL if OPENROUTER_KEY else ANTHROPIC_MODEL)
 FALLBACK_MODEL: str = "gemini-2.5-pro"            # ensemble calibration
 THINKING_BUDGET: int = 4096                        # tokens for internal reasoning (fits within context)
 

@@ -19,8 +19,14 @@ import config
 
 _anthropic_client = None
 _openai_client = None
+_openrouter_client = None
 _gemini_client = None
-_primary: str = "anthropic" if config.ANTHROPIC_KEY else ("openai" if config.OPENAI_KEY else "gemini")
+_primary: str = (
+    "openrouter" if config.OPENROUTER_KEY else
+    "anthropic" if config.ANTHROPIC_KEY else
+    "openai" if config.OPENAI_KEY else
+    "gemini"
+)
 
 
 def _get_anthropic():
@@ -37,6 +43,25 @@ def _get_openai():
         from openai import OpenAI
         _openai_client = OpenAI(api_key=config.OPENAI_KEY)
     return _openai_client
+
+
+def _get_openrouter():
+    global _openrouter_client
+    if _openrouter_client is None and config.OPENROUTER_KEY:
+        from openai import OpenAI
+        headers = {}
+        if config.OPENROUTER_SITE_URL:
+            headers["HTTP-Referer"] = config.OPENROUTER_SITE_URL
+        if config.OPENROUTER_APP_NAME:
+            headers["X-OpenRouter-Title"] = config.OPENROUTER_APP_NAME
+        kwargs = {
+            "api_key": config.OPENROUTER_KEY,
+            "base_url": config.OPENROUTER_BASE_URL,
+        }
+        if headers:
+            kwargs["default_headers"] = headers
+        _openrouter_client = OpenAI(**kwargs)
+    return _openrouter_client
 
 
 def _get_gemini():
@@ -118,13 +143,26 @@ def call_claude(
     thinking_budget: int | None = None,
 ) -> LLMResult:
     """
-    Call Claude with extended thinking. Falls back to OpenAI if unavailable.
-    Captures the full thinking chain for the ledger reasoning score.
+    Call the configured primary LLM. OpenRouter is preferred when configured,
+    then Claude, then OpenAI.
     """
+    openrouter = _get_openrouter()
+    if openrouter:
+        try:
+            return _call_openai_compatible_result(
+                openrouter,
+                system,
+                user_content,
+                model or config.OPENROUTER_MODEL,
+                "openrouter",
+            )
+        except Exception as e:
+            print(f"  [OpenRouter error: {e}] - falling back to Claude/OpenAI")
+
     client = _get_anthropic()
     if client:
         try:
-            m = model or config.PRIMARY_MODEL
+            m = model or config.ANTHROPIC_MODEL
             budget = thinking_budget or config.THINKING_BUDGET
             resp = client.messages.create(
                 model=m,
@@ -151,12 +189,24 @@ def call_claude(
     if oa:
         return _call_openai_result(oa, system, user_content)
 
-    raise RuntimeError("No LLM provider available. Set ANTHROPIC_API_KEY or OPENAI_API_KEY.")
+    raise RuntimeError(
+        "No LLM provider available. Set OPENROUTER_API_KEY, ANTHROPIC_API_KEY, or OPENAI_API_KEY."
+    )
 
 
 def _call_openai_result(client, system: str, user_content: str) -> LLMResult:
     """Call OpenAI with reasoning effort and return an LLMResult."""
-    model = "gpt-4o"
+    return _call_openai_compatible_result(client, system, user_content, "gpt-4o", "openai")
+
+
+def _call_openai_compatible_result(
+    client,
+    system: str,
+    user_content: str,
+    model: str,
+    provider: str,
+) -> LLMResult:
+    """Call an OpenAI-compatible chat completions endpoint."""
     resp = client.chat.completions.create(
         model=model,
         max_tokens=4096,
@@ -169,11 +219,11 @@ def _call_openai_result(client, system: str, user_content: str) -> LLMResult:
     return LLMResult(
         parsed=_parse_json(text),
         raw_text=text,
-        thinking="",   # OpenAI doesn't expose reasoning chain on gpt-4o
+        thinking="",   # OpenAI-compatible chat APIs usually do not expose reasoning.
         model=model,
-        provider="openai",
-        tokens_in=resp.usage.prompt_tokens,
-        tokens_out=resp.usage.completion_tokens,
+        provider=provider,
+        tokens_in=getattr(resp.usage, "prompt_tokens", 0) if resp.usage else 0,
+        tokens_out=getattr(resp.usage, "completion_tokens", 0) if resp.usage else 0,
     )
 
 
