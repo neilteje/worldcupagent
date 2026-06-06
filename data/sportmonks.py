@@ -148,3 +148,80 @@ def extract_ht_stats(fixture: dict) -> dict:
         ):
             stats[type_name] = value
     return stats
+
+# ── Robust scheduler helpers for package agent ─────────────────────────────
+def _extract_list(payload):
+    if isinstance(payload, list): return payload
+    if isinstance(payload, dict):
+        for key in ("data", "fixtures", "matches", "body"):
+            val = payload.get(key)
+            if isinstance(val, list): return val
+            if isinstance(val, dict):
+                nested = _extract_list(val)
+                if nested: return nested
+    return []
+
+
+def discover_fixtures_safe(limit: int = 5) -> list[dict]:
+    try:
+        if 'get_schedule' in globals():
+            data = get_schedule()  # type: ignore[name-defined]
+            rows = _extract_list(data)
+            if rows: return rows[:limit]
+    except Exception:
+        pass
+    return [{"id": "DEMO-FIXTURE", "fixture_code": "DEMO-FIXTURE", "name": "Demo Home vs Demo Away", "starting_at": None, "home_team_code": "HOME", "away_team_code": "AWAY", "demo": True}]
+
+
+def get_fixture_detail_safe(fixture_id):
+    try:
+        if 'get_fixture_detail' in globals(): return get_fixture_detail(fixture_id)  # type: ignore[name-defined]
+        if 'fixture_detail' in globals(): return fixture_detail(fixture_id)  # type: ignore[name-defined]
+    except Exception:
+        pass
+    return {"id": fixture_id, "fixture_code": str(fixture_id), "demo": True}
+
+
+def extract_sportmonks_prediction(payload: dict) -> dict | None:
+    def walk(o):
+        if isinstance(o, dict):
+            keys = {k.lower(): k for k in o}
+            if all(k in keys for k in ("home", "draw", "away")):
+                try: return {"home": float(o[keys["home"]]), "draw": float(o[keys["draw"]]), "away": float(o[keys["away"]])}
+                except Exception: pass
+            for v in o.values():
+                got = walk(v)
+                if got: return got
+        elif isinstance(o, list):
+            for v in o:
+                got = walk(v)
+                if got: return got
+        return None
+    return walk(payload)
+
+
+def extract_bookmaker_probs(payload: dict) -> dict | None:
+    odds = []
+    def walk(o):
+        if isinstance(o, dict):
+            lower = {k.lower(): v for k,v in o.items()}
+            if all(k in lower for k in ("home", "draw", "away")):
+                vals = lower
+            elif all(k in lower for k in ("home_odds", "draw_odds", "away_odds")):
+                vals = {"home": lower["home_odds"], "draw": lower["draw_odds"], "away": lower["away_odds"]}
+            else:
+                vals = None
+            if vals:
+                try:
+                    row = {k: 1/float(vals[k]) for k in ("home","draw","away") if float(vals[k]) > 1.01}
+                    if len(row) == 3: odds.append(row)
+                except Exception: pass
+            for v in o.values(): walk(v)
+        elif isinstance(o, list):
+            for v in o: walk(v)
+    walk(payload)
+    if not odds: return None
+    import statistics
+    med = {k: statistics.median(row[k] for row in odds) for k in ("home","draw","away")}
+    total = sum(med.values())
+    return {k: med[k]/total for k in med} if total else None

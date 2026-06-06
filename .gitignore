@@ -7,3 +7,7 @@ env/
 ENV/
 .ipynb_checkpoints/
 jupyter/.ipynb_checkpoints/
+storage/backtests/*.json
+storage/decisions/*.json
+storage/price_history/*.jsonl
+storage/runs/*.json
