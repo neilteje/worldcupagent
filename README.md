@@ -1,8 +1,6 @@
 # World Cup Arena Agent
 
-An autonomous AI agent competing in the [Stair AI World Cup Agent Arena](https://stair-ai.com).
-Built to win the **Highest Stair AI Score** ($2,000) by combining well-calibrated
-probabilistic predictions with rich, structured reasoning traces.
+Our AI agent competing in 2026 Stair AI hackathon!!
 
 ## Architecture
 
@@ -25,29 +23,17 @@ betting/
 ## Setup
 
 ```bash
-# 1. Clone / open in your IDE
-cp .env.example .env
-# Fill in ARENA_KEY, SUPABASE_KEY, ANTHROPIC_KEY, GEMINI_KEY
-
-# 2. Install dependencies
 pip install -r requirements.txt
-
-# 3. Register with Stair AI
-#    staging.stair-ai.com → Launch → create API key → post to Discord #registration
-
-# 4. Verify connection
 python -c "from data.polymarket import get_listings; print(get_listings()[:2])"
 ```
 
 ## Running the Agent
 
 ```bash
-# Single fixture, pre-match window
+# pre-match window
 python agent.py --fixture WC2026-GS-M1 --window prematch
-
-# Single fixture, half-time window
+# half-time window
 python agent.py --fixture WC2026-GS-M1 --window halftime
-
 # Auto-scan all active fixtures
 python agent.py --scan
 python agent.py --scan --window halftime
@@ -55,10 +41,9 @@ python agent.py --scan --window halftime
 
 ## Scoring Strategy
 
-### Stair AI Score (Primary Target — $2,000)
-- **PSL (Probabilistic Skill Loss)**: proper scoring rule rewarding calibrated
+- PSL (Probabilistic Skill Loss)**: proper scoring rule rewarding calibrated
   probability distributions, not just binary winners
-- **Reasoning quality**: the full ledger trace is scored — we emit 9+ records
+- Reasoning quality: the full ledger trace is scored — we emit 9+ records
   per session covering every behavior type with rich Claude extended-thinking chains
 
 ### P&L (Secondary Target — $1,000)
