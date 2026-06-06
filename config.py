@@ -27,6 +27,8 @@ OPENAI_KEY: str = os.environ.get("OPENAI_KEY") or os.environ.get("OPENAI_API_KEY
 GEMINI_KEY: str = os.environ.get("GEMINI_KEY") or os.environ.get("GOOGLE_API_KEY", "")
 DEEPSEEK_KEY: str = os.environ.get("DEEPSEEK_KEY") or os.environ.get("DEEPSEEK_API_KEY", "")
 DEEPSEEK_BASE_URL: str = os.environ.get("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+XAI_KEY: str = os.environ.get("XAI_KEY") or os.environ.get("XAI_API_KEY", "") or os.environ.get("GROK_API_KEY", "")
+XAI_BASE_URL: str = os.environ.get("XAI_BASE_URL", "https://api.x.ai/v1")
 OPENROUTER_KEY: str = os.environ.get("OPENROUTER_KEY") or os.environ.get("OPENROUTER_API_KEY", "")
 OPENROUTER_BASE_URL: str = os.environ.get("OPENROUTER_BASE_URL", "https://openrouter.ai/api/v1")
 OPENROUTER_SITE_URL: str = os.environ.get("OPENROUTER_SITE_URL", "")
@@ -45,8 +47,10 @@ SCOUT_MODEL: str = "claude-haiku-4-5-20251001"     # fast triage, cheap
 ANALYST_MODEL: str = ANTHROPIC_MODEL               # deep market-blind reasoning
 DEVIL_MODEL: str = "deepseek-reasoner"             # raw chain-of-thought contrarian
 JUDGE_MODEL: str = ANTHROPIC_MODEL                 # final calibrated synthesis
+GROK_MODEL: str = os.environ.get("GROK_MODEL", "grok-4.3")  # live X/social pulse
 SCOUT_THINKING_BUDGET: int = 1024
 DEVIL_TIMEOUT_SECONDS: int = 120                   # DeepSeek-R1 can be slow
+GROK_TIMEOUT_SECONDS: int = 60
 
 # ── External research keys (optional — graceful degradation if absent) ──────
 SERPER_API_KEY: str = os.environ.get("SERPER_API_KEY", "")   # serper.dev Google search

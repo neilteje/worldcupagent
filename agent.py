@@ -105,10 +105,17 @@ def get_season_fixtures() -> list[dict]:
 
 def lookup_country_id(participant: dict) -> int:
     """
-    Return the country_id from the Sportmonks participant dict.
-    Used as the best available proxy for StatsBomb country_id;
-    StatsBomb tables are fetched with a fallback to all rows when no match.
+    Resolve a participant to its StatsBomb country_id (e.g. Mexico → 147).
+
+    The Supabase priors tables key on StatsBomb country_id, which differs from
+    Sportmonks ids. We resolve by team name against the names embedded in the
+    h2h table; if that fails we fall back to the Sportmonks id (the priors fetch
+    then degrades to its all-rows fallback).
     """
+    name = participant.get("name") or ""
+    cid = supabase_client.resolve_country_id(name)
+    if cid:
+        return cid
     return participant.get("country_id") or participant.get("id") or 0
 
 
@@ -260,6 +267,7 @@ def run_prematch(fixture_id: int) -> dict | None:
         upstream_ids=[rec_sm_fixture["record_id"]],
     )
     console.print(f"  Web: {web_research.get('total_results',0)} results "
+                  f"from {len(web_research.get('sources',[]))} sources "
                   f"via {web_research.get('backend')}")
 
     console.print("[dim]  Pulling r/soccer crowd sentiment…[/dim]")
@@ -406,18 +414,34 @@ def run_prematch(fixture_id: int) -> dict | None:
     )
     console.print(f"  Supabase digest: {sb_digest_result.parsed.get('summary','')[:80]}…")
 
-    # ── (8) Reasoning council: Scout → Analyst → Devil → Judge ─────────────
+    # ── (8) Reasoning council: Pulse → Scout → Analyst → Devil → Judge ─────
     console.print("[dim][6/7] Convening reasoning council…[/dim]")
     cr = council.run_council(
         fixture_name, home_code, away_code,
+        home_name, away_name, str(fixture.get("starting_at", "")),
         sm_digest_result.parsed, sb_digest_result.parsed,
         pm_digest_result.parsed, kalshi_ml,
         web_research, reddit_bundle,
     )
 
+    # Grok social pulse → ToolCalling record (live X/Twitter intelligence)
+    rec_pulse = session.tool_call(
+        name="grok",
+        endpoint=f"{config.XAI_BASE_URL}/chat/completions",
+        description="Grok live X/Twitter + news social pulse for the fixture",
+        input_payload={"home": home_name, "away": away_name},
+        output_payload=cr.social_pulse,
+        via="external.xai",
+        success=bool(cr.social_pulse),
+        upstream_ids=[rec_sm_fixture["record_id"]],
+    )
+    pulse_lean = (cr.social_pulse or {}).get("overall_lean", "n/a")
+    console.print(f"  Grok pulse: lean={pulse_lean} "
+                  f"({(cr.social_pulse or {}).get('confidence','?')} conf)")
+
     # Scout → Planning record
     rec_scout = session.planning(
-        description="Scout triage of injuries / lineups / crowd sentiment",
+        description="Scout triage of injuries / lineups / crowd + social pulse",
         output_payload=cr.scout.parsed if cr.scout else {},
         provider=cr.scout.provider if cr.scout else "",
         model_name=cr.scout.model if cr.scout else "",
@@ -427,9 +451,10 @@ def run_prematch(fixture_id: int) -> dict | None:
         inputs=[
             {"record_id": rec_web["record_id"], "payload": web_research},
             {"record_id": rec_reddit["record_id"], "payload": reddit_bundle},
+            {"record_id": rec_pulse["record_id"], "payload": cr.social_pulse},
         ],
         upstream_ids=[rec_web["record_id"], rec_reddit["record_id"],
-                      rec_th_sportmonks["record_id"]],
+                      rec_pulse["record_id"], rec_th_sportmonks["record_id"]],
     )
     console.print(f"  Scout: {len(cr.scout_flags)} flag(s)")
 
@@ -605,10 +630,13 @@ def run_prematch(fixture_id: int) -> dict | None:
                 "Tighten priors mapping and confirm lineups closer to kickoff; "
                 "revisit if market and council diverge after team news."
             ),
+            "social_pulse_lean": (cr.social_pulse or {}).get("overall_lean"),
             "data_gaps": {
                 "web_results": web_research.get("total_results", 0),
-                "reddit_threads": reddit_bundle.get("threads_found", 0),
+                "web_sources": len(web_research.get("sources", [])),
+                "reddit_comments": len(reddit_bundle.get("top_comments", [])),
                 "kalshi_markets": kalshi_ml.get("markets_found", 0),
+                "grok_pulse": bool(cr.social_pulse),
             },
         },
         upstream_ids=[rec_judge["record_id"], rec_gate["record_id"]],
@@ -842,6 +870,24 @@ def scan_and_run(window: str = "prematch") -> None:
         time.sleep(3)
 
 
+def list_fixtures() -> None:
+    """Print every WC2026 fixture with its id, so you can pick one to run."""
+    console.print("[bold]Fetching WC2026 fixtures…[/bold]")
+    fixtures = get_season_fixtures()
+    fixtures = [f for f in fixtures if f.get("id")]
+    fixtures.sort(key=lambda f: str(f.get("starting_at", "")))
+    t = Table(title=f"WC2026 Fixtures ({len(fixtures)})")
+    t.add_column("Fixture ID", style="cyan", no_wrap=True)
+    t.add_column("Kickoff (UTC)", style="dim")
+    t.add_column("Match")
+    for fx in fixtures:
+        t.add_row(str(fx.get("id")), str(fx.get("starting_at", "?")),
+                  fx.get("name", "?"))
+    console.print(t)
+    console.print("\nRun one with: "
+                  "[green]python agent.py --fixture-id <ID> --window prematch[/green]")
+
+
 def _print_schedule(schedule: list[dict]) -> None:
     t = Table(title="WC2026 Schedule")
     t.add_column("Stage", style="cyan")
@@ -888,6 +934,42 @@ def test_connection() -> None:
     except Exception as e:
         console.print(f"  Polymarket mapping: [red]{e}[/red]")
 
+    # Country-id resolver (Supabase priors keying)
+    try:
+        mex = supabase_client.resolve_country_id("Mexico")
+        console.print(f"  Country-id resolver (Mexico): [green]{mex}[/green] "
+                      f"(expect 147)")
+    except Exception as e:
+        console.print(f"  Country-id resolver: [red]{e}[/red]")
+
+    # Web search (Serper / DDG)
+    try:
+        wr = web_search.gather_research("Mexico", "South Africa", "2026-06-11")
+        console.print(f"  Web search: [green]{wr['total_results']} results "
+                      f"from {len(wr['sources'])} sources[/green] "
+                      f"via {wr['backend']}")
+    except Exception as e:
+        console.print(f"  Web search: [red]{e}[/red]")
+
+    # Kalshi
+    try:
+        km = kalshi.get_moneyline("Mexico", "South Africa")
+        console.print(f"  Kalshi: [green]{km['markets_found']} markets[/green]")
+    except Exception as e:
+        console.print(f"  Kalshi: [red]{e}[/red]")
+
+    # LLM providers
+    providers = []
+    if config.ANTHROPIC_KEY: providers.append("anthropic")
+    if config.DEEPSEEK_KEY:  providers.append("deepseek")
+    if config.XAI_KEY:       providers.append("grok")
+    if config.GEMINI_KEY:    providers.append("gemini")
+    if config.OPENAI_KEY:    providers.append("openai")
+    console.print(f"  LLM providers configured: [green]{', '.join(providers)}[/green]")
+    if not config.XAI_KEY:
+        console.print("    [yellow]Grok (XAI_API_KEY) not set — social pulse "
+                      "will be skipped.[/yellow]")
+
 
 # ── CLI ────────────────────────────────────────────────────────────────────
 
@@ -899,11 +981,15 @@ if __name__ == "__main__":
                         default="prematch")
     parser.add_argument("--scan", action="store_true",
                         help="Auto-scan all WC2026 fixtures and run for each")
+    parser.add_argument("--list", action="store_true",
+                        help="List every WC2026 fixture with its id, then exit")
     parser.add_argument("--test-connection", action="store_true",
-                        help="Smoke-test all three data sources")
+                        help="Smoke-test all data sources")
     args = parser.parse_args()
 
-    if args.test_connection:
+    if args.list:
+        list_fixtures()
+    elif args.test_connection:
         test_connection()
     elif args.scan:
         scan_and_run(window=args.window)
