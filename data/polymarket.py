@@ -234,18 +234,82 @@ def get_midpoint(token_id: str) -> float | None:
     return _clob_mid(str(token_id))
 
 
-def get_three_way_market_probs(fixture_id: int | str) -> dict:
+def get_three_way_from_tokens(home_token: str | None, draw_token: str | None, away_token: str | None, slug: str = "") -> dict:
+    """
+    Fetch CLOB midpoints for three pre-known YES token IDs and return a normalised
+    market probability dict.  This is the fast path when token IDs come from the
+    arena mapping endpoint directly (no Gamma API call needed).
+    """
+    tokens = {"home": home_token, "draw": draw_token, "away": away_token}
+    if not all(tokens.values()):
+        return {"complete": False, "raw_midpoints": {}, "normalized_probs": None,
+                "reason": "missing_token_ids", "slug": slug}
+    raw: dict[str, float | None] = {k: _clob_mid(str(v)) for k, v in tokens.items()}
+    if any(raw.get(k) is None for k in ("home", "draw", "away")):
+        return {"complete": False, "raw_midpoints": raw, "normalized_probs": None,
+                "tokens": tokens, "slug": slug, "reason": "clob_midpoint_missing"}
+    total = sum(float(raw[k]) for k in ("home", "draw", "away"))  # type: ignore[arg-type]
+    if not total:
+        return {"complete": False, "raw_midpoints": raw, "normalized_probs": None,
+                "tokens": tokens, "slug": slug, "reason": "zero_total"}
+    norm = {k: float(raw[k]) / total for k in ("home", "draw", "away")}  # type: ignore[arg-type]
+    return {"complete": True, "raw_midpoints": raw, "normalized_probs": norm,
+            "tokens": tokens, "slug": slug, "reason": "ok"}
+
+
+def get_three_way_market_probs(fixture_id: int | str, tokens: dict | None = None) -> dict:
+    """
+    Return normalised 3-way (home/draw/away) market probabilities for a fixture.
+
+    Fast path: if caller supplies a ``tokens`` dict with keys
+    ``home``, ``draw``, ``away`` (token ID strings from the arena mapping),
+    skip the Gamma API entirely and go straight to the CLOB.
+
+    Slow path: look up the mapping, then try Gamma (deprecated -- may return empty).
+    """
+    # Fast path: caller already has token IDs from the mapping
+    if tokens and all(tokens.get(k) for k in ("home", "draw", "away")):
+        return get_three_way_from_tokens(
+            tokens["home"], tokens["draw"], tokens["away"],
+            slug=tokens.get("slug", ""),
+        )
+
+    # Slow path: mapping lookup + Gamma (deprecated but kept as fallback)
     mapping = get_mapping(fixture_id)
+    if mapping:
+        # Mapping already contains the token IDs -- use fast path
+        home_t = mapping.get("polymarket_home_token_yes")
+        draw_t = mapping.get("polymarket_draw_token_yes")
+        away_t = mapping.get("polymarket_away_token_yes")
+        slug   = mapping.get("polymarket_event_slug", "")
+        if home_t and draw_t and away_t:
+            return get_three_way_from_tokens(home_t, draw_t, away_t, slug=slug)
+
     slug = (mapping or {}).get("polymarket_event_slug") or (mapping or {}).get("slug")
     if not slug:
         return {"complete": False, "raw_midpoints": {}, "normalized_probs": None, "reason": "mapping_missing"}
     event = get_gamma_event(slug)
     if not event:
         return {"complete": False, "raw_midpoints": {}, "normalized_probs": None, "reason": "gamma_event_missing", "slug": slug}
-    tokens = extract_yes_token_ids(event)
-    raw = {k: get_midpoint(v) if v else None for k, v in tokens.items()}
+    extracted = extract_yes_token_ids(event)
+    raw: dict[str, float | None] = {k: get_midpoint(v) if v else None for k, v in extracted.items()}
     if any(raw.get(k) is None for k in ("home", "draw", "away")):
-        return {"complete": False, "raw_midpoints": raw, "normalized_probs": None, "tokens": tokens, "slug": slug, "reason": "midpoint_missing"}
-    total = sum(float(raw[k]) for k in ("home", "draw", "away"))
-    norm = {k: float(raw[k]) / total for k in ("home", "draw", "away")} if total else None
-    return {"complete": bool(norm), "raw_midpoints": raw, "normalized_probs": norm, "tokens": tokens, "slug": slug, "reason": "ok" if norm else "zero_total"}
+        return {"complete": False, "raw_midpoints": raw, "normalized_probs": None, "tokens": extracted, "slug": slug, "reason": "midpoint_missing"}
+    total = sum(float(raw[k]) for k in ("home", "draw", "away"))  # type: ignore[arg-type]
+    norm = {k: float(raw[k]) / total for k in ("home", "draw", "away")} if total else None  # type: ignore[arg-type]
+    return {"complete": bool(norm), "raw_midpoints": raw, "normalized_probs": norm, "tokens": extracted, "slug": slug, "reason": "ok" if norm else "zero_total"}
+
+
+def get_all_mappings() -> list[dict]:
+    """
+    Return all arena fixture mappings (all 72 WC2026 group-stage fixtures).
+    Includes Sportmonks fixture IDs, team codes, token IDs, and kickoff times.
+    Call with no params -- the endpoint returns the complete list.
+    """
+    try:
+        r = httpx.get(f"{_ARENA_API}/v1/web/mapping", headers=_HEADERS, timeout=15)
+        if not r.is_success:
+            return []
+        return r.json().get("mappings") or []
+    except Exception:
+        return []

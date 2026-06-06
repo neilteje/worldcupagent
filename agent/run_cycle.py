@@ -158,7 +158,17 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     detail = synthetic.get("detail") or sportmonks.get_fixture_detail_safe(fixture_id)
     market = {"complete": True, "raw_midpoints": synthetic.get("market"), "normalized_probs": synthetic.get("market"), "reason": "synthetic"} if "market" in synthetic else None
     if market is None:
-        market = polymarket.get_three_way_market_probs(fixture_id) if settings.arena_key and not fixture.get("demo") else {"complete": True, "raw_midpoints": {"home": .44, "draw": .29, "away": .27}, "normalized_probs": {"home": .44, "draw": .29, "away": .27}, "reason": "demo"}
+        if settings.arena_key and not fixture.get("demo"):
+            # Pass pre-loaded token IDs from the mapping (if fixture came from discover_fixtures_safe)
+            fixture_tokens = {
+                "home": fixture.get("polymarket_home_token_yes"),
+                "draw": fixture.get("polymarket_draw_token_yes"),
+                "away": fixture.get("polymarket_away_token_yes"),
+                "slug": fixture.get("polymarket_event_slug", ""),
+            }
+            market = polymarket.get_three_way_market_probs(fixture_id, tokens=fixture_tokens)
+        else:
+            market = {"complete": True, "raw_midpoints": {"home": .44, "draw": .29, "away": .27}, "normalized_probs": {"home": .44, "draw": .29, "away": .27}, "reason": "demo"}
     if synthetic.get("market") is None and "market" in synthetic:
         market = {"complete": False, "raw_midpoints": {}, "normalized_probs": None, "reason": "synthetic missing market"}
     append_price_history(settings.storage_dir, fixture_code, window, market.get("raw_midpoints") or {}, market.get("normalized_probs"))
@@ -167,7 +177,11 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     bookmaker = bookmaker or ({"home": .46, "draw": .28, "away": .26} if fixture.get("demo") else None)
     sm_pred = synthetic.get("sportmonks") if "sportmonks" in synthetic else sportmonks.extract_sportmonks_prediction(detail)
     sm_pred = sm_pred or ({"home": .47, "draw": .27, "away": .26} if fixture.get("demo") else None)
-    priors = synthetic.get("priors") or get_priors(settings, fixture_code) or ({"home": .40, "draw": .28, "away": .32} if fixture.get("demo") else None)
+    priors = synthetic.get("priors") or get_priors(
+        settings, fixture_code,
+        home_name=fixture.get("home_country"),
+        away_name=fixture.get("away_country"),
+    ) or ({"home": .40, "draw": .28, "away": .32} if fixture.get("demo") else None)
 
     lineup_payload = _synthetic_lineup_payload(synthetic.get("lineups")) or extract_lineups(detail if isinstance(detail, dict) else {})
     lineup = evaluate_lineup_delta(**lineup_payload)

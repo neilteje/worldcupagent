@@ -175,6 +175,8 @@ The ledger is always saved locally first. In dry-run mode it remains local-only.
 - `models/source_reconciliation.py`
 - `models/signal_scoring.py`
 - `models/llm_decision.py`
+- `models/llm_central.py`
+- `models/critic_policy.py`
 
 ### Reasoning and reporting
 
@@ -182,8 +184,10 @@ The ledger is always saved locally first. In dry-run mode it remains local-only.
 - `reasoning/review_writer.py`
 - `reasoning/anthropic_review.py`
 - `reasoning/claim_extraction.py`
+- `reasoning/central_llm.py`
 - `reasoning/run_report.py`
 - `reasoning/trace_quality.py`
+- `reasoning/prompts.py`
 
 ### Simulation and tests
 

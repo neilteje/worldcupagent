@@ -4,22 +4,56 @@ An autonomous AI agent competing in the [Stair AI World Cup Agent Arena](https:/
 Built to win the **Highest Stair AI Score** ($2,000) by combining well-calibrated
 probabilistic predictions with rich, structured reasoning traces.
 
-## Architecture
+## Architecture (package-based)
+
+The primary, actively-maintained code lives under the `agent/` package and is
+invoked via `python -m agent.main`. The older top-level `agent.py` and
+`config.py` files remain for historical reference only.
 
 ```
-agent.py                ← orchestration (pre-match + half-time flows)
-config.py               ← env-backed configuration
+agent/
+  main.py               ← CLI entry point (`python -m agent.main`)
+  scheduler.py          ← orchestrates once, daemon, and backtest modes
+  run_cycle.py          ← core decision-cycle implementation
+  config.py             ← environment-backed settings
 data/
-  sportmonks.py         ← Sportmonks proxy (fixtures, ML predictions, HT stats)
-  supabase_client.py    ← StatsBomb priors + live checkpoints via Supabase
-  polymarket.py         ← Market prices via arena proxy
+  sportmonks.py         ← Sportmonks API proxy (fixtures, predictions, HT stats)
+  polymarket.py         ← Polymarket CLOB & Gamma proxy via arena
+  supabase_client.py    ← StatsBomb priors & live checkpoints via Supabase
+  supabase_data.py      ← Supabase data helpers
+  synthetic_fixtures.py ← Deterministic synthetic fixtures for stress testing
+  market_memory.py      ← Local cache of recent market snapshots
+  lineup_monitor.py     ← Lineup change tracking
+models/
+  probability.py        ← Pre-match and halftime probability blending
+  probability_blender.py← Weighting logic for deterministic blend
+  calibration.py        ← Temperature scaling, market shrinkage, draw floor
+  edge_engine.py        ← Edge detection and tiering
+  consensus.py          ← Model-bookmaker-market agreement triangle
+  halftime.py           ← Half-time score-line adjustment and confidence
+  draw_model.py         ← Draw-specific adjustments and sanity flags
+  lineup_delta.py       ← Lineup change impact scoring
+  sanity_checks.py      ← Global decision audit (risk flags, blocking checks)
+  bet_sizing.py         ← Kelly-criterion based stake calculation
+  market_stale.py       ← Detects lagging market data
+  source_reconciliation.py ← Reconciles multiple probability sources
+  signal_scoring.py     ← Scores individual signals (quality, freshness, etc.)
+  llm_decision.py       ← Bounded LLM analyst integration (risk flags)
+  llm_central.py        ← LLM-central forecast mode (full probability synthesis)
+  critic_policy.py      ← Merges Anthropic critic review into decisions
 reasoning/
-  prompts.py            ← structured prompts for pre-match + HT windows
-  llm.py                ← Claude extended thinking + Gemini ensemble
-ledger/
-  client.py             ← 7-behavior reasoning trace builder + batch submit
+  ledger_builder.py     ← Constructs DAG-shaped reasoning ledger records
+  review_writer.py      ← Generates markdown / JSON run reviews
+  anthropic_review.py   ← Optional Claude-based health-check and critique
+  claim_extraction.py   ← Structured claim extraction from external payloads
+  central_llm.py        ← Core LLM-central prediction orchestration
+  run_report.py         ← Summarises a full run (metrics, artefacts)
+  trace_quality.py      ← Evaluates ledger trace completeness
+  prompts.py            ← Prompt templates for LLM interactions
 betting/
-  kelly.py              ← Kelly criterion bet sizing
+  kelly.py              ← Kelly-criterion bet sizing utilities
+backtesting/
+  runner.py             ← Deterministic backtest framework (synthetic fixtures)
 ```
 
 ## Setup
@@ -116,6 +150,12 @@ python -m agent.main --backtest --backtest-sample 50
 
 # Optional low-token Claude critique of the backtest summary. The deterministic backtest does not depend on Claude.
 python -m agent.main --backtest --backtest-sample 50 --use-claude
+
+# LLM-central forecast mode (Anthropic synthesizes the full probability distribution).
+python -m agent.main --once --dry-run --decision-mode llm_central
+
+# Compare deterministic vs llm_central on the same synthetic sample.
+python -m agent.main --compare-modes --backtest-sample 50
 ```
 
 ### DRY_RUN and order safety
@@ -132,12 +172,20 @@ python -m agent.main --backtest --backtest-sample 50 --use-claude
 
 ### Top modules
 
-- **Market disagreement engine** (`models/edge_engine.py`) finds outcomes where model probabilities disagree with Polymarket, labels the edge source, tiers the edge, and blocks low-confidence or high-uncertainty bets.
-- **Consensus triangle** (`models/consensus.py`) compares model, bookmaker, and Polymarket top picks, returning agreement cases plus confidence and bet-size modifiers.
-- **Half-time scoreline luck model** (`models/halftime.py`) uses score state, xG, shots, and cards to detect deserved leads, lucky leads, dominant draws, dead matches, volatility, and red-card distortions.
-- **Lineup delta model** (`models/lineup_delta.py`, `data/lineup_monitor.py`) compares expected vs confirmed starters, scores missing player importance, caps lineup-driven probability moves, and flags unconfirmed lineups.
-- **Reasoning Ledger DAG** (`reasoning/ledger_builder.py`) builds Observing, Planning, ToolCalling, Thinking, Acting, and Reflecting records with parent links, saves them locally first, and attempts arena batch submission using the Builder Guide wire endpoint.
-- **Backtesting** (`backtesting/runner.py`) runs a deterministic $5-bankroll simulation over synthetic historical-like fixtures, computes Brier scores, ROI, bet counts, and can optionally request a concise Claude review without making agent decisions dependent on the model.
+- **Market disagreement engine** (`models/edge_engine.py`) – finds outcomes where model probabilities disagree with Polymarket, labels the edge source, tiers the edge, and blocks low-confidence or high-uncertainty bets.
+- **Consensus triangle** (`models/consensus.py`) – compares model, bookmaker, and Polymarket top picks, returning agreement cases plus confidence and bet-size modifiers.
+- **Half-time scoreline luck model** (`models/halftime.py`) – uses score state, xG, shots, and cards to detect deserved leads, lucky leads, dominant draws, dead matches, volatility, and red-card distortions.
+- **Draw model** (`models/draw_model.py`) – applies draw-specific probability adjustments (low xG, small strength gap, level HT state) and sanity flags for unexplained low-draw probabilities.
+- **Lineup delta model** (`models/lineup_delta.py`, `data/lineup_monitor.py`) – compares expected vs confirmed starters, scores missing player importance, caps lineup-driven probability moves, and flags unconfirmed lineups.
+- **Market-stale detector** (`models/market_stale.py`) – flags potentially lagging Polymarket prices by comparing current and previous snapshots against bookmaker/signal movement.
+- **Source reconciliation** (`models/source_reconciliation.py`) – merges multiple probability sources into a coherent set.
+- **Signal scoring** (`models/signal_scoring.py`) – assigns quality, freshness, corroboration, and impact weights to individual signals.
+- **LLM analyst** (`models/llm_decision.py`) – bounded LLM risk-flag integration; the LLM can add caution or veto but does not authorize orders.
+- **LLM-central forecast** (`models/llm_central.py`) – full probability synthesis by Anthropic when `--decision-mode=llm_central` is used; falls back to deterministic probs with blocking flags on failure.
+- **Critic policy** (`models/critic_policy.py`) – merges Anthropic critic review notes into decision artefacts without authorizing orders.
+- **Reasoning Ledger DAG** (`reasoning/ledger_builder.py`) – builds Observing, Planning, ToolCalling, Thinking, Acting, and Reflecting records with parent links, saves them locally first, and attempts arena batch submission.
+- **Central LLM** (`reasoning/central_llm.py`) – orchestrates the LLM-central forecast call and response parsing.
+- **Backtesting** (`backtesting/runner.py`) – deterministic $5-bankroll simulation over synthetic fixtures, Brier scores, ROI, bet counts, optional Claude critique, and mode-comparison (`--compare-modes`).
 
 ### Output locations
 
