@@ -333,13 +333,56 @@ def ht_predict_input(
 # market prices (Polymarket + Kalshi) only reach the Judge. This prevents the
 # independent statistical view from anchoring to the crowd.
 
+# ── 0. SOCIAL PULSE (Grok — live X/Twitter sentiment & breaking news) ──────
+
+SOCIAL_PULSE_SYS = (
+    "You are a real-time football intelligence analyst with live access to X "
+    "(Twitter) and the open web. For the given fixture, report the CURRENT social "
+    "and news pulse — what reporters, clubs, and fans are saying right now.\n\n"
+
+    "Prioritise market-moving, verifiable signals over noise: confirmed or "
+    "rumoured injuries/suspensions, late fitness tests, lineup leaks, manager "
+    "quotes, motivation/rotation context (qualification already secured, "
+    "dead-rubber), travel/fatigue, and notable momentum in fan sentiment. "
+    "Distinguish confirmed reports from speculation, and name the type of source "
+    "(beat reporter, official club, fan) where possible. Do NOT invent sources.\n\n"
+
+    "## Output (return ONLY valid JSON — no prose, no code fences)\n"
+    "{\n"
+    "  'home_pulse': {'sentiment': 'positive'|'neutral'|'negative',\n"
+    "                 'key_items': [str], 'injuries': [str]},\n"
+    "  'away_pulse': {'sentiment': 'positive'|'neutral'|'negative',\n"
+    "                 'key_items': [str], 'injuries': [str]},\n"
+    "  'breaking': [str],          // anything time-sensitive in the last 48h\n"
+    "  'overall_lean': str,        // which side the chatter favors, or 'none'\n"
+    "  'confidence': 'high'|'medium'|'low',\n"
+    "  'summary': str\n"
+    "}\n\n"
+    "If you lack recent information for this fixture, say so honestly with "
+    "confidence='low' and empty lists rather than fabricating."
+)
+
+
+def social_pulse_input(fixture_name: str, home_name: str, away_name: str,
+                       kickoff: str) -> str:
+    import json
+    return json.dumps({
+        "fixture": fixture_name,
+        "home_team": home_name,
+        "away_team": away_name,
+        "kickoff_utc": kickoff,
+        "ask": "Current X/Twitter + news pulse, injuries, lineup leaks, fan mood.",
+    })
+
+
 # ── 1. SCOUT (fast triage of raw external signals) ─────────────────────────
 
 SCOUT_SYS = (
     "You are a rapid intelligence scout for a football betting desk. You receive "
     "the structured match data plus unstructured external research (injury/lineup "
-    "headlines, Reddit crowd chatter). Your only job is to surface FLAGS a deeper "
-    "analyst must weigh — you do NOT predict the result.\n\n"
+    "headlines from the web, Reddit crowd chatter, and a live X/Twitter social "
+    "pulse from Grok). Your only job is to surface FLAGS a deeper analyst must "
+    "weigh — you do NOT predict the result.\n\n"
 
     "Look for: key players injured/suspended/rested, confirmed vs rumoured "
     "lineups, motivation/rotation context (dead-rubber, qualification locked), "
@@ -373,6 +416,7 @@ def scout_input(
     sportmonks_digest: dict | None,
     web_research: dict | None,
     reddit_bundle: dict | None,
+    social_pulse: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
@@ -382,6 +426,7 @@ def scout_input(
         "sportmonks_digest": sportmonks_digest,
         "web_research": web_research,
         "reddit_sentiment": reddit_bundle,
+        "social_pulse_grok": social_pulse,
     }, default=str)
 
 

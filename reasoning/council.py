@@ -20,6 +20,7 @@ from typing import Any
 import config
 from reasoning import llm
 from reasoning.prompts import (
+    SOCIAL_PULSE_SYS, social_pulse_input,
     SCOUT_SYS, scout_input,
     ANALYST_SYS, analyst_input,
     DEVIL_SYS, devil_input,
@@ -39,7 +40,9 @@ class CouncilResult:
     probabilities: dict                       # {home_code|'draw'|away_code: float}
     scout_flags: list[dict] = field(default_factory=list)
     market_alignment: str = "unknown"
+    social_pulse: dict = field(default_factory=dict)
     # Per-role raw results (for the ledger trace)
+    pulse: Any = None
     scout: Any = None
     analyst: Any = None
     devil: Any = None
@@ -69,6 +72,9 @@ def run_council(
     fixture_name: str,
     home_code: str,
     away_code: str,
+    home_name: str,
+    away_name: str,
+    kickoff: str,
     sportmonks_digest: dict | None,
     supabase_digest: dict | None,
     polymarket_digest: dict | None,
@@ -76,12 +82,20 @@ def run_council(
     web_research: dict | None,
     reddit_bundle: dict | None,
 ) -> CouncilResult:
-    # 1 — Scout: triage the unstructured external research.
+    # 0 — Social pulse: Grok reads live X/Twitter + news for breaking signals.
+    pulse = _safe_call(
+        llm.call_grok,
+        SOCIAL_PULSE_SYS,
+        social_pulse_input(fixture_name, home_name, away_name, kickoff),
+    )
+    social_pulse = pulse.parsed if pulse else {}
+
+    # 1 — Scout: consolidate web + reddit + Grok pulse into severity-tagged flags.
     scout = _safe_call(
         llm.call_claude,
         SCOUT_SYS,
         scout_input(fixture_name, home_code, away_code,
-                    sportmonks_digest, web_research, reddit_bundle),
+                    sportmonks_digest, web_research, reddit_bundle, social_pulse),
         model=config.SCOUT_MODEL,
         thinking_budget=config.SCOUT_THINKING_BUDGET,
     )
@@ -135,6 +149,8 @@ def run_council(
         probabilities=probs,
         scout_flags=scout_flags,
         market_alignment=j.get("market_alignment", "unknown"),
+        social_pulse=social_pulse,
+        pulse=pulse,
         scout=scout,
         analyst=analyst,
         devil=devil,

@@ -22,6 +22,7 @@ _openai_client = None
 _openrouter_client = None
 _gemini_client = None
 _deepseek_client = None
+_grok_client = None
 _primary: str = (
     "openrouter" if config.OPENROUTER_KEY else
     "anthropic" if config.ANTHROPIC_KEY else
@@ -85,6 +86,17 @@ def _get_deepseek():
             base_url=config.DEEPSEEK_BASE_URL,
         )
     return _deepseek_client
+
+
+def _get_grok():
+    global _grok_client
+    if _grok_client is None and config.XAI_KEY:
+        from openai import OpenAI
+        _grok_client = OpenAI(
+            api_key=config.XAI_KEY,
+            base_url=config.XAI_BASE_URL,
+        )
+    return _grok_client
 
 
 # ── Extraction helpers ─────────────────────────────────────────────────────
@@ -279,6 +291,50 @@ def call_deepseek(
         except Exception as e:
             print(f"  [DeepSeek error: {e}] — falling back to Claude for devil's advocate")
     return call_claude(system, user_content, thinking_budget=2048)
+
+
+def call_grok(
+    system: str,
+    user_content: str,
+    model: str | None = None,
+) -> LLMResult:
+    """
+    Call Grok (xAI). Grok is trained with live access to X/Twitter, so it is the
+    best model for a real-time social-pulse read (breaking team news, fan mood,
+    injury chatter). OpenAI-SDK compatible. Returns an empty-provider result if
+    no XAI key is configured so callers degrade gracefully.
+    """
+    client = _get_grok()
+    if not client:
+        return LLMResult(parsed={}, raw_text="", thinking="",
+                         model="", provider="unavailable")
+    try:
+        m = model or config.GROK_MODEL
+        resp = client.chat.completions.create(
+            model=m,
+            messages=[
+                {"role": "system", "content": system},
+                {"role": "user", "content": user_content},
+            ],
+            timeout=config.GROK_TIMEOUT_SECONDS,
+        )
+        msg = resp.choices[0].message
+        text = msg.content or ""
+        thinking = getattr(msg, "reasoning_content", "") or ""
+        usage = getattr(resp, "usage", None)
+        return LLMResult(
+            parsed=_parse_json(text),
+            raw_text=text,
+            thinking=thinking,
+            model=m,
+            provider="xai",
+            tokens_in=getattr(usage, "prompt_tokens", 0) or 0,
+            tokens_out=getattr(usage, "completion_tokens", 0) or 0,
+        )
+    except Exception as e:
+        print(f"  [Grok error: {e}]")
+        return LLMResult(parsed={}, raw_text="", thinking="",
+                         model=model or config.GROK_MODEL, provider="error")
 
 
 def _call_gemini(system: str, user_content: str) -> dict | None:
