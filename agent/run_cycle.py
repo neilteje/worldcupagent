@@ -1,12 +1,11 @@
 from __future__ import annotations
 from pathlib import Path
-from datetime import datetime, timezone
 import json, uuid
 import httpx
 from agent.config import Settings, load_settings
 from data import polymarket, sportmonks
 from data.lineup_monitor import extract_lineups
-from data.market_memory import append_price_history
+from data.market_memory import append_price_history, previous_normalized_probs
 from data.supabase_data import get_live_checkpoint, get_priors
 from models.consensus import consensus_triangle
 from models.edge_engine import evaluate_edge
@@ -15,6 +14,9 @@ from models.lineup_delta import evaluate_lineup_delta
 from models.probability import pre_match_model, halftime_model
 from models.bet_sizing import bet_size, limit_price
 from models.sanity_checks import audit_decision
+from models.signal_scoring import score_signal, summarize_signals, signal_conflict_score
+from models.draw_model import apply_draw_model, draw_sanity_flags
+from models.market_stale import detect_market_stale
 from reasoning.ledger_builder import LedgerAdapter, LedgerBuilder
 from reasoning.run_report import print_run_report
 
@@ -30,52 +32,137 @@ def _safe_order(settings: Settings, payload: dict) -> dict:
         return {"submitted": False, "reason": "ARENA_KEY missing", "payload": payload}
     try:
         r = httpx.post(f"{settings.arena_api}/v1/orders", headers=settings.headers, json=payload, timeout=20)
-        if r.is_success: return {"submitted": True, "response": r.json(), "payload": payload}
+        if r.is_success:
+            return {"submitted": True, "response": r.json(), "payload": payload}
         return {"submitted": False, "reason": f"HTTP {r.status_code}: {r.text[:200]}", "payload": payload}
     except Exception as exc:
         return {"submitted": False, "reason": repr(exc), "payload": payload}
 
 
-def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: Settings | None = None) -> dict:
+def _duplicate_order_marker(settings: Settings, fixture_code: str, window: str) -> bool:
+    path = settings.storage_dir / "decisions" / f"{fixture_code}-{window}.json"
+    if not path.exists():
+        return False
+    try:
+        previous = json.loads(path.read_text(encoding="utf-8"))
+    except Exception:
+        return False
+    return bool(previous.get("order_submitted") or previous.get("action") == "BET")
+
+
+def _synthetic_lineup_payload(kind: str | None) -> dict | None:
+    if kind != "home_gk_missing":
+        return None
+    expected_home = [{"id": 1, "name": "First GK", "position": "Goalkeeper", "starter": True}, {"id": 2, "name": "Home ST", "position": "Striker", "starter": True}]
+    confirmed_home = [{"id": 99, "name": "Backup GK", "position": "Goalkeeper", "starter": True}, {"id": 2, "name": "Home ST", "position": "Striker", "starter": True}]
+    expected_away = [{"id": 11, "name": "Away GK", "position": "Goalkeeper", "starter": True}, {"id": 12, "name": "Away ST", "position": "Striker", "starter": True}]
+    return {"expected_home": expected_home, "confirmed_home": confirmed_home, "expected_away": expected_away, "confirmed_away": expected_away, "expected_formations": {"home": "4-3-3", "away": "4-3-3"}, "confirmed_formations": {"home": "4-3-3", "away": "4-3-3"}}
+
+
+def _source_completeness(*, market: dict, bookmaker: dict | None, sm_pred: dict | None, priors: dict | None, lineup: dict, window: str, live: dict | None) -> dict:
+    checks = {
+        "market": bool(market.get("normalized_probs")),
+        "bookmaker": bool(bookmaker),
+        "sportmonks_prediction": bool(sm_pred),
+        "supabase_priors": bool(priors),
+        "lineup_confirmed": "lineup_unconfirmed" not in lineup.get("risk_flags", []),
+    }
+    if window == "HT":
+        checks.update({"ht_score": live is not None and "home_goals" in live and "away_goals" in live, "ht_xg": live is not None and "home_xg" in live and "away_xg" in live})
+    score = sum(1 for v in checks.values() if v) / max(len(checks), 1)
+    return {"score": score, "checks": checks, "missing": [k for k, v in checks.items() if not v]}
+
+
+def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: Settings | None = None, verbose: bool = False) -> dict:
     settings = settings or load_settings()
     fixture = fixture or {"id": settings.default_fixture_code, "fixture_code": settings.default_fixture_code, "demo": True}
-    window = "HT" if window.upper() in {"HT", "HALFTIME"} else "PRE_MATCH"
+    window = "HT" if (window or fixture.get("preferred_window", "PRE_MATCH")).upper() in {"HT", "HALFTIME"} else "PRE_MATCH"
     fixture_code = _fixture_code(fixture)
     fixture_id = fixture.get("id") or fixture_code
-    detail = sportmonks.get_fixture_detail_safe(fixture_id)
-    market = polymarket.get_three_way_market_probs(fixture_id) if settings.arena_key and not fixture.get("demo") else {"complete": True, "raw_midpoints": {"home": .44, "draw": .29, "away": .27}, "normalized_probs": {"home": .44, "draw": .29, "away": .27}, "reason": "demo"}
+    synthetic = fixture.get("synthetic_data") or {}
+
+    detail = synthetic.get("detail") or sportmonks.get_fixture_detail_safe(fixture_id)
+    market = {"complete": True, "raw_midpoints": synthetic.get("market"), "normalized_probs": synthetic.get("market"), "reason": "synthetic"} if "market" in synthetic else None
+    if market is None:
+        market = polymarket.get_three_way_market_probs(fixture_id) if settings.arena_key and not fixture.get("demo") else {"complete": True, "raw_midpoints": {"home": .44, "draw": .29, "away": .27}, "normalized_probs": {"home": .44, "draw": .29, "away": .27}, "reason": "demo"}
+    if synthetic.get("market") is None and "market" in synthetic:
+        market = {"complete": False, "raw_midpoints": {}, "normalized_probs": None, "reason": "synthetic missing market"}
     append_price_history(settings.storage_dir, fixture_code, window, market.get("raw_midpoints") or {}, market.get("normalized_probs"))
-    bookmaker = sportmonks.extract_bookmaker_probs(detail) or {"home": .46, "draw": .28, "away": .26}
-    sm_pred = sportmonks.extract_sportmonks_prediction(detail) or {"home": .47, "draw": .27, "away": .26}
-    priors = get_priors(settings, fixture_code) or {"home": .40, "draw": .28, "away": .32}
-    lineup_payload = extract_lineups(detail if isinstance(detail, dict) else {})
+
+    bookmaker = synthetic.get("bookmaker") if "bookmaker" in synthetic else sportmonks.extract_bookmaker_probs(detail)
+    bookmaker = bookmaker or ({"home": .46, "draw": .28, "away": .26} if fixture.get("demo") else None)
+    sm_pred = synthetic.get("sportmonks") if "sportmonks" in synthetic else sportmonks.extract_sportmonks_prediction(detail)
+    sm_pred = sm_pred or ({"home": .47, "draw": .27, "away": .26} if fixture.get("demo") else None)
+    priors = synthetic.get("priors") or get_priors(settings, fixture_code) or ({"home": .40, "draw": .28, "away": .32} if fixture.get("demo") else None)
+
+    lineup_payload = _synthetic_lineup_payload(synthetic.get("lineups")) or extract_lineups(detail if isinstance(detail, dict) else {})
     lineup = evaluate_lineup_delta(**lineup_payload)
-    data_complete = sum([bool(market.get("normalized_probs")), bool(bookmaker), bool(sm_pred), bool(priors), "lineup_unconfirmed" not in lineup.get("risk_flags", [])]) / 5
-    prematch = pre_match_model(sm_pred, bookmaker, market.get("normalized_probs"), priors, lineup.get("probability_delta"), data_complete)
+    live = None
+    if window == "HT":
+        live = synthetic.get("live") or get_live_checkpoint(settings, fixture_code) or ({"home_goals": 0, "away_goals": 0, "home_xg": .35, "away_xg": .28, "home_shots": 4, "away_shots": 3, "home_sot": 1, "away_sot": 1} if fixture.get("demo") else None)
+
+    completeness = _source_completeness(market=market, bookmaker=bookmaker, sm_pred=sm_pred, priors=priors, lineup=lineup, window=window, live=live)
+    prematch = pre_match_model(sm_pred, bookmaker, market.get("normalized_probs"), priors, lineup.get("probability_delta"), completeness["score"])
+    draw_inputs = {
+        "total_projected_xg": synthetic.get("projected_xg"),
+        "strength_gap": abs((prematch["probabilities"].get("home", 0) - prematch["probabilities"].get("away", 0))),
+        "market_draw": (market.get("normalized_probs") or {}).get("draw") if market else None,
+        "bookmaker_draw": (bookmaker or {}).get("draw"),
+    }
+    draw_out = apply_draw_model(prematch["probabilities"], **draw_inputs)
+    prematch["probabilities"] = draw_out["probabilities"]
     ht_out = None
     model_out = prematch
     if window == "HT":
-        live = get_live_checkpoint(settings, fixture_code) or {"home_goals": 0, "away_goals": 0, "home_xg": .35, "away_xg": .28, "home_shots": 4, "away_shots": 3, "home_sot": 1, "away_sot": 1}
-        ht_out = evaluate_halftime(prematch["probabilities"], market.get("normalized_probs"), live_checkpoint=live)
+        ht_out = evaluate_halftime(prematch["probabilities"], market.get("normalized_probs"), live_checkpoint=live or {})
         model_out = halftime_model(prematch["probabilities"], ht_out, market.get("normalized_probs"), bookmaker)
+        draw_ht = apply_draw_model(model_out["probabilities"], market_draw=(market.get("normalized_probs") or {}).get("draw"), bookmaker_draw=(bookmaker or {}).get("draw"), ht_score=(int((live or {}).get("home_goals", 0)), int((live or {}).get("away_goals", 0))), ht_total_xg=float((live or {}).get("home_xg", 0) or 0) + float((live or {}).get("away_xg", 0) or 0), red_cards=(int((live or {}).get("home_red", 0) or 0), int((live or {}).get("away_red", 0) or 0)))
+        model_out["probabilities"] = draw_ht["probabilities"]
+        draw_out = draw_ht
+
     cons = consensus_triangle(model_out["probabilities"], bookmaker, market.get("normalized_probs"))
-    confidence = max(.1, min(.9, model_out["confidence"] + cons["confidence_modifier"]))
-    edge = evaluate_edge(fixture_code, window, model_out["probabilities"], market.get("normalized_probs"), bookmaker, confidence, model_out["uncertainty"], cons["case"], signals=[lineup.get("reason", ""), (ht_out or {}).get("reason", "")])
-    risk = audit_decision(model_out["probabilities"], edge, confidence, model_out["uncertainty"], settings.dry_run, bool(market.get("complete")), lineup, cons["case"])
+    signals = [
+        score_signal("lineup_delta", "sportmonks", "lineup", lineup.get("probability_delta"), source_quality=.90 if "lineup_unconfirmed" not in lineup.get("risk_flags", []) else .35, freshness=.85, corroboration=.70, reason=lineup.get("reason", "")),
+        score_signal("draw_model", "model", "draw", draw_out.get("delta"), source_quality=.70, freshness=.80, corroboration=.65, reason=draw_out.get("reason", "")),
+    ]
+    if ht_out:
+        ht_delta = {k: ht_out.get("ht_probs", {}).get(k, 0) - prematch["probabilities"].get(k, 0) for k in ("home", "draw", "away")}
+        signals.append(score_signal("halftime_model", "sportmonks", "halftime", ht_delta, source_quality=.75 if ht_out.get("ht_label") != "data_insufficient" else .35, freshness=.95, corroboration=.70, reason=ht_out.get("reason", "")))
+    if synthetic.get("web_delta"):
+        signals.append(score_signal("web_claim", "web", "rumor", synthetic.get("web_delta"), source_quality=.25, freshness=.65, corroboration=.10, reason="Synthetic weak web claim."))
+    top_signals = summarize_signals(signals)
+    conflict = signal_conflict_score(signals)
+    confidence = max(.1, min(.9, model_out["confidence"] + cons["confidence_modifier"] - conflict - max(0, .65 - completeness["score"]) * .18))
+    uncertainty = max(.05, min(.85, model_out["uncertainty"] + conflict + max(0, .70 - completeness["score"]) * .20))
+
+    previous_market = synthetic.get("previous_market") or previous_normalized_probs(settings.storage_dir, fixture_code, window)
+    stale = detect_market_stale(market.get("normalized_probs"), previous_market, bookmaker, synthetic.get("signal_delta") or lineup.get("probability_delta"))
+    signal_reasons = [s.get("reason", "") for s in top_signals] + [stale.get("reason", "")]
+    edge = evaluate_edge(fixture_code, window, model_out["probabilities"], market.get("normalized_probs"), bookmaker, confidence, uncertainty, cons["case"], signals=signal_reasons)
+    if stale.get("is_stale") and edge.get("edge_tier") != "none":
+        edge["edge_type"] = "market_stale"
+        edge["reason"] += " Stale-market detector supports the edge."
+
+    duplicate = _duplicate_order_marker(settings, fixture_code, window) and not settings.dry_run
+    extra_flags = draw_sanity_flags(model_out["probabilities"], reason=draw_out.get("reason", ""))
+    risk = audit_decision(model_out["probabilities"], edge, confidence, uncertainty, settings.dry_run, bool(market.get("complete")), lineup, cons["case"], duplicate_order=duplicate, data_completeness=completeness["score"], extra_flags=extra_flags)
     usd = bet_size(edge["edge_tier"], confidence, settings.max_order_usd, cons["bet_size_modifier"], allow_soft=False)
     best = edge["best_outcome"] or "home"
     raw_mid = (market.get("raw_midpoints") or {}).get(best) or (market.get("normalized_probs") or {}).get(best) or .33
     lp = limit_price(best, float(raw_mid), model_out["probabilities"][best])
     should_order = edge["should_bet"] and risk["order_allowed"] and usd > 0 and lp > 0
-    order_payload = {"fixture_code": fixture_code, "team_code": best if best == "draw" else str(fixture.get(f"{best}_team_code") or best), "usd_size": f"{usd:.2f}", "limit_price": lp, "time_in_force_seconds": settings.tif_seconds, "idempotency_key": str(uuid.uuid4())}
+    order_payload = {"fixture_code": fixture_code, "team_code": best.upper() if best == "draw" else str(fixture.get(f"{best}_team_code") or best).upper(), "usd_size": f"{usd:.2f}", "limit_price": lp, "time_in_force_seconds": settings.tif_seconds, "idempotency_key": str(uuid.uuid4())}
     order_result = _safe_order(settings, order_payload) if should_order else {"submitted": False, "reason": "skip", "payload": order_payload}
-    prediction_payload = {"fixture_code": fixture_code, "window": window, "probabilities": model_out["probabilities"], "confidence": confidence, "top_signals": [cons["case"], edge["edge_type"], lineup.get("reason", "")][:5], "risk_flags": risk["risk_flags"]}
+    prediction_payload = {"fixture_code": fixture_code, "window": window, "probabilities": model_out["probabilities"], "confidence": confidence, "top_signals": top_signals, "risk_flags": risk["risk_flags"]}
+
     ledger = LedgerBuilder(fixture_code, window, settings)
-    records = ledger.build_standard_trace(kickoff_time=fixture.get("starting_at") or fixture.get("kickoff_utc"), lock_time=fixture.get("pre_match_lock_at") or fixture.get("ht_lock_at"), sportmonks={"fixture_id": fixture_id, "detail_keys": list(detail.keys()) if isinstance(detail, dict) else []}, supabase={"priors": priors}, polymarket=market, bookmaker=bookmaker, lineup=lineup, halftime=ht_out, probability=model_out, consensus=cons, edge=edge, risk=risk, prediction=prediction_payload, order={"action_type": "order" if should_order else "skip", **order_payload, "reason": order_result.get("reason")}, reflection={"data_complete": data_complete, "decision": "order" if should_order else "skip"})
+    records = ledger.build_standard_trace(kickoff_time=fixture.get("starting_at") or fixture.get("kickoff_utc"), lock_time=fixture.get("pre_match_lock_at") or fixture.get("ht_lock_at"), sportmonks={"fixture_id": fixture_id, "detail_keys": list(detail.keys()) if isinstance(detail, dict) else [], "prediction": sm_pred}, supabase={"priors": priors, "completeness": completeness}, polymarket={**market, "previous_market": previous_market, "stale": stale}, bookmaker=bookmaker, lineup=lineup, halftime=ht_out, probability={**model_out, "draw_model": draw_out}, consensus=cons, edge=edge, risk=risk, prediction=prediction_payload, order={"action_type": "order" if should_order else "skip", **order_payload, "reason": order_result.get("reason")}, reflection={"data_complete": completeness["score"], "decision": "order" if should_order else "skip", "top_signals": top_signals})
     ledger_result = LedgerAdapter(settings).submit(ledger.session_id, records)
-    decision = {"session_id": ledger.session_id, "fixture_code": fixture_code, "window": window, "final_probs": model_out["probabilities"], "market_probs": market.get("normalized_probs"), "bookmaker_probs": bookmaker, "consensus_case": cons["case"], "best_outcome": best, "best_edge": edge["best_edge"], "edge_tier": edge["edge_tier"], "action": "BET" if should_order else "SKIP", "risk_flags": risk["risk_flags"], "prediction_submitted": bool(ledger_result.get("submitted")) or True, "order_submitted": bool(order_result.get("submitted")), "dry_run": settings.dry_run, "ledger_submitted": ledger_result.get("submitted", False), "ledger_records": len(records), "ledger_dag_valid": ledger.validate_dag(), "order": order_result}
+    decision = {"session_id": ledger.session_id, "fixture_code": fixture_code, "window": window, "teams": fixture.get("name"), "final_probs": model_out["probabilities"], "market_probs": market.get("normalized_probs"), "bookmaker_probs": bookmaker, "sportmonks_probs": sm_pred, "halftime": ht_out, "lineup": lineup, "data_completeness": completeness, "market_stale": stale, "consensus_case": cons["case"], "best_outcome": best, "best_edge": edge["best_edge"], "edge_tier": edge["edge_tier"], "edge_type": edge["edge_type"], "edge_reason": edge["reason"], "confidence": confidence, "uncertainty": uncertainty, "top_signals": top_signals, "action": "BET" if should_order else "SKIP", "risk_flags": risk["risk_flags"], "blocking_risk_flags": risk["blocking_risk_flags"], "prediction_submitted": True, "order_submitted": bool(order_result.get("submitted")), "dry_run": settings.dry_run, "ledger_submitted": ledger_result.get("submitted", False), "ledger_records": len(records), "ledger_dag_valid": ledger.validate_dag(), "order": order_result}
     out = settings.storage_dir / "decisions" / f"{fixture_code}-{window}.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(decision, indent=2), encoding="utf-8")
     print_run_report(decision)
+    if verbose:
+        print(json.dumps({"decision_file": str(out), "session_id": ledger.session_id, "data_completeness": completeness, "market_stale": stale, "blocking_risk_flags": risk["blocking_risk_flags"]}, indent=2))
     return decision

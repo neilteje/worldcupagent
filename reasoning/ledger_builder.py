@@ -62,6 +62,8 @@ class LedgerAdapter:
 
     def submit(self, session_id: str, records: list[dict], retries: int = 2) -> dict:
         self.save_local(session_id, records)
+        if self.settings.dry_run:
+            return {"submitted": False, "reason": "dry_run_local_only", "records_built": len(records)}
         if not self.settings.arena_key:
             return {"submitted": False, "reason": "ARENA_KEY missing", "records_built": len(records)}
         last = None

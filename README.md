@@ -156,3 +156,33 @@ pytest -q
 python -m agent.main --once --dry-run
 python -m agent.main --backtest --backtest-sample 50
 ```
+
+### Self-improvement, synthetic runs, and review artifacts
+
+The package CLI now supports deterministic review-oriented runs:
+
+```bash
+# Print extra decision metadata and write storage/reviews artifacts.
+python -m agent.main --once --dry-run --verbose
+
+# Exercise ten deterministic synthetic fixtures when live data is unavailable.
+python -m agent.main --once --dry-run --use-synthetic-fixtures --verbose
+
+# Validate daemon automation without running forever.
+python -m agent.main --daemon --interval-seconds 60 --dry-run --max-iterations 2 --use-synthetic-fixtures
+```
+
+Every successful prediction run writes:
+
+- `storage/reviews/run_YYYYMMDD_HHMMSS.md` and `.json` with run metadata, API/data status, prediction summaries, critique, implemented ideas, and next priorities.
+- `storage/reviews/latest_review.md` pointing to the newest markdown review.
+- `storage/reviews/iteration_log.md` with append-only iteration notes.
+- `storage/reviews/comparison.md` with simple before/after run metrics.
+
+Additional quality and safety modules added for iteration:
+
+- **Signal scoring** (`models/signal_scoring.py`) assigns source quality, freshness, corroboration, impact, and final weight to lineup, draw, halftime, stale-market, and weak web signals. Weak web/rumor/sentiment deltas are capped before they can affect confidence or ledger explanations.
+- **Draw-specialist model** (`models/draw_model.py`) directly adjusts draw probability for low projected xG, small strength gaps, level HT states, and market/bookmaker draw baselines, with a draw sanity flag for unexplained very-low draw probabilities.
+- **Market stale detector** (`models/market_stale.py`) compares current and previous market snapshots with bookmaker/signal movement to flag possible lagging Polymarket prices.
+- **Synthetic fixtures** (`data/synthetic_fixtures.py`) cover model/bookmaker-vs-market, bookmaker+market-against-model, HT low-xG draw, favorite trailing with xG dominance, missing goalkeeper, red-card comeback, draw-underpriced, stale-market, weak web-claim, and missing-market scenarios.
+- **Duplicate-order prevention** checks the existing decision marker for the same fixture/window and adds a blocking `duplicate_order` risk flag before any non-dry-run order can be sent.

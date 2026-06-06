@@ -1,0 +1,32 @@
+{
+  "timestamp": "2026-06-06T09:59:38.937437+00:00",
+  "commands_run": [
+    "/workspace/worldcupagent/agent/main.py --daemon --interval-seconds 1 --dry-run --max-iterations 2 --use-synthetic-fixtures"
+  ],
+  "tests": {
+    "passed": null,
+    "failed": null
+  },
+  "fixtures_processed": 10,
+  "predictions_generated": 20,
+  "orders_attempted": 0,
+  "orders_skipped": 20,
+  "ledger_records_generated": 286,
+  "api_errors": [],
+  "weaknesses": [
+    "Most or all opportunities remain no-trade because measured edge is small.",
+    "Ledger is saved locally but live submission is unavailable or not configured."
+  ],
+  "ideas_proposed": [
+    "Track source contribution deltas per run to explain probability movement.",
+    "Use prediction diffing to explain changes from the previous fixture/window run.",
+    "Add live API reliability metrics over multiple runs."
+  ],
+  "ideas_implemented": [
+    "Added structured run review artifacts for every agent run."
+  ],
+  "remaining_todos": [
+    "Most or all opportunities remain no-trade because measured edge is small.",
+    "Ledger is saved locally but live submission is unavailable or not configured."
+  ]
+}

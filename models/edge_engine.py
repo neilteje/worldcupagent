@@ -35,7 +35,7 @@ def evaluate_edge(fixture_code: str, window: str, final_model_probs: dict[str, f
         edge_type = "model_bookmaker_vs_polymarket"
     elif best_outcome == "draw" and best_edge >= 0.03:
         edge_type = "draw_underpriced"
-    elif "lineup" in signal_text:
+    elif ("lineup shock" in signal_text or "missing impact" in signal_text or "goalkeeper" in signal_text or "formation" in signal_text) and "unconfirmed" not in signal_text:
         edge_type = "lineup_not_priced_in"
     elif window.upper() == "HT" and ("luck" in signal_text or "overreaction" in signal_text or "comeback" in signal_text):
         edge_type = "ht_scoreline_overreaction"
