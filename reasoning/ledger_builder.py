@@ -29,7 +29,7 @@ class LedgerBuilder:
 
     def add(self, behavior: str, label: str, payload: dict | None = None, parents: list[str] | None = None, **extra) -> str:
         body = {"label": label, **(payload or {}), **extra}
-        rec = LedgerRecord(self.session_id, behavior, parent_ids=parents or [], payload=body)
+        rec = LedgerRecord(self.session_id, behavior, parent_ids=list(parents or []), payload=body)
         self.records.append(rec)
         return rec.record_id
 
@@ -145,6 +145,46 @@ class LedgerBuilder:
             prob_parents.append(claim_record)
         if central_record:
             prob_parents.append(central_record)
+        archetype_payload = {
+            "archetype": probability.get("archetype"),
+            "source_reliability": probability.get("source_reliability"),
+            "arbiter": probability.get("arbiter"),
+            "council_reconciliation": probability.get("council_reconciliation"),
+        }
+        ar = self.add(
+            "Thinking",
+            "archetype, source reliability, and arbiter policy",
+            {
+                "model_invocation": model_invocation(
+                    provider="deterministic",
+                    model_name="archetype_source_reliability_meta_arbiter_v1",
+                    internal_reasoning=summarize_reasoning(
+                        label="Context-aware reliability and arbiter policy",
+                        inputs={
+                            "archetype": probability.get("archetype"),
+                            "council_available": bool((probability.get("council_reconciliation") or {}).get("available")),
+                        },
+                        outputs=archetype_payload,
+                        rule="Classify match/market regime, adjust source reliability deterministically, and accept council movement only through bounded evidence gates.",
+                    ),
+                ),
+                "prompt": "classify_match_archetype + dynamic_source_weights + arbitrate_forecast",
+                "inputs": [{"input_record_id": pid, "input_payload": "see upstream feature record"} for pid in prob_parents],
+                "output_payload": archetype_payload,
+                "reasoning_trace": reasoning_trace(
+                    step_type="deterministic_reasoning",
+                    objective="Make source weighting and future council influence explicit.",
+                    inputs_used=["source probabilities", "market regime", "lineup status", "HT state", "council output if supplied"],
+                    method="Rule-based archetype classifier, reliability multipliers, and bounded meta-arbiter.",
+                    decision_rule="Deterministic forecast remains default; council movement requires validated evidence and cannot authorize orders.",
+                    output_summary=f"archetype={(probability.get('archetype') or {}).get('match_archetype')}; arbiter={((probability.get('arbiter') or {}).get('mode'))}",
+                    evidence_refs=prob_parents,
+                    risk_controls=(probability.get("council_reconciliation") or {}).get("risk_flags", []) or ["bounded council cap", "deterministic arbiter default"],
+                ),
+            },
+            parents=prob_parents,
+        )
+        prob_parents.append(ar)
         pr = self.add("Thinking", "deterministic probability blender and calibration", {"model_invocation": model_invocation(provider="deterministic", model_name="probability_blender_calibration_v1", internal_reasoning=summarize_reasoning(label="Probability blend and calibration", inputs={"weights": probability.get("weights"), "source_contribution": probability.get("source_contribution")}, outputs={"probabilities": probability.get("probabilities"), "confidence": probability.get("confidence"), "uncertainty": probability.get("uncertainty"), "risk_flags": probability.get("risk_flags")}, rule="Blend only validated sources, redistribute missing weights, apply calibration and draw floor, then expose source contribution.")), "prompt": "deterministic_blend(sportmonks, bookmaker, polymarket, supabase, lineup, ht, draw_model, structured_claims)", "inputs": [{"input_record_id": pid, "input_payload": "see upstream record"} for pid in prob_parents], "output_payload": probability or {}, "reasoning_trace": reasoning_trace(step_type="deterministic_reasoning", objective="Produce calibrated 3-way probabilities.", inputs_used=["Sportmonks", "bookmaker", "Polymarket", "Supabase", "lineup", "HT", "draw_model", "structured_claims"], method="Weighted deterministic blender with calibration, shrinkage, and contribution accounting.", assumptions=["Source weights are redistributed when missing.", "Weak LLM claims are capped before blending."], uncertainties=probability.get("missing_sources", []), decision_rule="Final forecast must be valid normalized probabilities; no LLM final forecaster.", output_summary=f"final_probs={probability.get('probabilities')}; confidence={probability.get('confidence')}; uncertainty={probability.get('uncertainty')}", evidence_refs=prob_parents, risk_controls=probability.get("risk_flags", []))}, parents=prob_parents)
         co = self.add("Thinking", "consensus triangle", {"model_invocation": model_invocation(provider="deterministic", model_name="consensus_triangle_v1", internal_reasoning=summarize_reasoning(label="Consensus comparison", inputs={"model": probability.get("probabilities"), "bookmaker": bookmaker, "market": (polymarket or {}).get("normalized_probs")}, outputs=consensus, rule="Compare top picks and agreement cases; do not override probability model.")), "prompt": "consensus_triangle(model_probs, bookmaker_probs, market_probs)", "inputs": [{"input_record_id": pr, "input_payload": "model probabilities"}, {"input_record_id": bk, "input_payload": "bookmaker"}, {"input_record_id": pm, "input_payload": "market"}], "output_payload": consensus or {}, "reasoning_trace": reasoning_trace(step_type="deterministic_reasoning", objective="Identify source agreement/disagreement.", method="Compare model, bookmaker, and market top picks.", decision_rule="Disagreement modifies confidence/risk; it does not authorize orders.", output_summary=f"consensus={(consensus or {}).get('case')}", evidence_refs=[pr, bk, pm], risk_controls=["confidence modifier", "bet size modifier"])}, parents=[pr, bk, pm])
         ed = self.add("Thinking", "edge engine", {"model_invocation": model_invocation(provider="deterministic", model_name="edge_engine_v1", internal_reasoning=summarize_reasoning(label="Edge evaluation", inputs={"model": probability.get("probabilities"), "market": (polymarket or {}).get("normalized_probs"), "confidence": probability.get("confidence")}, outputs=edge, rule="Edge must exceed tier thresholds and survive confidence/uncertainty checks.")), "prompt": "evaluate_edge(model_probs, market_probs, bookmaker_probs, confidence, uncertainty, consensus)", "inputs": [{"input_record_id": co, "input_payload": "consensus"}, {"input_record_id": pr, "input_payload": "model"}, {"input_record_id": pm, "input_payload": "market"}], "output_payload": edge or {}, "reasoning_trace": reasoning_trace(step_type="deterministic_reasoning", objective="Compute trade edge and tier.", method="Compare calibrated model probability with market probability per outcome.", decision_rule="Only medium/strong or high-confidence supported soft edges may proceed to risk audit.", output_summary=str((edge or {}).get("reason", "")), evidence_refs=[co, pr, pm], risk_controls=["edge threshold", "confidence threshold", "uncertainty threshold"])}, parents=[co, pr, pm])
@@ -170,7 +210,7 @@ class LedgerBuilder:
         else:
             execution_status = order_status or ("pending" if (order or {}).get("submitted") else "failed")
         od = self.add("Acting", "order or skip", {"action_type": order_action, "target_system": "arena", "action_summary": "Place order only if deterministic gates pass; otherwise record skip.", "parameters": order or {}, "dry_run": self.settings.dry_run, "execution_status": execution_status, "execution_id": (order or {}).get("order_id"), "reasoning_trace": reasoning_trace(step_type="action", objective="Record order attempt or explicit skip.", inputs_used=["edge", "risk", "bet_size", "limit_price"], method="Deterministic action gate plus arena order routing.", decision_rule="No order unless edge engine, risk audit, duplicate protection, confidence, and DRY_RUN checks all pass.", output_summary=f"action_type={order_action}; status={execution_status}; reason={order.get('reason')}", evidence_refs=[pred, ed, ra], risk_controls=risk.get("blocking_risk_flags", []))}, parents=[pred, ed, ra])
-        reflection_payload = {"output_payload": reflection or {}, "reasoning_trace": reasoning_trace(step_type="reflection", objective="Explain final decision and audit trace completeness.", inputs_used=["prediction", "order", "risk", "source_contribution"], method="Local self-audit of ledger structure and decision rationale.", decision_rule="Surface weaknesses without mutating aggressive config automatically.", output_summary=f"decision={reflection.get('decision')}; data_complete={reflection.get('data_complete')}", evidence_refs=[pred, od], risk_controls=["post-run review", "trace quality scoring"])}
+        reflection_payload = {"output_payload": reflection or {}, "counterfactuals": reflection.get("counterfactuals") or [], "reasoning_trace": reasoning_trace(step_type="reflection", objective="Explain final decision and audit trace completeness.", inputs_used=["prediction", "order", "risk", "source_contribution", "counterfactuals"], method="Local self-audit of ledger structure, decision rationale, and flip conditions.", decision_rule="Surface weaknesses and flip thresholds without mutating aggressive config automatically.", output_summary=f"decision={reflection.get('decision')}; data_complete={reflection.get('data_complete')}", evidence_refs=[pred, od], risk_controls=["post-run review", "trace quality scoring"])}
         provisional = [r.to_wire() for r in self.records]
         reflection_payload["trace_quality"] = evaluate_trace(provisional)
         self.add("Reflecting", "run reflection and trace-quality audit", reflection_payload, parents=[pred, od])

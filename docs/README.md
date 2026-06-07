@@ -28,9 +28,11 @@ The current agent:
 - discovers fixtures from Sportmonks or synthetic fixtures
 - fetches market, bookmaker, prior, lineup, and optional halftime data
 - blends probabilities with deterministic models
+- classifies match/market archetypes and adjusts source reliability
+- accepts future web/LLM council output through a bounded meta-arbiter contract
 - detects trading edges versus Polymarket
 - applies hard risk gates before any order is allowed
-- writes a reasoning-ledger DAG and local review artifacts for each run
+- writes a reasoning-ledger DAG, counterfactual flip conditions, and local review artifacts for each run
 - optionally uses Anthropic for bounded claim extraction, signal analysis, and critique
 
 ## Doc map

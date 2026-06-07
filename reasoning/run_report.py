@@ -7,6 +7,9 @@ def print_run_report(report: dict) -> str:
     lines = [
         f"Fixture: {report.get('fixture_code')}",
         f"Window: {report.get('window')}",
+        f"Archetype: {((report.get('archetype') or {}).get('match_archetype'))}",
+        f"Market regime: {((report.get('archetype') or {}).get('market_regime'))}",
+        f"Arbiter: {((report.get('arbiter') or {}).get('mode'))}",
         f"Final: {fmt_probs(report.get('final_probs'))}",
         f"Market: {fmt_probs(report.get('market_probs'))}",
         f"Bookmaker: {fmt_probs(report.get('bookmaker_probs'))}",

@@ -53,6 +53,8 @@ This path is constrained to feature extraction, not final forecasting.
 
 The probability stack is deterministic by default:
 
+- `models.archetype.classify_match_archetype()`
+- `models.source_reliability.dynamic_source_weights()`
 - `models.probability.pre_match_model()`
 - `models.halftime.evaluate_halftime()`
 - `models.probability.halftime_model()`
@@ -72,10 +74,17 @@ Supporting model modules include:
 The overall behavior is:
 
 - blend available sources
+- classify the match/market regime
+- adjust source weights by archetype, data completeness, and stale-market evidence
 - calibrate and shrink toward market when appropriate
 - score supporting and conflicting signals
 - estimate confidence and uncertainty
 - classify the edge versus market pricing
+
+The dynamic reliability layer is conservative. It starts from the default
+weights and applies transparent multipliers for regimes such as
+`market_against_model_bookmaker`, `model_against_market_bookmaker`,
+`market_stale`, `ht_low_xg_level`, and `ht_scoreline_luck`.
 
 ### 5. Optional LLM analyst
 
@@ -97,6 +106,22 @@ If `decision_mode=llm_central`:
 - if the LLM result is missing or invalid, the run falls back to the deterministic probabilities for artifact continuity, but it adds blocking flags so orders remain disallowed
 
 This mode is designed for experimentation where the LLM is the main forecaster rather than a bounded sidecar.
+
+### 5b. Council-ready arbiter
+
+The branch is now prepared to consume an external web-search / LLM-council
+payload without making that council the unchecked final authority.
+
+The contract is:
+
+- `models.council_reconciliation.reconcile_council_output()` validates council probabilities, evidence, recommendation, and risk posture
+- council probability movement is capped by evidence quality
+- weak or uncited council output can add risk flags but does not move the forecast
+- `models.meta_arbiter.arbitrate_forecast()` keeps the deterministic forecast by default and only accepts bounded council movement
+- deterministic edge, sanity, dry-run, duplicate, and order gates remain authoritative
+
+This lets the main-branch council become an adversarial analyst and evidence
+synthesizer while this branch remains the reliable execution spine.
 
 ### 6. Risk and order gating
 
@@ -129,6 +154,13 @@ The standard trace includes:
 - `Thinking`
 - `Acting`
 - `Reflecting`
+
+The trace also records:
+
+- match archetype and market regime
+- dynamic source-reliability reasons
+- council reconciliation / arbiter mode when supplied
+- counterfactual flip conditions explaining what would change a skip/bet
 
 The ledger is always saved locally first. In dry-run mode it remains local-only.
 
@@ -163,6 +195,10 @@ The ledger is always saved locally first. In dry-run mode it remains local-only.
 
 - `models/probability.py`
 - `models/probability_blender.py`
+- `models/archetype.py`
+- `models/source_reliability.py`
+- `models/council_reconciliation.py`
+- `models/meta_arbiter.py`
 - `models/calibration.py`
 - `models/edge_engine.py`
 - `models/consensus.py`
@@ -182,6 +218,7 @@ The ledger is always saved locally first. In dry-run mode it remains local-only.
 
 - `reasoning/ledger_builder.py`
 - `reasoning/review_writer.py`
+- `reasoning/counterfactuals.py`
 - `reasoning/anthropic_review.py`
 - `reasoning/claim_extraction.py`
 - `reasoning/central_llm.py`

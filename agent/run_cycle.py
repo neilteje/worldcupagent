@@ -7,22 +7,28 @@ from data import polymarket, sportmonks
 from data.lineup_monitor import extract_lineups
 from data.market_memory import append_price_history, previous_normalized_probs
 from data.supabase_data import get_live_checkpoint, get_priors
+from models.archetype import classify_match_archetype
 from models.consensus import consensus_triangle
+from models.council_reconciliation import reconcile_council_output
 from models.edge_engine import evaluate_edge
 from models.halftime import evaluate_halftime
 from models.lineup_delta import evaluate_lineup_delta
 from models.llm_central import normalize_central_prediction
 from models.llm_decision import merge_llm_analysis_into_risk
+from models.meta_arbiter import arbitrate_forecast
 from models.probability import pre_match_model, halftime_model
+from models.probability_blender import DEFAULT_HALFTIME_WEIGHTS, DEFAULT_PREMATCH_WEIGHTS
 from models.bet_sizing import bet_size, limit_price
 from models.sanity_checks import audit_decision
 from models.signal_scoring import score_signal, summarize_signals, signal_conflict_score
 from models.draw_model import apply_draw_model, draw_sanity_flags
 from models.market_stale import detect_market_stale
 from models.source_reconciliation import reconcile_sources
+from models.source_reliability import dynamic_source_weights
 from reasoning.anthropic_review import analyze_decision_signals_with_anthropic
 from reasoning.central_llm import central_match_forecast_with_anthropic
 from reasoning.claim_extraction import apply_official_overrides, claims_to_signals, extract_claims_with_anthropic, validate_claim_json
+from reasoning.counterfactuals import decision_counterfactuals
 from reasoning.ledger_builder import LedgerAdapter, LedgerBuilder
 from reasoning.run_report import print_run_report
 
@@ -192,7 +198,36 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     claim_extraction = _extract_structured_claims(settings, fixture, synthetic, lineup, use_llm_claims=use_llm_claims)
     claim_signals = claim_extraction.get("signals") or []
     completeness = _source_completeness(market=market, bookmaker=bookmaker, sm_pred=sm_pred, priors=priors, lineup=lineup, window=window, live=live)
-    prematch = pre_match_model(sm_pred, bookmaker, market.get("normalized_probs"), priors, lineup.get("probability_delta"), completeness["score"], structured_signals=claim_signals)
+    previous_market = synthetic.get("previous_market") or previous_normalized_probs(settings.storage_dir, fixture_code, window)
+    stale = detect_market_stale(market.get("normalized_probs"), previous_market, bookmaker, synthetic.get("signal_delta") or lineup.get("probability_delta"))
+    initial_archetype = classify_match_archetype(
+        window=window,
+        sportmonks_probs=sm_pred,
+        bookmaker_probs=bookmaker,
+        market_probs=market.get("normalized_probs"),
+        lineup=lineup,
+        live=live,
+        market_stale=stale,
+        data_completeness=completeness,
+    )
+    prematch_reliability = dynamic_source_weights(
+        DEFAULT_PREMATCH_WEIGHTS,
+        archetype=initial_archetype,
+        data_completeness=completeness,
+        market_stale=stale,
+    )
+    prematch = pre_match_model(
+        sm_pred,
+        bookmaker,
+        market.get("normalized_probs"),
+        priors,
+        lineup.get("probability_delta"),
+        completeness["score"],
+        structured_signals=claim_signals,
+        weights=prematch_reliability["weights"],
+    )
+    prematch["archetype"] = initial_archetype
+    prematch["source_reliability"] = prematch_reliability
     draw_inputs = {
         "total_projected_xg": synthetic.get("projected_xg"),
         "strength_gap": abs((prematch["probabilities"].get("home", 0) - prematch["probabilities"].get("away", 0))),
@@ -205,10 +240,48 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
     model_out = prematch
     if window == "HT":
         ht_out = evaluate_halftime(prematch["probabilities"], market.get("normalized_probs"), live_checkpoint=live or {})
-        model_out = halftime_model(prematch["probabilities"], ht_out, market.get("normalized_probs"), bookmaker, structured_signals=claim_signals)
+        ht_archetype = classify_match_archetype(
+            window=window,
+            model_probs=prematch["probabilities"],
+            sportmonks_probs=sm_pred,
+            bookmaker_probs=bookmaker,
+            market_probs=market.get("normalized_probs"),
+            lineup=lineup,
+            halftime=ht_out,
+            live=live,
+            market_stale=stale,
+            data_completeness=completeness,
+        )
+        ht_reliability = dynamic_source_weights(
+            DEFAULT_HALFTIME_WEIGHTS,
+            archetype=ht_archetype,
+            data_completeness=completeness,
+            market_stale=stale,
+        )
+        model_out = halftime_model(
+            prematch["probabilities"],
+            ht_out,
+            market.get("normalized_probs"),
+            bookmaker,
+            structured_signals=claim_signals,
+            weights=ht_reliability["weights"],
+        )
+        model_out["archetype"] = ht_archetype
+        model_out["source_reliability"] = ht_reliability
         draw_ht = apply_draw_model(model_out["probabilities"], market_draw=(market.get("normalized_probs") or {}).get("draw"), bookmaker_draw=(bookmaker or {}).get("draw"), ht_score=(int((live or {}).get("home_goals", 0)), int((live or {}).get("away_goals", 0))), ht_total_xg=float((live or {}).get("home_xg", 0) or 0) + float((live or {}).get("away_xg", 0) or 0), red_cards=(int((live or {}).get("home_red", 0) or 0), int((live or {}).get("away_red", 0) or 0)))
         model_out["probabilities"] = draw_ht["probabilities"]
         draw_out = draw_ht
+    else:
+        model_out["archetype"] = classify_match_archetype(
+            window=window,
+            model_probs=model_out["probabilities"],
+            sportmonks_probs=sm_pred,
+            bookmaker_probs=bookmaker,
+            market_probs=market.get("normalized_probs"),
+            lineup=lineup,
+            market_stale=stale,
+            data_completeness=completeness,
+        )
 
     deterministic_reference = {
         "probabilities": dict(model_out["probabilities"]),
@@ -263,6 +336,24 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
             "decision_mode": decision_mode,
         }
 
+    council_output = synthetic.get("council") or fixture.get("council") or fixture.get("council_output")
+    arbiter_reference = {
+        "probabilities": dict(model_out["probabilities"]),
+        "confidence": float(model_out["confidence"]),
+        "uncertainty": float(model_out["uncertainty"]),
+        "risk_flags": list(model_out.get("risk_flags", [])),
+    }
+    council_reconciliation = reconcile_council_output(
+        council_output,
+        deterministic_reference=arbiter_reference,
+        max_delta=settings.llm_signal_delta_cap * 2.25,
+    )
+    model_out = arbitrate_forecast(
+        model_out,
+        council_reconciliation=council_reconciliation,
+        deterministic_reference=deterministic_reference,
+    )
+
     cons = consensus_triangle(model_out["probabilities"], bookmaker, market.get("normalized_probs"))
     source_reconciliation = reconcile_sources(model_out["probabilities"], sm_pred, bookmaker, market.get("normalized_probs"))
     signals = list(claim_signals) + [
@@ -286,8 +377,6 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
             [{"name": "llm_central_contradiction", "reason": text} for text in model_out["llm_central"].get("contradicting_signals", [])[:2]]
         )
 
-    previous_market = synthetic.get("previous_market") or previous_normalized_probs(settings.storage_dir, fixture_code, window)
-    stale = detect_market_stale(market.get("normalized_probs"), previous_market, bookmaker, synthetic.get("signal_delta") or lineup.get("probability_delta"))
     signal_reasons = [s.get("reason", "") for s in top_signals]
     if stale.get("is_stale"):
         signal_reasons.append(stale.get("reason", ""))
@@ -331,6 +420,14 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
         }
         llm_analysis = analyze_decision_signals_with_anthropic(settings, llm_context, storage_dir=settings.storage_dir)
         risk = merge_llm_analysis_into_risk(risk, llm_analysis)
+    counterfactuals = decision_counterfactuals(
+        model_probs=model_out["probabilities"],
+        market_probs=market.get("normalized_probs"),
+        edge=edge,
+        risk=risk,
+        confidence=confidence,
+        uncertainty=uncertainty,
+    )
     usd = bet_size(edge["edge_tier"], confidence, settings.max_order_usd, cons["bet_size_modifier"], allow_soft=False)
     best = edge["best_outcome"] or "home"
     raw_mid = (market.get("raw_midpoints") or {}).get(best) or (market.get("normalized_probs") or {}).get(best) or .33
@@ -353,10 +450,10 @@ def run_cycle(fixture: dict | None = None, window: str = "PRE_MATCH", settings: 
         "tx_hash": order_result.get("tx_hash"),
         "clob_order_id": order_result.get("clob_order_id"),
     }
-    records = ledger.build_standard_trace(kickoff_time=fixture.get("starting_at") or fixture.get("kickoff_utc"), lock_time=fixture.get("pre_match_lock_at") or fixture.get("ht_lock_at"), sportmonks={"fixture_id": fixture_id, "detail_keys": list(detail.keys()) if isinstance(detail, dict) else [], "prediction": sm_pred}, supabase={"priors": priors, "completeness": completeness}, polymarket={**market, "previous_market": previous_market, "stale": stale}, bookmaker=bookmaker, lineup=lineup, halftime=ht_out, probability={**model_out, "draw_model": draw_out, "source_reconciliation": source_reconciliation, "claim_extraction": claim_extraction}, consensus=cons, edge=edge, risk=risk, prediction=prediction_payload, order=ledger_order_payload, reflection={"data_complete": completeness["score"], "decision": "order" if should_order else "skip", "top_signals": top_signals, "source_reconciliation": source_reconciliation, "llm_claims": claim_extraction, "llm_analysis": llm_analysis})
+    records = ledger.build_standard_trace(kickoff_time=fixture.get("starting_at") or fixture.get("kickoff_utc"), lock_time=fixture.get("pre_match_lock_at") or fixture.get("ht_lock_at"), sportmonks={"fixture_id": fixture_id, "detail_keys": list(detail.keys()) if isinstance(detail, dict) else [], "prediction": sm_pred}, supabase={"priors": priors, "completeness": completeness}, polymarket={**market, "previous_market": previous_market, "stale": stale}, bookmaker=bookmaker, lineup=lineup, halftime=ht_out, probability={**model_out, "draw_model": draw_out, "source_reconciliation": source_reconciliation, "claim_extraction": claim_extraction, "council_reconciliation": council_reconciliation}, consensus=cons, edge=edge, risk=risk, prediction=prediction_payload, order=ledger_order_payload, reflection={"data_complete": completeness["score"], "decision": "order" if should_order else "skip", "top_signals": top_signals, "source_reconciliation": source_reconciliation, "llm_claims": claim_extraction, "llm_analysis": llm_analysis, "counterfactuals": counterfactuals})
     trace_quality = ledger.trace_quality()
     ledger_result = LedgerAdapter(settings).submit(ledger.session_id, records)
-    decision = {"session_id": ledger.session_id, "fixture_code": fixture_code, "window": window, "teams": fixture.get("name"), "final_probs": model_out["probabilities"], "market_probs": market.get("normalized_probs"), "bookmaker_probs": bookmaker, "sportmonks_probs": sm_pred, "halftime": ht_out, "lineup": lineup, "data_completeness": completeness, "market_stale": stale, "source_reconciliation": source_reconciliation, "source_contribution": model_out.get("source_contribution"), "deterministic_weights": model_out.get("weights"), "probability_steps": model_out.get("steps"), "llm_claims": claim_extraction, "consensus_case": cons["case"], "best_outcome": best, "best_edge": edge["best_edge"], "edge_tier": edge["edge_tier"], "edge_type": edge["edge_type"], "edge_reason": edge["reason"], "confidence": confidence, "uncertainty": uncertainty, "top_signals": top_signals, "llm_analysis": llm_analysis, "action": "BET" if should_order else "SKIP", "risk_flags": risk["risk_flags"], "blocking_risk_flags": risk["blocking_risk_flags"], "prediction_submitted": True, "order_submitted": bool(order_result.get("submitted")), "dry_run": settings.dry_run, "ledger_submitted": ledger_result.get("submitted", False), "ledger_records": len(records), "ledger_dag_valid": ledger.validate_dag(), "trace_quality": trace_quality, "order": order_result}
+    decision = {"session_id": ledger.session_id, "fixture_code": fixture_code, "window": window, "teams": fixture.get("name"), "final_probs": model_out["probabilities"], "market_probs": market.get("normalized_probs"), "bookmaker_probs": bookmaker, "sportmonks_probs": sm_pred, "halftime": ht_out, "lineup": lineup, "data_completeness": completeness, "archetype": model_out.get("archetype"), "source_reliability": model_out.get("source_reliability"), "market_stale": stale, "source_reconciliation": source_reconciliation, "source_contribution": model_out.get("source_contribution"), "deterministic_weights": model_out.get("weights"), "probability_steps": model_out.get("steps"), "arbiter": model_out.get("arbiter"), "council_reconciliation": council_reconciliation, "counterfactuals": counterfactuals, "llm_claims": claim_extraction, "consensus_case": cons["case"], "best_outcome": best, "best_edge": edge["best_edge"], "edge_tier": edge["edge_tier"], "edge_type": edge["edge_type"], "edge_reason": edge["reason"], "confidence": confidence, "uncertainty": uncertainty, "top_signals": top_signals, "llm_analysis": llm_analysis, "action": "BET" if should_order else "SKIP", "risk_flags": risk["risk_flags"], "blocking_risk_flags": risk["blocking_risk_flags"], "prediction_submitted": True, "order_submitted": bool(order_result.get("submitted")), "dry_run": settings.dry_run, "ledger_submitted": ledger_result.get("submitted", False), "ledger_records": len(records), "ledger_dag_valid": ledger.validate_dag(), "trace_quality": trace_quality, "order": order_result}
     decision["decision_mode"] = decision_mode
     decision["llm_central"] = llm_central
     out = settings.storage_dir / "decisions" / f"{fixture_code}-{window}.json"
