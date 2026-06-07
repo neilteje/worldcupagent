@@ -1,7 +1,7 @@
 from __future__ import annotations
 from models.calibration import valid_probs
 
-BLOCKING = {"probabilities_invalid", "market_data_missing_for_order", "lineup_unconfirmed_and_edge_lineup_driven", "bookmaker_market_agree_against_model", "confidence_too_low", "uncertainty_too_high", "edge_below_threshold", "dry_run_enabled", "duplicate_order", "data_completeness_too_low", "edge_tier_confidence_mismatch", "source_divergence_high", "llm_analysis_missing", "llm_analysis_failed", "llm_recommends_skip", "llm_recommends_watch", "llm_veto", "llm_not_approving_order"}
+BLOCKING = {"probabilities_invalid", "market_data_missing_for_order", "lineup_unconfirmed_and_edge_lineup_driven", "bookmaker_market_agree_against_model", "confidence_too_low", "uncertainty_too_high", "edge_below_threshold", "dry_run_enabled", "duplicate_order", "data_completeness_too_low", "edge_tier_confidence_mismatch", "source_divergence_high", "market_reference_suspect", "llm_analysis_missing", "llm_analysis_failed", "llm_recommends_skip", "llm_recommends_watch", "llm_veto", "llm_not_approving_order"}
 
 def audit_decision(probabilities: dict[str, float], edge: dict, confidence: float, uncertainty: float, dry_run: bool, market_complete: bool, lineup_result: dict | None = None, consensus_case: str | None = None, *, duplicate_order: bool = False, data_completeness: float | None = None, extra_flags: list[str] | None = None) -> dict:
     flags: list[str] = list(extra_flags or [])

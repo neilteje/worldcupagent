@@ -19,3 +19,10 @@ def test_confidence_boundary_allows_exact_threshold():
 def test_negative_stale_sentence_does_not_create_stale_edge():
     r = evaluate_edge('f','PRE_MATCH',{'home':.50,'draw':.27,'away':.23},{'home':.45,'draw':.30,'away':.25},{'home':.49,'draw':.28,'away':.23},.8,.2,'all_agree', signals=['No stale-market evidence.'])
     assert r['edge_type'] != 'market_stale'
+
+
+def test_model_only_medium_edge_is_not_tradable():
+    r = evaluate_edge('f','PRE_MATCH',{'home':.43,'draw':.30,'away':.27},{'home':.35,'draw':.33,'away':.32},{'home':.35,'draw':.33,'away':.32},.8,.2,'all_agree')
+    assert r['edge_tier'] == 'medium'
+    assert r['edge_type'] == 'model_only_edge'
+    assert not r['should_bet']

@@ -229,7 +229,27 @@ The ledger is always saved locally first. In dry-run mode it remains local-only.
 ### Simulation and tests
 
 - `backtesting/runner.py`
+- `backtesting/worldcup_2022.py`
 - `tests/`
+
+## Historical Backtesting
+
+The main backtest entry point supports two datasets:
+
+- `synthetic`: legacy smoke-test data generated from a hidden random distribution.
+- `wc2022`: real 2022 World Cup data.
+
+The `wc2022` path uses:
+
+- StatsBomb open data for the 64 real 2022 World Cup matches, lineups, and event-derived xG/shots
+- CheckBestOdds archived 1X2 odds as the historical market/bookmaker reference, with an odds-quality gate so extreme best-price outliers can inform scoring but cannot authorize simulated trades
+- StatsBomb 2018 World Cup results as a no-leakage pre-tournament prior
+- sequential 2022 match state so form, xG, and lineup expectations only update after each already-played match
+
+This means the historical backtest is not a claim that the 2026 data stack existed
+in 2022. It is a replay harness for the deterministic model composition under
+historical conditions. Rows include a dataset audit so synthetic rows, missing
+odds, and real lineup coverage cannot be hidden by flattering summary numbers.
 
 ## Legacy path
 

@@ -23,7 +23,7 @@ For new development and normal usage, the package-based path should be considere
 Test result from this review:
 
 ```text
-85 passed in 42.17s
+94 passed in 33.77s
 ```
 
 ## What may confuse a new contributor

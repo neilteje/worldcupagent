@@ -67,7 +67,16 @@ Backtest:
 
 ```bash
 python -m agent.main --backtest --backtest-sample 50
+python -m agent.main --backtest --backtest-dataset wc2022 --backtest-sample 64
+python -m agent.main --compare-modes --backtest-dataset wc2022 --backtest-sample 10
 ```
+
+Backtest datasets:
+
+- `synthetic`: fast plumbing smoke test only. It should not be treated as model evidence.
+- `wc2022`: historical 2022 World Cup path using real StatsBomb matches/events/lineups and archived CheckBestOdds 1X2 odds. The first run downloads and caches data under `storage/backtests/cache/`. The runner scores all forecasts, but archived odds rows with impossible market math are flagged as suspect and blocked from trade simulation.
+
+The historical backtest avoids future-result leakage by updating form/xG/lineup state only after each match is scored. It reports model-vs-market Brier score, log loss, calibration error, bets, ROI, and a dataset audit showing how many rows used real odds and lineups.
 
 Optional Anthropic checks and augmentations:
 
@@ -126,4 +135,5 @@ Useful runtime smoke checks:
 python -m agent.main --once --dry-run
 python -m agent.main --once --dry-run --use-synthetic-fixtures --verbose
 python -m agent.main --backtest --backtest-sample 50
+python -m agent.main --backtest --backtest-dataset wc2022 --backtest-sample 64
 ```

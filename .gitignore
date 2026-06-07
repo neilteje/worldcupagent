@@ -9,6 +9,7 @@ ENV/
 jupyter/.ipynb_checkpoints/
 jupyter/worldcup-arena-sample-agent.ipynb
 storage/backtests/*.json
+storage/backtests/cache/
 storage/decisions/*.json
 storage/price_history/*.jsonl
 storage/runs/*.json

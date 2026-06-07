@@ -50,6 +50,9 @@ def evaluate_edge(fixture_code: str, window: str, final_model_probs: dict[str, f
     if uncertainty_score > 0.52: should_bet = False; reasons.append("Uncertainty above 0.52.")
     if tier == "soft" and not (consensus_case == "model_bookmaker_vs_polymarket" and confidence_score >= 0.68):
         reasons.append("Soft edge requires model/bookmaker support and confidence at least 0.68.")
+    if edge_type == "model_only_edge" and not (tier == "strong" and confidence_score >= 0.72 and best_outcome == model_pick):
+        should_bet = False
+        reasons.append("Model-only edges require strong tier, high confidence, and the model's top outcome.")
     if signal_text and all(w in signal_text for w in ["sentiment"]): should_bet = False; reasons.append("Sentiment-only edge is not tradable.")
     if against and edge_type not in {"lineup_not_priced_in", "ht_scoreline_overreaction"}:
         should_bet = False; reasons.append("Bookmaker and Polymarket agree against the model.")

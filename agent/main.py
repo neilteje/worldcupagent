@@ -26,6 +26,7 @@ def main() -> None:
     p.add_argument("--decision-mode", choices=["deterministic", "llm_central"], default=None, help="Select deterministic-first forecasting or an LLM-central forecast mode that synthesizes all features.")
     p.add_argument("--backtest", action="store_true")
     p.add_argument("--compare-modes", action="store_true", help="Run a deterministic vs llm_central comparison backtest on the same synthetic sample.")
+    p.add_argument("--backtest-dataset", choices=["synthetic", "wc2022"], default="synthetic", help="Backtest dataset: synthetic smoke data or real 2022 World Cup historical data.")
     p.add_argument("--backtest-sample", type=int, default=50)
     p.add_argument("--use-claude", action="store_true", help="Allow optional Claude critique in backtest, capped by BACKTEST_LLM_BUDGET_USD.")
     args = p.parse_args()
@@ -41,9 +42,9 @@ def main() -> None:
     exit_status = 0
     try:
         if args.backtest:
-            run_backtest(settings, sample_size=args.backtest_sample, use_claude=args.use_claude)
+            run_backtest(settings, sample_size=args.backtest_sample, use_claude=args.use_claude, dataset=args.backtest_dataset)
         elif args.compare_modes:
-            run_mode_comparison_backtest(settings, sample_size=args.backtest_sample, include_claude_report=True)
+            run_mode_comparison_backtest(settings, sample_size=args.backtest_sample, include_claude_report=True, dataset=args.backtest_dataset)
         elif args.daemon:
             decisions = run_daemon(settings, args.interval_seconds, args.fixture_code, args.window, use_synthetic_fixtures=args.use_synthetic_fixtures, verbose=args.verbose, max_iterations=args.max_iterations, use_llm_analyst=args.use_llm_analyst, use_llm_claims=args.use_llm_claims, decision_mode=settings.decision_mode)
         else:
