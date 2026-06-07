@@ -13,14 +13,23 @@ def blend_probabilities(sources: dict[str, dict[str, float] | None], weights: di
     return normalize_probs({k: sum(usable[n][k] * (weights.get(n, 1.0) / total_w) for n in usable) for k in OUTCOMES})
 
 
-def pre_match_model(sportmonks_probs=None, bookmaker_probs=None, market_probs=None, supabase_priors=None, lineup_delta=None, data_completeness: float = 1.0, structured_signals: list[dict] | None = None) -> dict:
+def pre_match_model(
+    sportmonks_probs=None,
+    bookmaker_probs=None,
+    market_probs=None,
+    supabase_priors=None,
+    lineup_delta=None,
+    data_completeness: float = 1.0,
+    structured_signals: list[dict] | None = None,
+    weights: dict[str, float] | None = None,
+) -> dict:
     signals = list(structured_signals or [])
     if lineup_delta:
         signals.append(score_signal("lineup_delta_probability", "lineup", "lineup", lineup_delta, source_quality=.9, freshness=.85, corroboration=.8, reason="Official lineup delta."))
     strength = 0.05 if data_completeness >= .7 else 0.12
     blended = deterministic_blend(
         {"bookmaker": bookmaker_probs, "sportmonks": sportmonks_probs, "polymarket": market_probs, "supabase": supabase_priors},
-        weights=DEFAULT_PREMATCH_WEIGHTS,
+        weights=weights or DEFAULT_PREMATCH_WEIGHTS,
         market_probs=market_probs,
         signals=signals,
         temperature=1.05,
@@ -33,10 +42,17 @@ def pre_match_model(sportmonks_probs=None, bookmaker_probs=None, market_probs=No
     }
 
 
-def halftime_model(pre_match_probs, halftime_output, market_probs=None, bookmaker_probs=None, structured_signals: list[dict] | None = None) -> dict:
+def halftime_model(
+    pre_match_probs,
+    halftime_output,
+    market_probs=None,
+    bookmaker_probs=None,
+    structured_signals: list[dict] | None = None,
+    weights: dict[str, float] | None = None,
+) -> dict:
     blended = deterministic_blend(
         {"halftime": halftime_output.get("ht_probs"), "polymarket": market_probs, "prematch": pre_match_probs, "bookmaker": bookmaker_probs},
-        weights=DEFAULT_HALFTIME_WEIGHTS,
+        weights=weights or DEFAULT_HALFTIME_WEIGHTS,
         market_probs=market_probs,
         signals=structured_signals or [],
         temperature=1.08,
