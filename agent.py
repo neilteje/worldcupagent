@@ -48,6 +48,7 @@ from reasoning.prompts import (
 )
 from ledger.client import LedgerSession
 from betting.kelly import should_bet, expected_value, kelly_usd
+from betting import decision as ev_decision
 
 console = Console()
 _H = {"x-api-key": config.ARENA_KEY, "Content-Type": "application/json"}
@@ -148,6 +149,33 @@ def _kalshi_mid_for(kalshi_ml: dict | None, outcome: str,
         return None
     key = _outcome_key(outcome, home_code, away_code)
     return kalshi_ml.get(key) if key else None
+
+
+def _print_decision_table(decision: ev_decision.GameDecision) -> None:
+    """Render the per-outcome EV / payout table so every game shows its math."""
+    t = Table(title="Per-outcome EV (de-vigged)")
+    t.add_column("Outcome", style="cyan")
+    t.add_column("Our prob")
+    t.add_column("Pay (raw)")
+    t.add_column("Fair")
+    t.add_column("Edge vs fair")
+    t.add_column("EV / $1")
+    t.add_column("Kelly $")
+    for e in decision.ranked:
+        mark = " ★" if (decision.best and e.slot == decision.best.slot
+                        and decision.should_trade) else ""
+        t.add_row(
+            f"{e.code}{mark}",
+            f"{e.our_prob:.0%}",
+            f"{e.raw_mid:.0%}" if e.raw_mid is not None else "—",
+            f"{e.fair_prob:.0%}" if e.fair_prob is not None else "—",
+            f"{e.edge_vs_fair*100:+.1f}pp",
+            f"{e.ev_per_dollar*100:+.1f}%",
+            f"${e.kelly_usd:.2f}" if e.kelly_usd else "—",
+        )
+    console.print(t)
+    ov = f"{decision.overround*100:+.1f}%" if decision.overround is not None else "n/a"
+    console.print(f"  [dim]market overround (vig): {ov}[/dim]  {decision.summary}")
 
 
 # ── Pre-match run ──────────────────────────────────────────────────────────
@@ -532,36 +560,62 @@ def run_prematch(fixture_id: int) -> dict | None:
         f"market {cr.market_alignment})"
     )
 
-    # ── (9) Deterministic gates + Kelly sizing ─────────────────────────────
-    console.print("[dim][7/7] Running deterministic trade gates…[/dim]")
-    pm_mid = _pm_mid_for(moneyline, pred_outcome, home_code, away_code)
-    kalshi_mid = _kalshi_mid_for(kalshi_ml, pred_outcome, home_code, away_code)
+    # ── (9) EV-ranked decision across ALL outcomes + deterministic gates ───
+    console.print("[dim][7/7] Ranking all outcomes by EV + running gates…[/dim]")
+
+    # The EV engine evaluates home/draw/away (not just the favorite), de-vigs the
+    # market, and picks the highest-EV tradable side. The gates then act as a risk
+    # overlay (scout veto / cross-market consensus / confidence) on THAT side.
+    decision = ev_decision.evaluate_game(
+        cr.probabilities, moneyline, home_code, away_code, wallet,
+    )
+    _print_decision_table(decision)
+
+    best = decision.best
+    trade_outcome = best.code if best else pred_outcome
+    pm_mid = best.raw_mid if best else None
+    trade_prob = best.our_prob if best else pred_prob
+    kalshi_mid = _kalshi_mid_for(kalshi_ml, trade_outcome, home_code, away_code)
+
     gate = gates.evaluate_gates(
-        outcome=pred_outcome,
-        model_prob=pred_prob,
+        outcome=trade_outcome,
+        model_prob=trade_prob,
         pm_mid=pm_mid,
         kalshi_mid=kalshi_mid,
         scout_flags=cr.scout_flags,
         confidence=cr.confidence,
         wallet_balance=wallet,
     )
+    # Trade only when BOTH the EV engine finds a +EV side and the gates allow it.
+    should_trade = bool(decision.should_trade and gate.should_trade)
 
     size_usdc = 0.0
     limit_price = 0.0
-    if gate.should_trade and pm_mid:
-        base_usd = kelly_usd(pred_prob, pm_mid, wallet)
-        size_usdc = round(min(base_usd * gate.bet_multiplier, config.MAX_BET_USD, wallet), 2)
+    if should_trade and pm_mid and best:
+        # Base size from the EV engine's half-Kelly, scaled by the gate multiplier.
+        size_usdc = round(min(best.kelly_usd * gate.bet_multiplier,
+                              config.MAX_BET_USD, wallet), 2)
         if size_usdc < 1.0:
-            gate.should_trade = False
+            should_trade = False
             gate.reasons.append(f"sized ${size_usdc:.2f} below $1 minimum")
             size_usdc = 0.0
         else:
             limit_price = min(round(pm_mid + 0.02, 4), 0.99)
 
     rec_gate = session.planning(
-        description="Deterministic trade gates + Kelly sizing",
+        description="EV-ranked all-outcome decision + deterministic gates + Kelly sizing",
         output_payload={
-            "should_trade": gate.should_trade,
+            "should_trade": should_trade,
+            "trade_outcome": trade_outcome,
+            "decision_summary": decision.summary,
+            "market_overround": decision.overround,
+            "ranked_outcomes": [
+                {"outcome": e.code, "our_prob": e.our_prob, "raw_mid": e.raw_mid,
+                 "fair_prob": e.fair_prob, "edge_vs_fair": e.edge_vs_fair,
+                 "ev_per_dollar": e.ev_per_dollar, "kelly_usd": e.kelly_usd,
+                 "tradable": e.tradable}
+                for e in decision.ranked
+            ],
             "edge": round(gate.edge, 4),
             "bet_multiplier": gate.bet_multiplier,
             "market_agreement": gate.market_agreement,
@@ -574,16 +628,17 @@ def run_prematch(fixture_id: int) -> dict | None:
         },
         upstream_ids=[rec_judge["record_id"], rec_kalshi["record_id"]],
     )
-    console.print(f"  Gates: should_trade={gate.should_trade}  "
-                  f"edge={gate.edge*100:+.1f}pp  ×{gate.bet_multiplier}  "
-                  f"size=${size_usdc:.2f}"
+    ev_str = f"  EV={best.ev_per_dollar*100:+.1f}%/$" if best else ""
+    console.print(f"  Decision: should_trade={should_trade}  "
+                  f"side={trade_outcome}{ev_str}")
+    console.print(f"  Gates: ×{gate.bet_multiplier}  size=${size_usdc:.2f}"
                   + (f"  [yellow](veto: {gate.veto_reason})[/yellow]"
                      if gate.veto_reason else ""))
 
     # ── (10) Order ────────────────────────────────────────────────────────
     order_response = None
-    if gate.should_trade and pm_slug and size_usdc >= 1.0 and limit_price > 0:
-        team_code = pred_outcome
+    if should_trade and pm_slug and size_usdc >= 1.0 and limit_price > 0:
+        team_code = trade_outcome
         order_payload = {
             "fixture_code":          str(fixture_id),
             "team_code":             team_code,
@@ -604,7 +659,7 @@ def run_prematch(fixture_id: int) -> dict | None:
         submitted_ok = isinstance(order_response, dict) and "order_id" in order_response
         session.acting_order(
             direction="long",
-            outcome=pred_outcome,
+            outcome=trade_outcome,
             size_usdc=size_usdc,
             limit_price=limit_price,
             order_payload=order_payload,
@@ -620,8 +675,10 @@ def run_prematch(fixture_id: int) -> dict | None:
             "fixture": fixture_name,
             "final_pick": pred_outcome,
             "final_probability": pred_prob,
+            "trade_side": trade_outcome if should_trade else None,
+            "decision_summary": decision.summary,
             "market_alignment": cr.market_alignment,
-            "traded": bool(gate.should_trade and size_usdc >= 1.0),
+            "traded": bool(should_trade and size_usdc >= 1.0),
             "size_usdc": size_usdc,
             "edge": round(gate.edge, 4),
             "devils_advocate_raised": (cr.devil.parsed or {}).get("strongest_risks")
@@ -660,11 +717,13 @@ def run_prematch(fixture_id: int) -> dict | None:
         for e in (ledger_resp.get("errors") or []):
             console.print(f"    [red]#{e.get('index')}: {e.get('code')}: {e.get('message')}[/red]")
 
-    traded = gate.should_trade and size_usdc >= 1.0
+    traded = should_trade and size_usdc >= 1.0
+    trade_str = (f"| Trade: ${size_usdc:.2f} on {trade_outcome}"
+                 if traded else "| No trade (prediction still scored)")
     console.print(Panel(
         f"[bold green]Pre-match complete.[/bold green]  "
         f"Predicted [bold]{pred_outcome}[/bold] @ {pred_prob:.1%}  "
-        f"{'| Trade: $' + format(size_usdc, '.2f') if traded else '| No trade'}",
+        f"{trade_str}",
         expand=False,
     ))
     return prediction

@@ -60,6 +60,12 @@ RESEARCH_TIMEOUT_SECONDS: int = 12
 # ── Betting parameters ─────────────────────────────────────────────────────
 MAX_KELLY_FRACTION: float = 0.20   # cap any single bet at 20% of wallet
 MIN_EDGE: float = 0.05             # only bet when |model_p - market_p| > 5%
+# Edge bar for the EV-ranked, all-outcomes decision engine (betting/decision.py).
+# Measured against the DE-VIGGED (fair) market price, so it's a cleaner read of
+# genuine disagreement than MIN_EDGE (which compares to the vig-inflated raw mid).
+# Lower than MIN_EDGE because de-vigging removes the overround that used to mask
+# real edges — tune up for fewer/stronger bets, down for more action.
+MIN_EDGE_VS_FAIR: float = 0.03
 MAX_BET_USD: float = 15.00         # hard USD cap per order
 DEFAULT_TIF_SECONDS: int = 30      # time-in-force for limit orders
 MIN_WALLET_USD: float = 2.00       # never trade below this balance

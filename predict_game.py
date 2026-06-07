@@ -47,6 +47,7 @@ from data import web_search, reddit_sentiment, kalshi
 from data import polymarket as pm
 from reasoning import council, gates
 from betting.kelly import kelly_usd
+from betting import decision as ev_decision
 
 console = Console()
 
@@ -187,40 +188,72 @@ def run(args: argparse.Namespace) -> None:
     if cr.council_summary:
         console.print(Panel(cr.council_summary, title="Why", expand=False))
 
-    # ── Hypothetical trade (only if we have a market) ──────────────────────
+    # ── EV-ranked decision across ALL outcomes (only if we have a market) ──
     if moneyline:
-        slot = _outcome_to_slot(cr.outcome, home_code, away_code)
-        pm_mid = _norm_mids(moneyline).get(slot) if slot else None
-        kalshi_mid = (kalshi_ml.get(slot) if slot else None)
-        gate = gates.evaluate_gates(
-            outcome=cr.outcome, model_prob=cr.probability,
-            pm_mid=pm_mid, kalshi_mid=kalshi_mid,
-            scout_flags=cr.scout_flags, confidence=cr.confidence,
-            wallet_balance=args.bankroll,
+        # Evaluate home/draw/away (not just the council's pick): de-vig the
+        # market, rank every outcome by EV, and pick the best tradable side.
+        decision = ev_decision.evaluate_game(
+            cr.probabilities, moneyline, home_code, away_code, args.bankroll,
         )
-        size = 0.0
-        if gate.should_trade and pm_mid:
-            size = round(min(kelly_usd(cr.probability, pm_mid, args.bankroll)
-                             * gate.bet_multiplier, config.MAX_BET_USD, args.bankroll), 2)
-            if size < 1.0:
-                gate.should_trade = False
-                size = 0.0
 
-        gt = Table(title="Hypothetical Trade (NOT submitted)", show_header=False)
+        et = Table(title="Per-outcome EV (de-vigged)")
+        et.add_column("Outcome", style="cyan")
+        et.add_column("Our prob"); et.add_column("Pay (raw)"); et.add_column("Fair")
+        et.add_column("Edge vs fair"); et.add_column("EV / $1"); et.add_column("Kelly $")
+        for e in decision.ranked:
+            mark = " ★" if (decision.best and e.slot == decision.best.slot
+                            and decision.should_trade) else ""
+            et.add_row(
+                f"{e.code}{mark}", f"{e.our_prob:.0%}",
+                f"{e.raw_mid:.0%}" if e.raw_mid is not None else "—",
+                f"{e.fair_prob:.0%}" if e.fair_prob is not None else "—",
+                f"{e.edge_vs_fair*100:+.1f}pp", f"{e.ev_per_dollar*100:+.1f}%",
+                f"${e.kelly_usd:.2f}" if e.kelly_usd else "—",
+            )
+        console.print(et)
+        ov = (f"{decision.overround*100:+.1f}%"
+              if decision.overround is not None else "n/a")
+        console.print(f"  [dim]market overround (vig): {ov}[/dim]")
+
+        # Risk overlay (scout veto / consensus / confidence) on the chosen side.
+        best = decision.best
+        size = 0.0
+        gate = None
+        if best:
+            kalshi_mid = kalshi_ml.get(best.slot)
+            gate = gates.evaluate_gates(
+                outcome=best.code, model_prob=best.our_prob,
+                pm_mid=best.raw_mid, kalshi_mid=kalshi_mid,
+                scout_flags=cr.scout_flags, confidence=cr.confidence,
+                wallet_balance=args.bankroll,
+            )
+            should_trade = decision.should_trade and gate.should_trade
+            if should_trade and best.raw_mid:
+                size = round(min(best.kelly_usd * gate.bet_multiplier,
+                                 config.MAX_BET_USD, args.bankroll), 2)
+                if size < 1.0:
+                    should_trade = False
+                    size = 0.0
+        else:
+            should_trade = False
+
+        gt = Table(title="Hypothetical Decision (NOT submitted)", show_header=False)
         gt.add_column("k", style="cyan"); gt.add_column("v")
-        gt.add_row("Our prob", f"{cr.probability:.1%}")
-        gt.add_row("Market mid", f"{pm_mid:.1%}" if pm_mid is not None else "—")
-        gt.add_row("Edge", f"{gate.edge*100:+.1f}pp")
-        gt.add_row("Market agreement", gate.market_agreement)
-        gt.add_row("Multiplier", f"×{gate.bet_multiplier}")
-        gt.add_row("Decision", "[green]TRADE[/green]" if gate.should_trade
-                   else f"[yellow]SKIP[/yellow] ({gate.veto_reason or 'no edge'})")
-        if gate.should_trade:
-            gt.add_row("Suggested size", f"${size:.2f} on {cr.outcome} "
-                       f"(limit ≤ {min(round(pm_mid + 0.02, 4), 0.99)})")
+        gt.add_row("Best action", decision.summary)
+        if best and should_trade:
+            limit = min(round(best.raw_mid + 0.02, 4), 0.99)
+            gt.add_row("Decision", "[green]TRADE[/green]")
+            gt.add_row("Side", best.code)
+            gt.add_row("Suggested size", f"${size:.2f} (limit ≤ {limit})")
+            gt.add_row("Multiplier", f"×{gate.bet_multiplier}")
+        else:
+            reason = (gate.veto_reason if gate and gate.veto_reason
+                      else "no +EV side clears the bar")
+            gt.add_row("Decision", f"[yellow]HOLD[/yellow] ({reason})")
         console.print(gt)
-        for r in gate.reasons:
-            console.print(f"    [dim]· {r}[/dim]")
+        if gate:
+            for r in gate.reasons:
+                console.print(f"    [dim]· {r}[/dim]")
 
     if args.json_out:
         payload = {
