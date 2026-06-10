@@ -1,0 +1,50 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1243,
+    "output_tokens_details": {
+      "thinking_tokens": 979
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.525,
+      "draw": 0.269,
+      "away": 0.206
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "four_source_convergence_on_home_favorite",
+      "bookmaker_polymarket_aligned",
+      "zero_signal_conflict",
+      "perfect_data_completeness"
+    ],
+    "contradicting_signals": [],
+    "additional_risk_flags": [
+      "secondary_sources_missing",
+      "synthetic_lineups_backtest",
+      "moderate_uncertainty"
+    ],
+    "rationale": "Strong alignment across bookmaker (53.2%), Polymarket (58.2%), Sportmonks (50.6%), Supabase (50.9%) all favoring home. Deterministic model synthesizes to 52.5% home / 26.9% draw / 20.6% away. Zero signal conflict, perfect data completeness, confirmed lineups. Missing secondary sources (draw_model, llm_claims) insufficient to veto when core sources converge. Moderate confidence (0.67) justified by depth of alignment.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this soccer prediction market data systematically:\n\n**Key Sources:**\n1. Bookmaker: Home 53.2%, Draw 28.3%, Away 18.5%\n2. Polymarket: Home 58.2%, Draw 25.3%, Away 16.6%\n3. Sportmonks: Home 50.6%, Draw 26.2%, Away 23.3%\n4. Supabase: Home 50.9%, Draw 25.6%, Away 23.5%\n\n**Deterministic Model Output:**\n- Home: 52.5%, Draw: 26.9%, Away: 20.6%\n- Confidence: 0.67\n- Missing sources: lineup, draw_model, llm_claims\n- But lineup data shows both confirmed as true with \"Synthetic confirmed lineups for backtest fairness\"\n\n**Data Completeness:** Score 1.0 (no missing data reported)\n\n**Signal Analysis:**\n- Signal conflict: 0.0 (perfect alignment)\n- Uncertainty: 0.5 (moderate)\n- No halftime data (PRE_MATCH)\n- No claim signals\n- No contradicting signals listed\n- Risk flags: \"probability_sources_missing\" - but lineups are confirmed\n\n**Source Reconciliation:**\nAll four major sources converge on:\n- Home favorite (50-58% range)\n- Draw significant (~25-28%)\n- Away underdog (16-23% range)\n\nThe bookmaker (53.2%) and Polymarket (58.2%) are more bullish on home.\nSportmonks (50.6%) and Supabase (50.9%) are slightly less so.\nModel blends to: 52.5% home.\nThe moderate-high confidence of 0.67 reflects solid consensus across all sources with no contradictions detected. While draw_model and llm_claims are absent, the bookmaker and Polymarket alignment is strong enough to support the prediction, and lineup confirmation removes a key uncertainty. The zero signal conflict combined with perfect data completeness suggests this assessment is reliable.\n\nAll four primary sources converge on the same outcome direction\u2014home favorite with a viable draw and weak away odds. The bookmaker (53%) and Polymarket (58%) estimates are closely aligned, reinforcing the home lean. I should apply the deterministic model probabilities of 52.5% home, 26.9% draw, and 20.6% away, then approve this bet given the strong convergence and absence of contradictory signals. The missing secondary features don't override the core alignment across bookmakers, market pricing, and confirmed lineups.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.525,\"draw\":0.269,\"away\":0.206},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"four_source_convergence_on_home_favorite\",\"bookmaker_polymarket_aligned\",\"zero_signal_conflict\",\"perfect_data_completeness\"],\"contradicting_signals\":[],\"additional_risk_flags\":[\"secondary_sources_missing\",\"synthetic_lineups_backtest\",\"moderate_uncertainty\"],\"rationale\":\"Strong alignment across bookmaker (53.2%), Polymarket (58.2%), Sportmonks (50.6%), Supabase (50.9%) all favoring home. Deterministic model synthesizes to 52.5% home / 26.9% draw / 20.6% away. Zero signal conflict, perfect data completeness, confirmed lineups. Missing secondary sources (draw_model, llm_claims) insufficient to veto when core sources converge. Moderate confidence (0.67) justified by depth of alignment.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

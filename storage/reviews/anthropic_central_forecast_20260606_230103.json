@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2348,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1157,
+    "output_tokens_details": {
+      "thinking_tokens": 845
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.3043,
+      "draw": 0.3542,
+      "away": 0.3415
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All primary sources present and harmonized",
+      "Data completeness perfect with confirmed lineups",
+      "No signal conflicts or market staleness detected",
+      "Deterministic blend weights bookmaker 33%, Sportmonks 28%, Polymarket 22%, Supabase 17%"
+    ],
+    "contradicting_signals": [
+      "Sportmonks draw floor (0.415) vs bookmaker (0.305) signals split view on stalemate likelihood",
+      "Polymarket away (0.399) significantly higher than Sportmonks (0.304)",
+      "Home probability lowest despite bookmaker preference (0.366)",
+      "Tight entropy across outcomes leaves no dominant play"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "draw_model_unavailable",
+      "high_market_entropy",
+      "moderate_confidence_only"
+    ],
+    "rationale": "Draw and Away are statistically tied with Home trailing; balanced 3-way market with 67% model confidence and high 50% uncertainty. Primary sources aligned but missing secondary signals (draw_model, llm_claims) prevents conviction bet. Suggest WATCH for sharper edge.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features to create a final 3-way probability forecast.\n\nKey data points:\n1. **Bookmaker probs**: Home 0.3657, Draw 0.3051, Away 0.3291\n2. **Polymarket (market_probs)**: Home 0.2446, Draw 0.3567, Away 0.3987\n3. **Sportmonks probs**: Home 0.2815, Draw 0.4150, Away 0.3036\n4. **Supabase priors**: Home 0.3103, Draw 0.3535, Away 0.3362\n5. **Deterministic model**: Home 0.3043, Draw 0.3542, Away 0.3415\n\nAnalysis:\n- Data completeness score is perfect (1.0)\n- No missing data fields\n- Lineups are confirmed (synthetic but confirmed for fairness)\n- No halftime data (PRE_MATCH window)\n- Model confidence: 0.67\n- No signal conflict (0.0)\n- No market staleness issues\n- Missing sources: lineup (but confirmed), draw_model, llm_claims\n\n**Source divergence:**\n- Bookmaker and Supabase are aligned: favoring Home slightly\n- Polymarket shows highest Away probability (0.3987)\n- Sportmonks shows highest Draw probability (0.4150)\n- Deterministic model blends these: Draw 0.3542, Away 0.3415, Home 0.3043\n\n**Direction:**\nThe deterministic model is the primary synthesized view, weighted blend of all sources:\n- Bookmaker: 33.3%\n- Polymarket: 22.2%\n- Sportmonks: 27.8%\n- Supabase: 16.7%\n\nThe final probabilities from deterministic_model are:\n- Home: 0.3043\n- Draw: 0.3542\n- Away: 0.3415\n\nThese represent a tight 3-way market where Draw is slightly favored, Away is close second, Home is slightly lagging. Model confidence sits at 0.67 with high uncertainty (0.5), reflecting the compressed probability distribution across all three outcomes. Missing draw_model and llm_claims sources add to this uncertainty.\n\nThe risk profile shows no contradictions or stale data\u2014lineups are confirmed and data completeness is perfect. However, the absence of secondary modeling sources warrants a cautious stance. All primary sources (bookmaker, polymarket, sportmonks, supabase) are accounted for, but the tight probabilities combined with moderate confidence suggest this is a WATCH situation rather than a clear BET opportunity. The balanced outcomes and missing secondary intel don't justify aggressive positioning here.\n\nNotable divergences exist across sources: the draw probability swings from 0.415 in Sportmonks down to 0.305 at the bookmaker, while the away team shows 0.399 in Polymarket but only 0.304 in Sportmonks. These gaps reflect genuine market uncertainty rather than data errors, reinforcing the case for monitoring rather than committing.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.3043,\"draw\":0.3542,\"away\":0.3415},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All primary sources present and harmonized\",\"Data completeness perfect with confirmed lineups\",\"No signal conflicts or market staleness detected\",\"Deterministic blend weights bookmaker 33%, Sportmonks 28%, Polymarket 22%, Supabase 17%\"],\"contradicting_signals\":[\"Sportmonks draw floor (0.415) vs bookmaker (0.305) signals split view on stalemate likelihood\",\"Polymarket away (0.399) significantly higher than Sportmonks (0.304)\",\"Home probability lowest despite bookmaker preference (0.366)\",\"Tight entropy across outcomes leaves no dominant play\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"draw_model_unavailable\",\"high_market_entropy\",\"moderate_confidence_only\"],\"rationale\":\"Draw and Away are statistically tied with Home trailing; balanced 3-way market with 67% model confidence and high 50% uncertainty. Primary sources aligned but missing secondary signals (draw_model, llm_claims) prevents conviction bet. Suggest WATCH for sharper edge.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

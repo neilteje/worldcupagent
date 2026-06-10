@@ -1,0 +1,50 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1056,
+    "output_tokens_details": {
+      "thinking_tokens": 800
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.369,
+      "draw": 0.275,
+      "away": 0.356
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Perfect data_completeness (1.0)",
+      "Zero signal_conflict across sources",
+      "Lineups confirmed",
+      "Model consensus across bookmaker/market/sportmonks/supabase"
+    ],
+    "contradicting_signals": [],
+    "additional_risk_flags": [
+      "moderate_confidence_0.67",
+      "high_uncertainty_0.50",
+      "missing_draw_model_secondary_source"
+    ],
+    "rationale": "All primary sources (bookmaker, polymarket, sportmonks, supabase) converge tightly around home-slight-favorite (36-40%), draw 23-30%, away 33-38%. Deterministic prematch blend yields home 36.9%, draw 27.5%, away 35.6%. Lineups confirmed. No contradictions. Moderate confidence and high uncertainty warrant watching rather than aggressive action; acceptable for BET if odds present value vs consensus.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features into a final 3-way probability forecast.\n\nKey sources:\n1. **Bookmaker probs**: home 0.364, draw 0.304, away 0.332\n2. **Market probs (Polymarket)**: home 0.403, draw 0.235, away 0.362\n3. **Sportmonks probs**: home 0.338, draw 0.277, away 0.385\n4. **Supabase priors**: home 0.386, draw 0.263, away 0.352\n5. **Deterministic model**: home 0.369, draw 0.275, away 0.356\n\nData completeness score: 1.0 (perfect)\nLineups: Both confirmed (synthetic for backtest fairness)\nConfidence: 0.67\nUncertainty: 0.50\nSignal conflict: 0.0 (no conflicts)\nWindow: PRE_MATCH\nHalftime: null (no live data)\n\nAnalysis:\n- All sources are relatively aligned around home ~36-40%, draw ~23-30%, away ~33-38%\n- Market (Polymarket) is slightly bullish on home (40.3%)\n- Sportmonks is slightly bearish on home (33.8%), more bullish on away (38.5%)\n- Bookmaker and Supabase are in middle ground\n- Deterministic model (which is the weighted blend) gives: home 0.369, draw 0.275, away 0.356\n\nMissing sources: lineup (but confirmed), draw_model, llm_claims\nRisk flags: probability_sources_missing (but data completeness is perfect, so this is low severity)\n\nThe deterministic_prematch model already incorporates all weighted sources and applied calibration (draw_floor 0.16, shrink_strength 0.05, temperature 1.05).\nThe final forecast aligns closely with the deterministic model output: home 0.369, draw 0.275, away 0.356. This is a tightly contested match with no clear favorite. Sources show strong consensus with zero signal conflict and perfect data completeness, though confidence remains moderate at 0.67 with substantial uncertainty. Given the alignment across all inputs but moderate confidence levels, a \"WATCH\" stance seems prudent unless odds present a compelling value opportunity.",
+  "text_preview": "{\"probabilities\":{\"home\":0.369,\"draw\":0.275,\"away\":0.356},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Perfect data_completeness (1.0)\",\"Zero signal_conflict across sources\",\"Lineups confirmed\",\"Model consensus across bookmaker/market/sportmonks/supabase\"],\"contradicting_signals\":[],\"additional_risk_flags\":[\"moderate_confidence_0.67\",\"high_uncertainty_0.50\",\"missing_draw_model_secondary_source\"],\"rationale\":\"All primary sources (bookmaker, polymarket, sportmonks, supabase) converge tightly around home-slight-favorite (36-40%), draw 23-30%, away 33-38%. Deterministic prematch blend yields home 36.9%, draw 27.5%, away 35.6%. Lineups confirmed. No contradictions. Moderate confidence and high uncertainty warrant watching rather than aggressive action; acceptable for BET if odds present value vs consensus.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

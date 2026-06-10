@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2350,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1412,
+    "output_tokens_details": {
+      "thinking_tokens": 1101
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.583,
+      "draw": 0.3059,
+      "away": 0.1112
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "4-source consensus: bookmaker, polymarket, sportmonks, supabase all H-heavy",
+      "perfect data completeness (1.0) and zero signal conflict",
+      "confirmed lineups both teams",
+      "home win dominates with draw as secondary outcome"
+    ],
+    "contradicting_signals": [
+      "missing draw_model source",
+      "no llm claim signals analyzed",
+      "model confidence 0.67 (not elevated)",
+      "pre-match window limits adjustment signals"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "pre_match_context",
+      "synthetic_lineups_for_backtest_fairness"
+    ],
+    "rationale": "Strong consensus across 4 independent sources (H~0.58\u20130.64, D~0.30, A~0.11) with zero conflicts and perfect data completeness. Deterministic model blends sources at 67% confidence. Missing draw_model and claims analysis warrant caution haircut rather than veto given perfect alignment. Recommend WATCH: home is clear favorite but draw probability is material; await confirmed lineups and any late signals before escalating to BET.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features into a final 3-way probability forecast.\n\n**Key Data Points:**\n1. **Bookmaker**: H 0.5889, D 0.2997, A 0.1115\n2. **Polymarket**: H 0.5744, D 0.3038, A 0.1218\n3. **Sportmonks**: H 0.5921, D 0.2999, A 0.1080\n4. **Supabase priors**: H 0.6361, D 0.3070, A 0.0569\n5. **Deterministic model**: H 0.5830, D 0.3059, A 0.1112 (confidence 0.67)\n6. **Data completeness**: Score 1.0 (complete)\n7. **Lineups**: Both confirmed (synthetic for backtest fairness)\n8. **Halftime**: null (PRE_MATCH)\n9. **Signal conflict**: 0.0 (no conflicts)\n10. **Claim signals**: Empty (no LLM claims)\n\n**Analysis:**\n\nAll sources show strong consensus:\n- Home Win: 0.5744\u20130.6361 (tight clustering around 0.58\u20130.59)\n- Draw: 0.2997\u20130.3070 (very tight, 0.30)\n- Away Win: 0.0569\u20130.1218 (spreads wider, but all <12%)\n\n**Confidence Assessment:**\n- Model confidence: 0.67 (solid)\n- Data completeness: 1.0 (perfect)\n- Signal conflict: 0.0 (perfect alignment)\n- Missing sources: lineup (but confirmed), draw_model, llm_claims \u2014 minor gaps but not critical given consensus\n- Halftime data: N/A (pre-match)\n- The missing data flag is offset by perfect alignment across all available sources and complete match information, so I'm treating this as a confidence adjustment rather than a disqualifying factor.\n\nThe deterministic model outputs H 0.5830, D 0.3059, A 0.1112, which sits squarely within the consensus range and serves as my primary forecast. No contradictions exist across any signals, and the pre-match state with confirmed lineups provides a stable foundation for this prediction.\n\nMy confidence sits at 0.67\u2014reasonable given the absence of secondary models like draw_model and llm_claims\u2014with moderate uncertainty of 0.50 appropriate for the pre-match phase. The strong agreement across four independent sources (bookmaker, Polymarket, Sportmonks, Supabase) and zero signal conflict justify moving forward rather than skipping. I'd lean toward WATCH rather than an aggressive BET, since the missing secondary models prevent me from reaching higher confidence. The caution posture fits better than approval, as the 0.67 confidence and absent draw_model warrant restraint, though veto isn't justified given the data quality and source alignment.\n\nFour independent sources converge on the assessment with perfect data completeness and no contradictions, while confirmed lineups strengthen the case. The main gaps are the missing draw_model and LLM claims analysis, plus the pre-match timing that prevents halftime adjustments. The home win probability around 58% with a meaningful 30% draw chance and unlikely 11% away upset reflects this balanced view.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.5830,\"draw\":0.3059,\"away\":0.1112},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"4-source consensus: bookmaker, polymarket, sportmonks, supabase all H-heavy\",\"perfect data completeness (1.0) and zero signal conflict\",\"confirmed lineups both teams\",\"home win dominates with draw as secondary outcome\"],\"contradicting_signals\":[\"missing draw_model source\",\"no llm claim signals analyzed\",\"model confidence 0.67 (not elevated)\",\"pre-match window limits adjustment signals\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"pre_match_context\",\"synthetic_lineups_for_backtest_fairness\"],\"rationale\":\"Strong consensus across 4 independent sources (H~0.58\u20130.64, D~0.30, A~0.11) with zero conflicts and perfect data completeness. Deterministic model blends sources at 67% confidence. Missing draw_model and claims analysis warrant caution haircut rather than veto given perfect alignment. Recommend WATCH: home is clear favorite but draw probability is material; await confirmed lineups and any late signals before escalating to BET.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

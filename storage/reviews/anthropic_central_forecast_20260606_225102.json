@@ -1,0 +1,50 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2346,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1164,
+    "output_tokens_details": {
+      "thinking_tokens": 875
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.604,
+      "draw": 0.263,
+      "away": 0.133
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "All sources aligned on home favorite (0.57\u20130.65 range)",
+      "Zero signal_conflict detected across bookmaker/polymarket/sportmonks/supabase",
+      "Data completeness score 1.0, lineups confirmed synthetic",
+      "Draw floor (0.16) applied via calibration step"
+    ],
+    "contradicting_signals": [],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "moderate_uncertainty_at_0_50",
+      "missing_draw_model_and_llm_claims"
+    ],
+    "rationale": "Deterministic model synthesizes strong consensus: home heavy favorite (0.60) over draw (0.26) and away (0.13). Bookmaker, Polymarket, Sportmonks, and Supabase all cluster home 0.57\u20130.65. Zero conflict signal, confirmed lineups, perfect data completeness. Confidence 0.67 sufficient for BET given alignment; missing draw_model/llm_claims haircut confidence but do not veto execution.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided signals systematically:\n\n**Data Completeness:**\n- Score: 1.0 (complete)\n- Missing: none listed\n- However, deterministic_model has missing sources: [\"lineup\", \"draw_model\", \"llm_claims\"]\n- But lineup is confirmed with synthetic confirmed lineups, so that's acceptable for backtest fairness\n\n**Source Analysis:**\n\n1. **Bookmaker**: H 0.6185, D 0.2006, A 0.1809\n2. **Polymarket**: H 0.6112, D 0.2831, A 0.1057\n3. **Sportmonks**: H 0.6454, D 0.2965, A 0.0581\n4. **Supabase Priors**: H 0.5724, D 0.2663, A 0.1613\n\n**Deterministic Model Output**:\n- H 0.6044, D 0.2631, A 0.1325\n- Confidence: 0.67\n- Uncertainty: 0.50\n\n**Key Observations:**\n\n1. **Strong alignment on HOME favorite**: All sources strongly agree on home as favorite (0.57-0.65)\n2. **Consensus range**: Home between 0.57-0.65, Draw 0.20-0.30, Away 0.06-0.18\n3. **Signal conflict**: 0.0 (no conflict detected)\n4. **Confidence**: 0.67 (moderate)\n5. **Uncertainty**: 0.50 (moderate-high)\n6. **Risk flags**: Missing sources noted but lineups confirmed\n\n**Reconciliation:**\n- No source_reconciliation issues listed\n- No market_stale issues\n- No halftime data (pre-match context)\n- No structured claims or top signals available\n\nThe model's output aligns well with the broader consensus\u2014home sits around 0.60-0.62 across all sources, draw clusters between 0.25-0.29, and away ranges from 0.11-0.17. The deterministic model's probabilities (0.6044 home, 0.2631 draw, 0.1325 away) sit squarely within these ranges. With no conflicting signals and confirmed lineups, the 0.67 confidence level appears justified despite the moderate uncertainty.\n\nA BET recommendation with APPROVE risk posture makes sense here. The missing draw model and LLM claims create a slight confidence reduction, but the complete data score and zero conflict across sources offset this gap. Home is the clear favorite with reasonable odds, no stale information, and the draw floor of 0.16 already factored in through calibration. The only lingering concerns are the probability source gaps and the 0.50 uncertainty level, though neither rises to veto status.",
+  "text_preview": "{\"probabilities\":{\"home\":0.604,\"draw\":0.263,\"away\":0.133},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"All sources aligned on home favorite (0.57\u20130.65 range)\",\"Zero signal_conflict detected across bookmaker/polymarket/sportmonks/supabase\",\"Data completeness score 1.0, lineups confirmed synthetic\",\"Draw floor (0.16) applied via calibration step\"],\"contradicting_signals\":[],\"additional_risk_flags\":[\"probability_sources_missing\",\"moderate_uncertainty_at_0_50\",\"missing_draw_model_and_llm_claims\"],\"rationale\":\"Deterministic model synthesizes strong consensus: home heavy favorite (0.60) over draw (0.26) and away (0.13). Bookmaker, Polymarket, Sportmonks, and Supabase all cluster home 0.57\u20130.65. Zero conflict signal, confirmed lineups, perfect data completeness. Confidence 0.67 sufficient for BET given alignment; missing draw_model/llm_claims haircut confidence but do not veto execution.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

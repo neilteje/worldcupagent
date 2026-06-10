@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2351,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1374,
+    "output_tokens_details": {
+      "thinking_tokens": 970
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.397,
+      "draw": 0.197,
+      "away": 0.405
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "sportmonks_supabase_deterministic_aligned_on_away_0.40-0.41",
+      "market_home_premium_0.434_vs_model_0.397_suggests_information_asymmetry",
+      "bookmaker_away_bias_0.439_vs_consensus_creates_value_signal",
+      "draw_floor_calibration_applied_shrink_0.16_to_0.197"
+    ],
+    "contradicting_signals": [
+      "bookmaker_away_0.439_materially_higher_than_sportmonks_0.407",
+      "market_home_0.434_vs_deterministic_model_0.397_divergence",
+      "model_confidence_0.67_insufficient_for_high_conviction"
+    ],
+    "additional_risk_flags": [
+      "synthetic_lineup_confirmation_for_backtest",
+      "probability_sources_missing_draw_model_llm_claims",
+      "balanced_3way_outcome_no_dominant_signal",
+      "moderate_uncertainty_0.50"
+    ],
+    "rationale": "Three independent sources (sportmonks, supabase, deterministic model) align on away-lean consensus (0.40-0.41), but bookmaker (0.439) and market (0.434) show conflicting directional premiums. Moderate model confidence (0.67), perfect data completeness, zero signal conflict, and synthetic lineups suggest pre-match stability. Away holds marginal edge but high uncertainty precludes strong directional bet. Market home preference warrants monitoring for line moves.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features systematically:\n\n1. **Bookmaker Probabilities**: Home 0.365, Draw 0.196, Away 0.439\n2. **Market Probabilities (Polymarket?)**: Home 0.434, Draw 0.185, Away 0.381\n3. **Sportmonks**: Home 0.394, Draw 0.199, Away 0.407\n4. **Supabase Priors**: Home 0.422, Draw 0.185, Away 0.394\n5. **Deterministic Model**: Home 0.397, Draw 0.197, Away 0.405 (confidence 0.67)\n\n**Key Observations:**\n- Market is moderately bullish on HOME (0.434) vs model\n- Bookmaker is very bullish on AWAY (0.439)\n- Sportmonks, Supabase, and deterministic model are relatively aligned on AWAY (0.407-0.405)\n- All sources converge that HOME is roughly 0.37-0.43, DRAW 0.18-0.20, AWAY 0.38-0.44\n- Missing sources: lineup confirmation is synthetic (marked as confirmed for backtest fairness), no halftime data, no draw_model, no llm_claims, no structured claims\n- Data completeness score is 1.0 (no missing data), but some model sources are flagged as missing\n\n**Signal Analysis:**\n- Bookmaker significantly favors AWAY (0.439) - this is an outlier vs the other sources\n- Market favors HOME (0.434) - divergence from bookmaker\n- Sportmonks/Supabase/Deterministic are consistent around AWAY ~0.40, HOME ~0.40, DRAW ~0.19\n- Signal conflict is 0.0 - sources are reasonably aligned despite bookmaker outlier\n- The deterministic model shows moderate confidence at 0.67 with 0.50 uncertainty. Risk flags point to missing lineup and draw model data, though synthetic lineups are acceptable for backtesting. Market data appears current with no staleness issues. The model's consensus estimate seems more reliable than the bookmaker's outlier position, but the market's stronger HOME lean suggests additional information worth considering in the final blend.\n\nConsolidating across sources reveals strong alignment on away odds around 0.40-0.41, with draw probability consistently near 0.19. The market's preference for home at 0.434 creates a slight tension, but three of four data sources converge on the away side. This points toward: away 0.40-0.41, home 0.39-0.40, draw 0.19. The moderate confidence level and reasonable source alignment suggest this is a balanced matchup with a marginal away lean, though the market's home signal warrants caution about potential value discrepancies.\n\nGiven the data completeness and confirmed lineups, the moderate confidence and tight probability ranges make this a WATCH rather than a strong BET\u2014the situation lacks the conviction needed for confident action.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.397,\"draw\":0.197,\"away\":0.405},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"sportmonks_supabase_deterministic_aligned_on_away_0.40-0.41\",\"market_home_premium_0.434_vs_model_0.397_suggests_information_asymmetry\",\"bookmaker_away_bias_0.439_vs_consensus_creates_value_signal\",\"draw_floor_calibration_applied_shrink_0.16_to_0.197\"],\"contradicting_signals\":[\"bookmaker_away_0.439_materially_higher_than_sportmonks_0.407\",\"market_home_0.434_vs_deterministic_model_0.397_divergence\",\"model_confidence_0.67_insufficient_for_high_conviction\"],\"additional_risk_flags\":[\"synthetic_lineup_confirmation_for_backtest\",\"probability_sources_missing_draw_model_llm_claims\",\"balanced_3way_outcome_no_dominant_signal\",\"moderate_uncertainty_0.50\"],\"rationale\":\"Three independent sources (sportmonks, supabase, deterministic model) align on away-lean consensus (0.40-0.41), but bookmaker (0.439) and market (0.434) show conflicting directional premiums. Moderate model confidence (0.67), perfect data completeness, zero signal conflict, and synthetic lineups suggest pre-match stability. Away holds marginal edge but high uncertainty precludes strong directional bet. Market home preference warrants monitoring for line moves.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

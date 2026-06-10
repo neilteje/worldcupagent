@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2351,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1255,
+    "output_tokens_details": {
+      "thinking_tokens": 920
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.3867,
+      "draw": 0.2128,
+      "away": 0.4005
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Bookmaker, market, and deterministic model aligned on outcome distribution",
+      "Complete data with confirmed lineups and zero signal conflict",
+      "Away slightly favored (40-43%) in tightly balanced matchup",
+      "Source blend (Sportmonks 27.8%, bookmaker 33.3%, Polymarket 22.2%, Supabase 16.7%) stable across steps"
+    ],
+    "contradicting_signals": [
+      "Supabase priors favor home (43.4%) vs model blend (38.7%)\u20145.7pt delta",
+      "Draw floor (16%) binding but outcome sits above at 21.3%"
+    ],
+    "additional_risk_flags": [
+      "draw_model_missing",
+      "probability_sources_missing",
+      "moderate_confidence_haircut",
+      "tight_probability_spread"
+    ],
+    "rationale": "All primary sources (bookmaker 0.371H, market 0.383H, Sportmonks 0.388H) converge on balanced matchup. Model confidence 0.67 with complete data and zero signal conflict warrants BET. Supabase home bias (43.4%) noted but outweighed by consensus. Missing draw_model lowers confidence but not critically given alignment.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this soccer prediction market data systematically:\n\n**Key Data Points:**\n1. **Bookmaker probs**: Home 0.371, Draw 0.201, Away 0.428\n2. **Market probs (Polymarket)**: Home 0.383, Draw 0.206, Away 0.411\n3. **Sportmonks probs**: Home 0.388, Draw 0.232, Away 0.380\n4. **Supabase priors**: Home 0.434, Draw 0.186, Away 0.380\n5. **Deterministic model output**: Home 0.387, Draw 0.213, Away 0.401\n\n**Confidence & Uncertainty:**\n- Deterministic model confidence: 0.67\n- Uncertainty: 0.50\n- Data completeness: 1.0 (perfect)\n\n**Missing Sources:**\n- Lineup (but marked as confirmed - synthetic for backtest fairness)\n- Draw model\n- LLM claims\n\n**Source Analysis:**\nAll major sources are aligned on a relatively balanced matchup:\n- Away slightly favored by bookmaker (42.8%)\n- Home slightly favored by Supabase priors (43.4%)\n- Sportmonks shows home 38.8%\n- Market (Polymarket) at 38.3% for home\n- Model blends to: Away 40%, Home 38.7%, Draw 21.3%\n\n**Risk Assessment:**\n- Signal conflict: 0.0 (no contradictions)\n- No claim signals (empty)\n- No structured claims\n- Data completeness: perfect (1.0)\n- Lineup confirmed (synthetic)\n- No stale market data\n- Risk flags: \"probability_sources_missing\" (draw_model, llm_claims) but this is minor\n\n**Alignment Check:**\n- Bookmaker, market, and model are well-aligned\n- Away odds converging: 42.8% (bookmaker) \u2192 41.1% (market) \u2192 40.0% (model)\n- Home odds: 37.1% (bookmaker) \u2192 38.3% (market) \u2192 38.7% (model)\n- Draw relatively consistent around 20-21%\n\n**Verdict:**\nThis is a tight match with no contradictions between sources. The deterministic model at 0.67 confidence with 0.50 uncertainty is reasonable. All three outcomes are closely bunched (within ~3 percentage points for home/away), suggesting genuine competitive balance. The moderate confidence level paired with complete data and no conflicting signals supports proceeding with this prediction.\n\n**Recommendation Logic:**\nData completeness is strong despite the missing draw model, sources show alignment across bookmaker/market/model estimates, and the moderate confidence doesn't warrant rejection. The away side edges out slightly favored at 40-43% in what appears to be a genuinely competitive matchup. One discrepancy exists where Supabase priors lean home at 43.4% versus the model's 38.7%, though this doesn't constitute a severe contradiction. Missing the draw model and moderate confidence suggest caution rather than veto status.\n\n**Final Outcome Probabilities:**\nModel generates Away 0.401, Draw 0.213, Home 0.387, which rounds to Away 0.401, Draw 0.213, Home 0.386.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.3867,\"draw\":0.2128,\"away\":0.4005},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Bookmaker, market, and deterministic model aligned on outcome distribution\",\"Complete data with confirmed lineups and zero signal conflict\",\"Away slightly favored (40-43%) in tightly balanced matchup\",\"Source blend (Sportmonks 27.8%, bookmaker 33.3%, Polymarket 22.2%, Supabase 16.7%) stable across steps\"],\"contradicting_signals\":[\"Supabase priors favor home (43.4%) vs model blend (38.7%)\u20145.7pt delta\",\"Draw floor (16%) binding but outcome sits above at 21.3%\"],\"additional_risk_flags\":[\"draw_model_missing\",\"probability_sources_missing\",\"moderate_confidence_haircut\",\"tight_probability_spread\"],\"rationale\":\"All primary sources (bookmaker 0.371H, market 0.383H, Sportmonks 0.388H) converge on balanced matchup. Model confidence 0.67 with complete data and zero signal conflict warrants BET. Supabase home bias (43.4%) noted but outweighed by consensus. Missing draw_model lowers confidence but not critically given alignment.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

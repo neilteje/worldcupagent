@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1130,
+    "output_tokens_details": {
+      "thinking_tokens": 852
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.6002,
+      "draw": 0.2898,
+      "away": 0.1099
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "Bookmaker/Market/Supabase aligned on 59-66% HOME",
+      "Deterministic model 60% HOME with zero signal conflict",
+      "Data completeness 1.0 with confirmed lineups",
+      "Strong consensus away at ~11%, not 18.6%"
+    ],
+    "contradicting_signals": [
+      "Sportmonks outlier 18.6% away vs consensus 11%",
+      "Missing draw_model and llm_claims inputs",
+      "Calibration draw floor at 16% inflates draw vs raw blend"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "sportmonks_away_variance",
+      "high_draw_floor_influence",
+      "missing_llm_signals"
+    ],
+    "rationale": "Strong 4-source alignment (bookmaker, market, supabase, deterministic) on home favorite. Sportmonks outlier detected but outweighed. Lineup confirmed, data complete, no contradictions warrant bet on home.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided signals systematically:\n\n**Key Data Points:**\n- Bookmaker probs: Home 59.8%, Draw 28.6%, Away 11.5%\n- Market (Polymarket) probs: Home 65.9%, Draw 32.2%, Away 2.0%\n- Sportmonks probs: Home 59.3%, Draw 22.2%, Away 18.6%\n- Supabase priors: Home 59.2%, Draw 32.9%, Away 7.9%\n- Deterministic model probs: Home 60.0%, Draw 29.0%, Away 11.0%\n\n**Source Alignment:**\n- Bookmaker, Market, Deterministic model, and Supabase are all strongly aligned on HOME\n- Sportmonks is the outlier with much higher AWAY probability (18.6% vs ~11% elsewhere)\n- All sources agree on HOME being favorite (59-66%)\n- All sources agree AWAY is least likely (2-18.6%)\n\n**Confidence Assessment:**\n- Model confidence: 66.99%\n- Data completeness score: 1.0 (perfect)\n- Missing sources: lineup, draw_model, llm_claims - but lineup is confirmed as synthetic\n- No claim signals extracted\n- No signal conflict detected (0.0)\n- Market is NOT stale (empty stale flags)\n- No structured claims\n- Window: PRE_MATCH\n\n**Risk Analysis:**\n- Model flags \"probability_sources_missing\" but this is routine for pre-match\n- Lineups are confirmed (synthetic but fair for backtest)\n- Signal conflict is 0.0 (excellent alignment)\n- No contradictions between major sources\n\n**Reconciliation:**\nThe deterministic model (60% home, 29% draw, 11% away) is remarkably well-aligned with bookmaker (59.8%, 28.6%, 11.5%) and quite close to the overall consensus. \n\nPolymarket shows slightly elevated home conviction at 65.9%, though the direction remains consistent across all major sources. Sportmonks diverges notably but carries limited weight in the overall assessment.\n\n**Final Forecast:**\nThe strong consensus across bookmaker, market, supabase, and deterministic model\u2014combined with perfect data completeness and zero signal conflict\u2014supports moving forward rather than skipping. The deterministic model's 60% home / 29% draw / 11% away reflects solid synthesis of available information. With 66.99% confidence and clear directional agreement, a BET on HOME is warranted. Uncertainty remains elevated at 0.50 due to missing draw modeling and LLM inputs, plus Sportmonks' outlier positioning on away outcomes, but this doesn't override the four-source consensus favoring home.\n\n**Recommendation:** BET on HOME with high confidence. **Risk Posture:** approve given aligned signals and no contradictions. **Confidence:** 0.67 with slight adjustment for missing components, though confirmed lineups provide stability. **Uncertainty:** 0.50 reflecting calibration floor effects.\n\nKey supporting factors include bookmaker-market-supabase alignment on home favoritism, the deterministic model's 60% home projection, and complete absence of conflicting signals. Sportmonks' elevated away percentage (18.6% versus consensus 11%) and the missing draw model represent the primary concerns, alongside the calibration floor's 16% draw baseline. These risks\u2014high draw calibration floor, Sportmonks away divergence, and absent draw modeling\u2014don't sufficiently undermine the broader consensus.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.6002,\"draw\":0.2898,\"away\":0.1099},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"Bookmaker/Market/Supabase aligned on 59-66% HOME\",\"Deterministic model 60% HOME with zero signal conflict\",\"Data completeness 1.0 with confirmed lineups\",\"Strong consensus away at ~11%, not 18.6%\"],\"contradicting_signals\":[\"Sportmonks outlier 18.6% away vs consensus 11%\",\"Missing draw_model and llm_claims inputs\",\"Calibration draw floor at 16% inflates draw vs raw blend\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"sportmonks_away_variance\",\"high_draw_floor_influence\",\"missing_llm_signals\"],\"rationale\":\"Strong 4-source alignment (bookmaker, market, supabase, deterministic) on home favorite. Sportmonks outlier detected but outweighed. Lineup confirmed, data complete, no contradictions warrant bet on home.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

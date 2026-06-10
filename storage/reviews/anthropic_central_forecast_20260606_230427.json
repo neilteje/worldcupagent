@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2349,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1344,
+    "output_tokens_details": {
+      "thinking_tokens": 1054
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.43,
+      "draw": 0.325,
+      "away": 0.245
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all_sources_aligned_home_favorite",
+      "perfect_data_completeness_1.0",
+      "zero_signal_conflict",
+      "both_lineups_confirmed"
+    ],
+    "contradicting_signals": [
+      "polymarket_bullish_vs_bookmaker_gap",
+      "missing_draw_model_baseline",
+      "pre_match_calibration_uncertainty"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "polymarket_bookmaker_divergence",
+      "moderate_source_spread"
+    ],
+    "rationale": "Model blends bookmaker (0.399), Polymarket (0.509), Sportmonks (0.412), Supabase (0.423) with no conflicts. Home-favored consensus across all inputs. Deterministic model confidence 0.67 justified by complete data, confirmed lineups, zero staleness. Polymarket bulge reconciled by mid-range sources. Missing draw_model haircut acceptable vs aligned directional signal. Pre-match window adds baseline uncertainty but sufficient signal density for approval.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features systematically:\n\n**Key Data Points:**\n1. **Bookmaker odds**: H: 0.399, D: 0.354, A: 0.248\n2. **Polymarket (market_probs)**: H: 0.509, D: 0.295, A: 0.196\n3. **Sportmonks**: H: 0.412, D: 0.311, A: 0.278\n4. **Supabase priors**: H: 0.423, D: 0.336, A: 0.241\n5. **Deterministic model**: H: 0.430, D: 0.325, A: 0.245 (confidence: 0.67)\n6. **Data completeness**: Perfect score (1.0), no missing data\n7. **Lineup**: Both confirmed as synthetic, low risk\n8. **Halftime**: null (pre-match)\n9. **Window**: PRE_MATCH\n10. **Signal conflict**: 0.0 (no conflicts)\n11. **Claim signals**: empty\n12. **Source reconciliation**: empty\n13. **Market stale**: empty (no staleness flags)\n\n**Analysis:**\n\nThe sources show some divergence:\n- Polymarket is notably bullish on home (0.509) vs bookmaker (0.399)\n- Sportmonks (0.412) and Supabase (0.423) fall between bookmaker and Polymarket\n- Away odds are tighter: bookmaker 0.248, Polymarket 0.196, Sportmonks 0.278, Supabase 0.241\n- Draws are stable around 0.31-0.35\n\nThe deterministic model (0.67 confidence) blends all sources with weights:\n- Bookmaker: 33.3%\n- Sportmonks: 27.8%\n- Polymarket: 22.2%\n- Supabase: 16.7%\n\n**Model output**: H: 0.430, D: 0.325, A: 0.245\n\nThe model produces a home-favored prediction with moderate confidence. No stale markets or signal conflicts detected, both lineups confirmed, and data completeness is perfect. Some sources are missing (draw_model, llm_claims, lineup confirmation details) but these don't represent critical gaps. The Polymarket overweight on home (0.509) creates some tension with traditional bookmaker odds, though the model's final estimate sits reasonably between the extremes.\n\nAll signals converge on a home advantage despite source divergence. The 0.67 confidence level reflects solid alignment across bookmaker, model, and market data without contradictions. Missing components are minor enough that they don't warrant skipping the forecast. The alignment across bookmaker, market, and model signals supports moving forward despite the moderate Polymarket divergence. Data integrity is solid with confirmed lineups and no gaps, though the absent draw model introduces some calibration uncertainty on that outcome. Market conditions appear stable and the pre-match window presents inherent unpredictability that's already factored into the 0.5 confidence level. Given these factors align rather than conflict, approval is warranted without invoking skip conditions.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.430,\"draw\":0.325,\"away\":0.245},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all_sources_aligned_home_favorite\",\"perfect_data_completeness_1.0\",\"zero_signal_conflict\",\"both_lineups_confirmed\"],\"contradicting_signals\":[\"polymarket_bullish_vs_bookmaker_gap\",\"missing_draw_model_baseline\",\"pre_match_calibration_uncertainty\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"polymarket_bookmaker_divergence\",\"moderate_source_spread\"],\"rationale\":\"Model blends bookmaker (0.399), Polymarket (0.509), Sportmonks (0.412), Supabase (0.423) with no conflicts. Home-favored consensus across all inputs. Deterministic model confidence 0.67 justified by complete data, confirmed lineups, zero staleness. Polymarket bulge reconciled by mid-range sources. Missing draw_model haircut acceptable vs aligned directional signal. Pre-match window adds baseline uncertainty but sufficient signal density for approval.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

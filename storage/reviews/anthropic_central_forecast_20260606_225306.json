@@ -1,0 +1,52 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2348,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1009,
+    "output_tokens_details": {
+      "thinking_tokens": 761
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.4654,
+      "draw": 0.2629,
+      "away": 0.2717
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all_sources_aligned_home_bias",
+      "signal_conflict_zero",
+      "data_completeness_perfect",
+      "lineups_confirmed"
+    ],
+    "contradicting_signals": [
+      "polymarket_notably_bullish_vs_bookmaker",
+      "uncertainty_moderate"
+    ],
+    "additional_risk_flags": [
+      "missing_draw_model_signal",
+      "missing_llm_claims"
+    ],
+    "rationale": "Home consensus across bookmaker, sportmonks, supabase, polymarket with model confidence 0.67. Zero signal conflict. Deterministic blend: home 46.54% vs draw 26.29% vs away 27.17%. Confirmed lineups, complete data, pre-match window. Polymarket outlier (54.3% home) vs bookmaker (41.9%) suggests potential value on home.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this step by step:\n\n**Data Provided:**\n1. **Bookmaker probs**: Home 41.90%, Draw 31.20%, Away 26.90%\n2. **Market probs (Polymarket)**: Home 54.27%, Draw 20.10%, Away 25.63%\n3. **Sportmonks probs**: Home 47.35%, Draw 26.47%, Away 26.19%\n4. **Supabase priors**: Home 45.74%, Draw 24.34%, Away 29.93%\n\n5. **Deterministic model output**: Home 46.54%, Draw 26.29%, Away 27.17% (confidence 0.67)\n6. **Confidence**: 0.67\n7. **Data completeness**: 1.0 (perfect)\n8. **Lineup confirmed**: Both confirmed\n9. **No halftime data**: PRE_MATCH window\n10. **Missing sources**: lineup (but actually confirmed), draw_model, llm_claims\n11. **Signal conflict**: 0.0 (excellent alignment)\n12. **Risk flags**: probability_sources_missing (but this seems minor since we have 4 sources)\n\n**Source Analysis:**\n- Bookmaker: 41.90% home\n- Market (Polymarket): 54.27% home - notably higher, suggests market sees more home potential\n- Sportmonks: 47.35% home\n- Supabase: 45.74% home\n- Model blend: 46.54% home\n\nThe market is notably bullish on home compared to other sources. This could indicate either:\n1. Market inefficiency/overconfidence in home\n2. Information advantage reflected in Polymarket prices\n\n**Key Observations:**\n- All sources lean home > draw > away (clear consensus direction)\n- Signal conflict is 0.0 - excellent alignment\n- Data completeness is 1.0 - no missing critical data\n- Lineups confirmed, model confidence at 0.67 with uncertainty at 0.50\n- Bookmaker appears more conservative than the model and market consensus\n\n**Recommendation Logic:**\nStrong alignment across all probability sources pointing toward home, with no conflicting signals and complete data. The model confidence of 0.67 is solid for pre-match conditions. Polymarket's bullish stance on home relative to bookmaker odds suggests potential value, though bookmaker equilibrium provides a useful baseline. Given the consensus direction, confirmed lineups, and absence of contradictions, a BET recommendation on home is warranted. Risk posture should be \"approve\" since all indicators align and there are no major red flags.\n\n**Final probabilities:**\nUsing the deterministic model output as the blended view: Home 46.54%, Draw 26.29%, Away 27.17%. Confidence 0.67, Uncertainty 0.50. Recommendation: BET on home given the 46.54% probability and strong cross-source consensus.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.4654,\"draw\":0.2629,\"away\":0.2717},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all_sources_aligned_home_bias\",\"signal_conflict_zero\",\"data_completeness_perfect\",\"lineups_confirmed\"],\"contradicting_signals\":[\"polymarket_notably_bullish_vs_bookmaker\",\"uncertainty_moderate\"],\"additional_risk_flags\":[\"missing_draw_model_signal\",\"missing_llm_claims\"],\"rationale\":\"Home consensus across bookmaker, sportmonks, supabase, polymarket with model confidence 0.67. Zero signal conflict. Deterministic blend: home 46.54% vs draw 26.29% vs away 27.17%. Confirmed lineups, complete data, pre-match window. Polymarket outlier (54.3% home) vs bookmaker (41.9%) suggests potential value on home.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

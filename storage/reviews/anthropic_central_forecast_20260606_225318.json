@@ -1,0 +1,52 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1024,
+    "output_tokens_details": {
+      "thinking_tokens": 784
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.4209,
+      "draw": 0.3112,
+      "away": 0.2679
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "All sources converge on home advantage (38\u201342% range)",
+      "Zero signal conflict across bookmaker, Polymarket, Sportmonks, Supabase",
+      "Lineups confirmed for both teams",
+      "Perfect data completeness score"
+    ],
+    "contradicting_signals": [
+      "Polymarket outlier high (50.8% home) vs consensus 38\u201342%"
+    ],
+    "additional_risk_flags": [
+      "polymarket_divergence",
+      "moderate_uncertainty_baseline",
+      "missing_draw_model_detail"
+    ],
+    "rationale": "Deterministic model output aligned with multi-source consensus. Home favored across all inputs with no conflicts. Confirmed lineups and perfect data completeness override missing draw-model detail. Polymarket divergence noted but minority signal. 0.67 confidence adequate for BET.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided forecasting features:\n\n1. **Bookmaker probs**: home 0.385, draw 0.310, away 0.305\n2. **Polymarket**: home 0.508, draw 0.326, away 0.166\n3. **Sportmonks**: home 0.396, draw 0.302, away 0.302\n4. **Supabase priors**: home 0.416, draw 0.295, away 0.289\n5. **Deterministic model**: home 0.421, draw 0.311, away 0.268\n6. **Model confidence**: 0.67\n7. **Data completeness**: 1.0 (perfect)\n8. **Missing sources**: lineup, draw_model, llm_claims - BUT lineups are confirmed as synthetic\n9. **Lineups**: Both confirmed (synthetic for backtest fairness)\n10. **Halftime**: null (PRE_MATCH)\n11. **Signal conflict**: 0.0 (no conflict)\n12. **Risk flags**: probability_sources_missing (but lineups are actually provided)\n\n**Signal alignment analysis:**\n- Bookmaker: home slight edge (38.5%)\n- Polymarket: strong home bias (50.8%)\n- Sportmonks: moderate home edge (39.6%)\n- Supabase: home edge (41.6%)\n- Model: home edge (42.1%)\n- All sources agree: HOME > DRAW > AWAY\n\nThe polymarket is notably higher on home (50.8%) vs other sources. This could indicate market depth difference or smart money positioning.\n\n**Confidence assessment:**\n- Model confidence: 0.67\n- Data completeness: 1.0\n- Signal conflict: 0.0\n- Lineups confirmed\n- No halftime data (expected for PRE_MATCH), no contradicting signals, and no stale market issues. The deterministic_prematch model output of 42.1% home / 31.1% draw / 26.8% away sits well within the consensus ranges (home 38-42%, draw 29-33%, away 16-30%) and shows strong alignment across all sources. With perfect data completeness, confirmed lineups, zero signal conflicts, and 0.67 confidence, this warrants a BET recommendation. The deterministic_prematch model provides the most reliable forecast here:\n- Home: 0.4209\n- Draw: 0.3112\n- Away: 0.2679\n\nMultiple data sources converge on home team advantage in the 38-42% range, lineups are confirmed for both sides, and there's no conflicting signals across the board. Data quality is complete across all metrics.\n\nOne notable outlier: Polymarket pricing suggests substantially higher home probability at 50.8%, which diverges from the consensus. The draw model lacks transparency in its methodology, and the moderate uncertainty score of 0.5 warrants attention. Still, the 0.67 confidence level feels justified given the strong data alignment and lineup confirmation. The risk profile supports moving forward\u2014the signals are consistent, rosters are locked in, and information completeness is solid.",
+  "text_preview": "{\"probabilities\":{\"home\":0.4209,\"draw\":0.3112,\"away\":0.2679},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"All sources converge on home advantage (38\u201342% range)\",\"Zero signal conflict across bookmaker, Polymarket, Sportmonks, Supabase\",\"Lineups confirmed for both teams\",\"Perfect data completeness score\"],\"contradicting_signals\":[\"Polymarket outlier high (50.8% home) vs consensus 38\u201342%\"],\"additional_risk_flags\":[\"polymarket_divergence\",\"moderate_uncertainty_baseline\",\"missing_draw_model_detail\"],\"rationale\":\"Deterministic model output aligned with multi-source consensus. Home favored across all inputs with no conflicts. Confirmed lineups and perfect data completeness override missing draw-model detail. Polymarket divergence noted but minority signal. 0.67 confidence adequate for BET.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

@@ -1,0 +1,52 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1167,
+    "output_tokens_details": {
+      "thinking_tokens": 886
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.515,
+      "draw": 0.281,
+      "away": 0.204
+    },
+    "confidence": 0.69,
+    "uncertainty": 0.48,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all_sources_align_home_favorite",
+      "bookmaker_polymarket_market_consensus_51_53pct",
+      "perfect_data_completeness",
+      "no_signal_conflict"
+    ],
+    "contradicting_signals": [
+      "sportmonks_supabase_draw_floor_32pct_vs_bookie_26pct",
+      "tertiary_sources_missing_lineup_drawmodel_llm"
+    ],
+    "additional_risk_flags": [
+      "draw_volatility_across_sources",
+      "synthetic_lineup_backtest_fairness"
+    ],
+    "rationale": "Home strong favorite across all four data sources with tight consensus (47.6\u201353.4%). Bookmaker and market slightly more bullish than model; Sportmonks/Supabase flag higher draw risk. Perfect data completeness, zero signal conflict, and model confidence 0.67 justify confident BET on home. Draw variance (25.8\u201332.4%) noted but does not disrupt primary thesis.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided data sources and synthesize them into a single probability forecast.\n\nKey inputs:\n1. **Bookmaker probs**: Home 0.519, Draw 0.258, Away 0.223\n2. **Market probs (Polymarket)**: Home 0.534, Draw 0.260, Away 0.206\n3. **Sportmonks probs**: Home 0.476, Draw 0.324, Away 0.201\n4. **Supabase priors**: Home 0.479, Draw 0.320, Away 0.201\n5. **Deterministic model**: Home 0.497, Draw 0.288, Away 0.214 (confidence 0.67)\n\nData completeness:\n- Score: 1.0 (complete)\n- Missing sources: lineup, draw_model, llm_claims (but lineups confirmed as synthetic)\n- No claim signals\n- No halftime data (PRE_MATCH window)\n- No signal conflict\n\nSignal analysis:\n- **Supporting signals**: All sources align on home favorite (ranging 47.6% to 53.4%)\n- **Contradicting signals**: Sportmonks and Supabase show higher draw probability (32.4%, 32.0%) vs bookmaker/market (25.8%, 26.0%)\n- **Source reconciliation**: Clean - no contradictions, only minor variance in draw assessment\n- **Stale market**: No stale market detected\n- **Confidence**: Model confidence 0.67, data completeness 1.0\n\nRisk assessment:\n- probability_sources_missing flag (but this is about draw_model/llm which are optional)\n- Lineups confirmed (synthetic for backtest fairness)\n- No halftime state\n- No claim signals to extract\n- Signal conflict: 0.0\n\nThe deterministic model has already weighted all four sources (bookmaker 33%, polymarket 22%, sportmonks 28%, supabase 17%), producing Home 0.497, Draw 0.288, Away 0.214. Bookmaker and market lean slightly more bullish on home, while Sportmonks and Supabase suggest marginally elevated draw odds\u2014but these differences fall within normal variance. The 0.67 confidence reflects reasonable calibration despite missing optional secondary sources, balanced against perfect data completeness on core inputs.\n\nGiven aligned signals across all sources favoring home as the clear favorite, I'd recommend a BET on home with approval, though noting some caution around the draw probability spread (25.8-32.4%). Blending the model output with bookmaker and market alignment suggests adjusting home probability slightly upward to around 0.51, while keeping draw near 0.28.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.515,\"draw\":0.281,\"away\":0.204},\"confidence\":0.69,\"uncertainty\":0.48,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all_sources_align_home_favorite\",\"bookmaker_polymarket_market_consensus_51_53pct\",\"perfect_data_completeness\",\"no_signal_conflict\"],\"contradicting_signals\":[\"sportmonks_supabase_draw_floor_32pct_vs_bookie_26pct\",\"tertiary_sources_missing_lineup_drawmodel_llm\"],\"additional_risk_flags\":[\"draw_volatility_across_sources\",\"synthetic_lineup_backtest_fairness\"],\"rationale\":\"Home strong favorite across all four data sources with tight consensus (47.6\u201353.4%). Bookmaker and market slightly more bullish than model; Sportmonks/Supabase flag higher draw risk. Perfect data completeness, zero signal conflict, and model confidence 0.67 justify confident BET on home. Draw variance (25.8\u201332.4%) noted but does not disrupt primary thesis.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

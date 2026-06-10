@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1221,
+    "output_tokens_details": {
+      "thinking_tokens": 893
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.354,
+      "draw": 0.307,
+      "away": 0.339
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources provide complete probability estimates",
+      "Confirmed lineups available for assessment",
+      "Draw probability converges across sources (30.1\u201331.3%)",
+      "Pre-match window with zero signal conflicts"
+    ],
+    "contradicting_signals": [
+      "Sportmonks bullish Home (41.3%) vs Market bearish Home (30.7%)",
+      "Away outcome wide spread: 27.7% (Sportmonks) to 37.95% (Market)",
+      "Draw model and LLM claims unavailable for validation",
+      "Moderate confidence (0.67) despite complete data"
+    ],
+    "additional_risk_flags": [
+      "source_divergence_on_away",
+      "draw_model_missing",
+      "high_uncertainty_vs_confidence_gap",
+      "synthetic_lineups_backtest_fairness"
+    ],
+    "rationale": "Deterministic model synthesizes 4 sources with balanced weights; bookmaker and Supabase align near 35\u201336% Home, but Sportmonks outlier at 41% and Market bearish at 31% create 10pt Away spread. Zero data gaps but moderate confidence and high uncertainty warrant caution. No contradictory halftime or claim signals. Monitor market movement before execution.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided decision context JSON:\n\n1. **Bookmaker probs**: Home 34.1%, Draw 30.2%, Away 35.7%\n2. **Market probs (Polymarket)**: Home 30.7%, Draw 31.3%, Away 37.95%\n3. **Sportmonks probs**: Home 41.3%, Draw 31.0%, Away 27.7%\n4. **Supabase priors**: Home 36.6%, Draw 29.4%, Away 34.1%\n5. **Deterministic model**: Home 35.4%, Draw 30.7%, Away 33.9%\n   - Confidence: 0.67\n   - Uncertainty: 0.50\n   - Missing sources: lineup (but confirmed as synthetic), draw_model, llm_claims\n\n**Signal Analysis:**\n- Data completeness: 1.0 (no missing data)\n- Lineup: Both confirmed (synthetic for backtest fairness)\n- Window: PRE_MATCH\n- Dry run: false\n- Signal conflict: 0.0 (no conflicts detected)\n\n**Source Agreement Analysis:**\n- Bookmaker: Home 34.1%, Draw 30.2%, Away 35.7%\n- Market: Home 30.7%, Draw 31.3%, Away 37.95%\n- Sportmonks: Home 41.3%, Draw 31.0%, Away 27.7%\n- Supabase: Home 36.6%, Draw 29.4%, Away 34.1%\n\nThere's notable divergence:\n- Sportmonks is notably higher on Home (41.3%)\n- Market is notably higher on Away (37.95%)\n- Bookmaker is moderate\n- Supabase is close to bookmaker\n- The model weights these sources at 33.3% bookmaker, 22.2% polymarket, 27.8% sportmonks, and 16.7% supabase. The draw outcome shows strong consensus across sources (30.1-31.3%), while home/away estimates vary considerably. Missing draw_model and llm_claims data flags a risk, though all probability estimates are present and lineups confirmed. The moderate confidence (0.67) and elevated uncertainty (0.50) reflect this divergence, particularly between Sportmonks' home lean and the market's away lean. The market's bearish stance on the home team (30.7%) contrasts sharply with Sportmonks' bullish assessment (41.3%), yet the blended model output sits near neutral ground. Given the moderate confidence level and substantial uncertainty, I'd lean toward WATCH rather than outright dismissal\u2014the data completeness and general alignment across signals suggest there's enough to monitor, even if caution is warranted.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.354,\"draw\":0.307,\"away\":0.339},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources provide complete probability estimates\",\"Confirmed lineups available for assessment\",\"Draw probability converges across sources (30.1\u201331.3%)\",\"Pre-match window with zero signal conflicts\"],\"contradicting_signals\":[\"Sportmonks bullish Home (41.3%) vs Market bearish Home (30.7%)\",\"Away outcome wide spread: 27.7% (Sportmonks) to 37.95% (Market)\",\"Draw model and LLM claims unavailable for validation\",\"Moderate confidence (0.67) despite complete data\"],\"additional_risk_flags\":[\"source_divergence_on_away\",\"draw_model_missing\",\"high_uncertainty_vs_confidence_gap\",\"synthetic_lineups_backtest_fairness\"],\"rationale\":\"Deterministic model synthesizes 4 sources with balanced weights; bookmaker and Supabase align near 35\u201336% Home, but Sportmonks outlier at 41% and Market bearish at 31% create 10pt Away spread. Zero data gaps but moderate confidence and high uncertainty warrant caution. No contradictory halftime or claim signals. Monitor market movement before execution.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

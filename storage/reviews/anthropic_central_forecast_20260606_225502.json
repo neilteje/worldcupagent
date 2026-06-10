@@ -1,0 +1,50 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 945,
+    "output_tokens_details": {
+      "thinking_tokens": 707
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.294,
+      "draw": 0.203,
+      "away": 0.504
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All sources align on away favorite (bookie 0.519, market 0.526, model 0.504)",
+      "Zero signal conflict across all data streams",
+      "Complete data availability (1.0 score)",
+      "Consistent ~50% away consensus across independent sources"
+    ],
+    "contradicting_signals": [],
+    "additional_risk_flags": [
+      "synthetic_lineups",
+      "moderate_confidence_level",
+      "missing_draw_model_input"
+    ],
+    "rationale": "Away win strongly favored across bookmaker, market, and predictive sources. Deterministic model confidence 0.67 with zero conflict. Synthetic lineups and draw_model gap reduce confidence from high to caution posture, but alignment is too strong to defer. Away at 0.504 is primary play.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features systematically:\n\n1. **Bookmaker probabilities**: home 0.307, draw 0.173, away 0.519\n2. **Market probabilities (Polymarket)**: home 0.285, draw 0.189, away 0.526\n3. **Sportmonks probabilities**: home 0.287, draw 0.219, away 0.494\n4. **Supabase priors**: home 0.275, draw 0.224, away 0.501\n5. **Deterministic model**: home 0.294, draw 0.203, away 0.504 (confidence 0.67)\n6. **Data completeness**: Score 1.0 (complete data)\n7. **Lineups**: Both confirmed as synthetic\n8. **Halftime**: null (pre-match)\n9. **Signal conflict**: 0.0 (no conflicts)\n10. **Claim signals**: empty (no LLM claims)\n11. **Missing sources**: lineup, draw_model, llm_claims\n\n**Alignment check:**\n- All sources converge on away as clear favorite (0.49-0.53)\n- Home is weakest outcome (0.27-0.31)\n- Draw is mid-range (0.17-0.22)\n- Signal conflict = 0.0 indicates strong alignment\n- Deterministic model confidence = 0.67 (moderate-good)\n\n**Risk assessment:**\n- Data completeness is perfect (1.0)\n- Missing sources noted but don't contradict main signal\n- No market staleness issues\n- No contradicting signals\n- Confidence is 0.67, uncertainty is 0.5\n\n**Recommendation:**\n- Away is strongly favored across all sources\n- Bookmaker and market probabilities align closely (0.519 vs 0.526), with the model tracking this consensus at 0.504. The overwhelming agreement across independent sources\u2014bookmaker, market, Sportmonks, and Supabase all clustering around 50% for away\u2014constitutes a clear BET signal rather than a skip. With zero signal conflict, complete data, and no meaningful contradictions, this warrants a confident recommendation despite the synthetic lineups and moderate confidence score of 0.67.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.294,\"draw\":0.203,\"away\":0.504},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All sources align on away favorite (bookie 0.519, market 0.526, model 0.504)\",\"Zero signal conflict across all data streams\",\"Complete data availability (1.0 score)\",\"Consistent ~50% away consensus across independent sources\"],\"contradicting_signals\":[],\"additional_risk_flags\":[\"synthetic_lineups\",\"moderate_confidence_level\",\"missing_draw_model_input\"],\"rationale\":\"Away win strongly favored across bookmaker, market, and predictive sources. Deterministic model confidence 0.67 with zero conflict. Synthetic lineups and draw_model gap reduce confidence from high to caution posture, but alignment is too strong to defer. Away at 0.504 is primary play.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

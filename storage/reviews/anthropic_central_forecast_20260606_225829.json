@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2347,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1287,
+    "output_tokens_details": {
+      "thinking_tokens": 928
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.263,
+      "draw": 0.192,
+      "away": 0.545
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "all_sources_agree_away_favored",
+      "bookmaker_sportmonks_aligned_51_55pct",
+      "supabase_home_confidence_elevated",
+      "zero_contradictions_detected"
+    ],
+    "contradicting_signals": [
+      "polymarket_draws_9pct_vs_19_23_elsewhere",
+      "uncertainty_0_5_reflects_draw_variance",
+      "missing_draw_model_and_llm_claims"
+    ],
+    "additional_risk_flags": [
+      "draw_probability_source_divergence",
+      "polymarket_outlier_on_third_outcome",
+      "moderate_confidence_not_high_conviction",
+      "model_calibration_shrink_applied"
+    ],
+    "rationale": "Strong consensus across bookmaker, sportmonks, supabase on away as primary favorite (51-55%). Blended model 54.5% away aligns with source-weighted consensus. Complete data, confirmed lineups, pre-match window, zero signal conflict supports BET recommendation. Caution: Polymarket significantly underprices draw (9% vs 19-23% from fundamentals), suggesting market mispricing or draw-specific edge elsewhere. Missing draw_model limits draw-outcome conviction; 0.50 uncertainty reflects this. Confidence 0.67 is appropriate given excellent data completeness but missing secondary models. Recommend betting away with standard sizing.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided signals systematically:\n\n**Primary Sources:**\n1. Bookmaker: {away: 0.5128, draw: 0.2334, home: 0.2538}\n2. Polymarket: {away: 0.6373, draw: 0.0923, home: 0.2704}\n3. Sportmonks: {away: 0.5480, draw: 0.2180, home: 0.2340}\n4. Supabase: {away: 0.5155, draw: 0.1961, home: 0.2884}\n\n**Deterministic Model Output:**\n- Probabilities: {away: 0.5451, draw: 0.1923, home: 0.2626}\n- Confidence: 0.67\n- Uncertainty: 0.50\n- Risk flags: \"probability_sources_missing\"\n- Missing sources: lineup (but confirmed), draw_model, llm_claims\n\n**Data Quality:**\n- Data completeness score: 1.0 (all data present)\n- Lineup confirmed (synthetic but fair for backtest)\n- No halftime data (PRE_MATCH window)\n- No claim signals\n- No contradictions detected (signal_conflict: 0.0)\n- No stale market signals\n\n**Signal Analysis:**\n\nBookmaker (33.3% weight): Shows moderate away bias (51.28%), low draw (23.34%), low home (25.38%)\n\nPolymarket (22.2% weight): Strong away bias (63.73%), very low draw (9.23%), low home (27.04%) - this is notably different from bookmaker\n\nSportmonks (27.8% weight): Away 54.80%, draw 21.80%, home 23.40% - similar to bookmaker\nSupabase (16.7% weight): Away 51.55%, draw 19.61%, home 28.84% - slightly higher home confidence\n\n**Key Observations:**\n\nAll sources converge on away as the favorite across a 51-64% range. Polymarket diverges notably with a 9.23% draw probability compared to 19-23% from other sources, while Supabase leans slightly more bullish on home at 28.84%. The model's blended output of {away: 0.5451, draw: 0.1923, home: 0.2626} reflects this consensus with moderate confidence at 0.67, though the missing draw_model and llm_claims inputs create some uncertainty.\n\nThe data quality is strong with complete lineups and no signal conflicts, yet the draw probability variance across sources\u2014particularly Polymarket's significant underpricing\u2014introduces some caution. The 0.50 uncertainty score reflects this disagreement, especially around draw pricing. While the away preference is clear and well-supported, the moderate confidence level suggests this isn't a high-conviction scenario.\n\nI should recommend a BET given the aligned core sources and absence of contradictions, but acknowledge the limitations around draw modeling and the outlier pricing on that outcome.",
+  "text_preview": "{\"probabilities\":{\"home\":0.263,\"draw\":0.192,\"away\":0.545},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"all_sources_agree_away_favored\",\"bookmaker_sportmonks_aligned_51_55pct\",\"supabase_home_confidence_elevated\",\"zero_contradictions_detected\"],\"contradicting_signals\":[\"polymarket_draws_9pct_vs_19_23_elsewhere\",\"uncertainty_0_5_reflects_draw_variance\",\"missing_draw_model_and_llm_claims\"],\"additional_risk_flags\":[\"draw_probability_source_divergence\",\"polymarket_outlier_on_third_outcome\",\"moderate_confidence_not_high_conviction\",\"model_calibration_shrink_applied\"],\"rationale\":\"Strong consensus across bookmaker, sportmonks, supabase on away as primary favorite (51-55%). Blended model 54.5% away aligns with source-weighted consensus. Complete data, confirmed lineups, pre-match window, zero signal conflict supports BET recommendation. Caution: Polymarket significantly underprices draw (9% vs 19-23% from fundamentals), suggesting market mispricing or draw-specific edge elsewhere. Missing draw_model limits draw-outcome conviction; 0.50 uncertainty reflects this. Confidence 0.67 is appropriate given excellent data completeness but missing secondary models. Recommend betting away with standard sizing.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

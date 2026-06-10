@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1303,
+    "output_tokens_details": {
+      "thinking_tokens": 992
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.2817,
+      "draw": 0.2865,
+      "away": 0.4318
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Bookmaker-Polymarket-Sportmonks alignment on away ~0.43-0.46",
+      "Zero signal conflict and complete data",
+      "Confirmed lineups and no market staleness",
+      "Draw floor calibrated appropriately"
+    ],
+    "contradicting_signals": [
+      "Supabase significantly diverges: home 0.314 vs model 0.282",
+      "Missing draw model and LLM claims reduce conviction",
+      "Moderate uncertainty despite alignment"
+    ],
+    "additional_risk_flags": [
+      "supabase_home_divergence",
+      "missing_llm_claims",
+      "moderate_uncertainty_on_draw",
+      "single_prematch_model_confidence"
+    ],
+    "rationale": "Strong 3-way consensus across bookmaker, Polymarket, and Sportmonks supports away as primary outcome (43.2%), with stable draw (28.7%) and home (28.2%) secondary. Supabase outlier on home noted but insufficient to override converged signals. No contradictory live data, confirmed lineups, perfect data completeness. Moderate confidence and no specific edge signals warrant WATCH stance pending additional intelligence.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data systematically:\n\n**Key Data Points:**\n1. **Bookmaker**: away 0.4404, draw 0.2804, home 0.2792\n2. **Polymarket (market_probs)**: away 0.4567, draw 0.2802, home 0.2631\n3. **Sportmonks**: away 0.4348, draw 0.2912, home 0.2740\n4. **Supabase priors**: away 0.3995, draw 0.2863, home 0.3143\n5. **Deterministic model**: away 0.4318, draw 0.2865, home 0.2817 (confidence: 0.67)\n\n**Alignment Analysis:**\n- Bookmaker, Polymarket, and Sportmonks are all aligned on AWAY being the strongest outcome (~0.43-0.46)\n- Draw is consistently in the 0.28-0.29 range across these three\n- Home is weakest at ~0.26-0.28 across bookmaker/polymarket/sportmonks\n- Supabase is an outlier with HOME at 0.3143 (much higher) and AWAY at 0.3995 (lower relative to others)\n\n**Data Completeness:**\n- Data completeness score is 1.0 (perfect)\n- Missing sources: lineup, draw_model, llm_claims (but lineup data is actually provided with confirmed lineups)\n- No halftime state (PRE_MATCH)\n- No claim signals\n- No source reconciliation issues\n- No market staleness issues\n- No signal conflict\n\n**Confidence Signals:**\n- Bookmaker, Polymarket, and Sportmonks are well-aligned on away > draw > home\n- Model confidence: 0.67\n- Uncertainty: 0.50 (moderate)\n- Lineups are confirmed (synthetic but confirmed)\n- Market data shows no contradictions across sources\n\n**Risk Assessment:**\nSupabase diverges significantly on home probability compared to the other three sources, though this likely reflects a broader prior rather than conflicting signals. The primary risk flag is missing probability sources, but the signal conflict score of 0.0 indicates strong consistency. The three main sources converge decisively on away as most likely, with the model confidence at 0.67 supporting this direction. This isn't a skip situation given the strong alignment across bookmaker, Polymarket, and Sportmonks.\n\n**Recommendation Logic:**\nThe data completeness is solid (1.0), lineups are confirmed, and there's no stale market data. Despite moderate confidence, the consistent directional signal across independent sources justifies a WATCH recommendation rather than skipping entirely. The Supabase variance introduces some uncertainty that prevents a higher conviction stance.\n\n**Final Probabilities:**\nThe deterministic model output aligns well with the bookmaker and market consensus on away being most likely. The final probabilities are away: 0.4318, draw: 0.2865, home: 0.2817, which reflects the strong convergence across the primary sources while accounting for the model's inherent uncertainty.\n\n**Key Signals:**\nThree independent sources (bookmaker, Polymarket, Sportmonks) all point toward away as the most probable outcome, with consistent draw probabilities across the board. The main contradiction comes from Supabase favoring home more heavily, but this divergence isn't strong enough to override the broader alignment. Risk factors include the Supabase disagreement, missing LLM-based claims, and the absence of specific edge signals that would warrant a BET recommendation.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.2817,\"draw\":0.2865,\"away\":0.4318},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Bookmaker-Polymarket-Sportmonks alignment on away ~0.43-0.46\",\"Zero signal conflict and complete data\",\"Confirmed lineups and no market staleness\",\"Draw floor calibrated appropriately\"],\"contradicting_signals\":[\"Supabase significantly diverges: home 0.314 vs model 0.282\",\"Missing draw model and LLM claims reduce conviction\",\"Moderate uncertainty despite alignment\"],\"additional_risk_flags\":[\"supabase_home_divergence\",\"missing_llm_claims\",\"moderate_uncertainty_on_draw\",\"single_prematch_model_confidence\"],\"rationale\":\"Strong 3-way consensus across bookmaker, Polymarket, and Sportmonks supports away as primary outcome (43.2%), with stable draw (28.7%) and home (28.2%) secondary. Supabase outlier on home noted but insufficient to override converged signals. No contradictory live data, confirmed lineups, perfect data completeness. Moderate confidence and no specific edge signals warrant WATCH stance pending additional intelligence.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

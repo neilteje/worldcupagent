@@ -1,0 +1,55 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2349,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1221,
+    "output_tokens_details": {
+      "thinking_tokens": 940
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.3872,
+      "draw": 0.2085,
+      "away": 0.4043
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Perfect data completeness with confirmed lineups",
+      "Zero signal conflict across all sources",
+      "Multi-source consensus: bookmaker, market, sportmonks aligned",
+      "Deterministic model calibrated with 4-source blend"
+    ],
+    "contradicting_signals": [
+      "Bookmaker favors home (0.423) while sportmonks favors away (0.421)",
+      "Supabase draw prior notably higher (0.251) than other sources",
+      "Moderate confidence (0.67) reflects incomplete draw model input"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "divergent_draw_priors",
+      "moderate_confidence_ceiling",
+      "away_subtle_edge_low_margin"
+    ],
+    "rationale": "Away has slim 1.7pp edge over home with elevated draw likelihood (20.9%). Sources highly aligned despite 2pp spread on home/away. Confirmed lineups and perfect completeness authorize BET despite missing draw-model signal; multi-source consensus overrides isolated gaps.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features to create a final 3-way probability forecast.\n\nKey data points:\n1. **Bookmaker probs**: Home 0.4227, Draw 0.1775, Away 0.3998\n2. **Market probs (Polymarket)**: Home 0.4013, Draw 0.1918, Away 0.4069\n3. **Sportmonks probs**: Home 0.3609, Draw 0.2180, Away 0.4211\n4. **Supabase priors**: Home 0.3494, Draw 0.2511, Away 0.3995\n5. **Deterministic model**: Home 0.3872, Draw 0.2085, Away 0.4043\n6. **Data completeness**: Perfect score (1.0)\n7. **Confidence**: 0.67\n8. **Uncertainty**: 0.50\n9. **Halftime**: null (pre-match)\n10. **Lineups confirmed**: Yes (synthetic for backtest fairness)\n11. **Window**: PRE_MATCH\n12. **Signal conflict**: 0.0 (no conflicts)\n\nAnalysis:\n- All major sources are aligned on the away team being a slight favorite or competitive\n- Bookmaker leans slightly home (0.4227 vs 0.3998 away)\n- Market is nearly even between home and away\n- Sportmonks shows away stronger (0.4211 vs 0.3609 home)\n- Supabase is the most bullish on draws (0.2511)\n- The deterministic model synthesizes these with weights: bookmaker 33.33%, sportmonks 27.78%, polymarket 22.22%, supabase 16.67%\n- Missing sources: lineup details, draw_model, llm_claims - but lineups are confirmed\n- No halftime data (pre-match is expected)\n- No contradictory signals present and data completeness is perfect. The \"probability_sources_missing\" flag appears minimal given confirmed lineups. A BET recommendation is warranted given strong source alignment, perfect data quality, absence of signal conflicts, and multiple high-confidence inputs. The weighted consensus shows a tightly contested match with away holding a marginal advantage.\n\nThe draw sits at roughly 21%, which feels appropriate for this matchup. Confidence registers at 0.67 with 0.50 uncertainty\u2014moderate but fitting given the competitive dynamics and absent draw_model source. Supporting factors include flawless data completeness, confirmed lineups, no conflicting signals, and consistent multi-source agreement. However, the bookmaker favors home while other sources lean away, and draw probabilities vary somewhat across inputs (0.1775 to 0.2511). Missing probability sources and the moderate confidence level warrant caution, though the complete dataset and source alignment prevent a full veto.\n\nLooking at this more carefully, the data completeness score is perfect at 1.0, the missing sources refer to upstream inputs rather than unavailable information for this decision, lineups are locked in, the market is current, and signal conflict measures zero. These factors actually point toward a BET recommendation rather than SKIP or WATCH.",
+  "text_preview": "{\"probabilities\":{\"home\":0.3872,\"draw\":0.2085,\"away\":0.4043},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Perfect data completeness with confirmed lineups\",\"Zero signal conflict across all sources\",\"Multi-source consensus: bookmaker, market, sportmonks aligned\",\"Deterministic model calibrated with 4-source blend\"],\"contradicting_signals\":[\"Bookmaker favors home (0.423) while sportmonks favors away (0.421)\",\"Supabase draw prior notably higher (0.251) than other sources\",\"Moderate confidence (0.67) reflects incomplete draw model input\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"divergent_draw_priors\",\"moderate_confidence_ceiling\",\"away_subtle_edge_low_margin\"],\"rationale\":\"Away has slim 1.7pp edge over home with elevated draw likelihood (20.9%). Sources highly aligned despite 2pp spread on home/away. Confirmed lineups and perfect completeness authorize BET despite missing draw-model signal; multi-source consensus overrides isolated gaps.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

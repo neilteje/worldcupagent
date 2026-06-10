@@ -1,0 +1,51 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2349,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1145,
+    "output_tokens_details": {
+      "thinking_tokens": 874
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.277,
+      "draw": 0.247,
+      "away": 0.476
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All four sources (bookmaker 0.52, sportmonks 0.51, supabase 0.45, market 0.43) align on away as favorite",
+      "Zero signal conflict across all sources",
+      "Both lineups confirmed removes availability risk",
+      "Model calibration applied with draw floor protection"
+    ],
+    "contradicting_signals": [],
+    "additional_risk_flags": [
+      "missing_draw_model",
+      "missing_llm_claims",
+      "moderate_confidence_0_67",
+      "pre_match_no_halftime_data"
+    ],
+    "rationale": "Away is consensus favorite across bookmaker, sportmonks, and supabase (43-52% range). Strong multi-source alignment with zero signal conflict. Model confidence 0.67 is acceptable given complete data_completeness score and confirmed lineups. Missing tertiary signals (draw_model, llm_claims) warrant caution posture but do not block bet given primary source harmony.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features systematically:\n\n1. **Bookmaker probs**: away=0.519, draw=0.197, home=0.284\n2. **Market probs (Polymarket)**: away=0.433, draw=0.289, home=0.279\n3. **Sportmonks probs**: away=0.509, draw=0.254, home=0.236\n4. **Supabase priors**: away=0.448, draw=0.242, home=0.310\n5. **Deterministic model**: away=0.476, draw=0.247, home=0.277 (confidence: 0.67)\n\n**Lineup status**: Both confirmed (risk_flags empty) - synthetic lineups for backtest fairness\n\n**Missing sources**: lineup (but confirmed), draw_model, llm_claims\n- The lineup is actually CONFIRMED, so not truly missing\n- Draw_model and llm_claims missing, but core sources aligned\n\n**Data completeness**: score=1.0, no missing fields reported\n\n**Key observations**:\n1. All four primary sources (bookmaker, market, sportmonks, supabase) show AWAY is favorite (0.43-0.52)\n2. HOME shows lowest probability across all sources (0.23-0.31)\n3. DRAW shows mid-range probability (0.19-0.29)\n4. Signal conflict: 0.0 (excellent alignment)\n5. No contradicting signals, claim signals empty, no structured claims\n6. No halftime data (PRE_MATCH window)\n7. Model confidence: 0.67 (moderate-good)\n8. Model uncertainty: 0.50\n\n**Source ranking by spread**:\n- Bookmaker clearly favors AWAY (51.9%)\n- Sportmonks also favors AWAY (50.9%)\n- Supabase moderately favors AWAY (44.8%)\n- Market (Polymarket) most skeptical of AWAY (43.3%)\n\nThe deterministic model synthesizes these into away=0.476, draw=0.247, home=0.277\u2014a consistent AWAY signal across all sources. Missing draw_model and llm_claims create moderate confidence gaps, but the zero signal conflict and confirmed lineups mitigate risk. The 0.67 confidence level is acceptable given the strong consensus on the away outcome. maker and Sportmonks strongly aligned on the away outcome. There are no contradicting signals across the sources. The main risk factors are the missing draw model and LLM claims, along with moderate confidence from the primary model, but these don't override the consistent away recommendation across all available data points.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.277,\"draw\":0.247,\"away\":0.476},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All four sources (bookmaker 0.52, sportmonks 0.51, supabase 0.45, market 0.43) align on away as favorite\",\"Zero signal conflict across all sources\",\"Both lineups confirmed removes availability risk\",\"Model calibration applied with draw floor protection\"],\"contradicting_signals\":[],\"additional_risk_flags\":[\"missing_draw_model\",\"missing_llm_claims\",\"moderate_confidence_0_67\",\"pre_match_no_halftime_data\"],\"rationale\":\"Away is consensus favorite across bookmaker, sportmonks, and supabase (43-52% range). Strong multi-source alignment with zero signal conflict. Model confidence 0.67 is acceptable given complete data_completeness score and confirmed lineups. Missing tertiary signals (draw_model, llm_claims) warrant caution posture but do not block bet given primary source harmony.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

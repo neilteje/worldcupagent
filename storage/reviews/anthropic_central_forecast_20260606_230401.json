@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1198,
+    "output_tokens_details": {
+      "thinking_tokens": 896
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.425,
+      "draw": 0.2258,
+      "away": 0.3492
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all_sources_converge_home_favorite_39_to_46_pct",
+      "perfect_data_completeness_confirmed_lineups",
+      "polymarket_sportmonks_supabase_bookmaker_aligned",
+      "calibration_floor_applied"
+    ],
+    "contradicting_signals": [
+      "polymarket_39pct_vs_others_42_46pct",
+      "moderate_model_confidence_0_67",
+      "missing_llm_claims_and_draw_models"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "polymarket_drift_4pct_low",
+      "uncertainty_floor_ambiguity"
+    ],
+    "rationale": "Strong consensus across independent sources (bookmaker, market, sportmonks, supabase) on home favorite 42.5%. Deterministic blend weights all sources; perfect data completeness; confirmed lineups; zero signal conflict. Polymarket 3.2ppt lower but not contradictory. Model confidence 0.67 adequate for pre-match with aligned signals. BET authorization on home.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features:\n\n1. **Bookmaker Probs**: Home 46.31%, Draw 19.22%, Away 34.47%\n2. **Market Probs (Polymarket)**: Home 39.30%, Draw 22.41%, Away 38.29%\n3. **Sportmonks Probs**: Home 41.44%, Draw 25.77%, Away 32.79%\n4. **Supabase Priors**: Home 44.67%, Draw 21.45%, Away 33.87%\n5. **Deterministic Model**: Home 42.50%, Draw 22.58%, Away 34.92%\n   - Confidence: 0.67\n   - Missing sources: lineup, draw_model, llm_claims\n   - Uncertainty: 0.50\n\n**Key Observations:**\n- All sources align on HOME FAVORITE (41-46% range)\n- Draw probabilities consistent (19-26% range)\n- Away team consistent (32-39% range)\n- Data completeness score: 1.0 (no missing data)\n- Lineups confirmed (synthetic backtest fairness)\n- No halftime data (pre-match)\n- No claim signals\n- No source conflicts\n- Signal conflict: 0.0\n- Deterministic model confidence: 0.67\n- Uncertainty: 0.50\n\n**Source Alignment:**\n- Bookmaker: Home 46.31%\n- Polymarket: Home 39.30%\n- Sportmonks: Home 41.44%\n- Supabase: Home 44.67%\n- Deterministic blend: Home 42.50%\n\nThere's reasonable consensus around Home being favorite, though Polymarket is notably lower. The deterministic model has already weighted and calibrated these sources.\n\n**Confidence Assessment:**\n- Multiple independent sources all point to same direction (home favorite)\n- Data completeness is perfect (1.0)\n- The 0.67 model confidence reflects moderate certainty appropriate for pre-match conditions. The missing inputs (lineup, draw_model, llm_claims) relate to the deterministic model's architecture rather than actual data gaps. All major sources converge on home favoritism between 39-46%, with no conflicting signals. The 16% draw floor provides appropriate calibration. This points toward a HOME bet with approval-level confidence.\n\n- Supporting this: complete data across bookmakers, markets, and sportmonks; confirmed lineups reducing uncertainty; and the deterministic model's calibrated output. Polymarket sits slightly lower at 39% versus 42-46% elsewhere, and the moderate confidence stems from missing secondary claims. The final probabilities\u2014Home 42.50%, Draw 22.58%, Away 34.92%\u2014serve as the primary guide, with confidence adjusted to 0.65-0.67 accounting for the missing llm_claims, and uncertainty holding at 0.50.\n\nThe signals point toward backing the home side given the strong consensus and low contradiction risk, though I'm flagging the polymarket drift and moderate model confidence as areas to monitor.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.4250,\"draw\":0.2258,\"away\":0.3492},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all_sources_converge_home_favorite_39_to_46_pct\",\"perfect_data_completeness_confirmed_lineups\",\"polymarket_sportmonks_supabase_bookmaker_aligned\",\"calibration_floor_applied\"],\"contradicting_signals\":[\"polymarket_39pct_vs_others_42_46pct\",\"moderate_model_confidence_0_67\",\"missing_llm_claims_and_draw_models\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"polymarket_drift_4pct_low\",\"uncertainty_floor_ambiguity\"],\"rationale\":\"Strong consensus across independent sources (bookmaker, market, sportmonks, supabase) on home favorite 42.5%. Deterministic blend weights all sources; perfect data completeness; confirmed lineups; zero signal conflict. Polymarket 3.2ppt lower but not contradictory. Model confidence 0.67 adequate for pre-match with aligned signals. BET authorization on home.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

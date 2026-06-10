@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2346,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1331,
+    "output_tokens_details": {
+      "thinking_tokens": 1050
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.6121,
+      "draw": 0.2767,
+      "away": 0.1111
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Bookmaker, Polymarket, Sportmonks converge on 62-64% home",
+      "Lineups confirmed for both sides",
+      "Zero signal conflict across sources",
+      "Draw consensus 27% across all models"
+    ],
+    "contradicting_signals": [
+      "Supabase away 14.81% vs Sportmonks 6.86% (2.2x spread)",
+      "Missing draw_model and llm_claims inputs",
+      "Synthetic lineup fairness note"
+    ],
+    "additional_risk_flags": [
+      "missing_secondary_models",
+      "supabase_away_divergence",
+      "probability_sources_missing_indicator_stale"
+    ],
+    "rationale": "Strong consensus across bookmaker, market, and Sportmonks (61-64% home). Deterministic blend at 61.21% home anchors forecast. Lineup confirmation and zero conflict support BET stance. Supabase away outlier and missing draw calibration warrant caution posture rather than approve.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features systematically:\n\n1. **Bookmaker Probs**: Home 62.79%, Draw 26.88%, Away 10.33%\n2. **Market Probs (Polymarket)**: Home 62.96%, Draw 25.47%, Away 11.57%\n3. **Sportmonks Probs**: Home 63.99%, Draw 29.15%, Away 6.86%\n4. **Supabase Priors**: Home 57.96%, Draw 27.24%, Away 14.81%\n5. **Deterministic Model**: Home 61.21%, Draw 27.67%, Away 11.11%, Confidence 0.67\n\n**Alignment Analysis**:\n- All sources converge strongly on HOME as most likely (57.96% to 63.99%)\n- Draw consensus: 25.47% to 29.15% (fairly tight)\n- Away: 6.86% to 14.81% (wider spread, Supabase is outlier high)\n\n**Data Completeness**: 1.0 - perfect data availability\n\n**Lineups**: Both confirmed with \"Synthetic confirmed lineups for backtest fairness\"\n\n**Risk Flags**:\n- probability_sources_missing: [\"lineup\", \"draw_model\", \"llm_claims\"] - but lineups ARE confirmed\n- This is a minor inconsistency - lineups are confirmed but marked as missing source\n\n**Signal Conflict**: 0.0 - no conflict detected\n\n**Confidence**: 0.67 from deterministic model\n\n**Window**: PRE_MATCH (no halftime data to consider)\n\n**Key Observations**:\n1. Strong alignment across all 4 major sources (bookmaker, polymarket, sportmonks, supabase) on HOME win\n2. Narrower consensus on draw (~27%)\n3. Away significantly underweighted across all sources\n4. The deterministic model's 0.67 confidence reflects reasonable uncertainty given the missing draw modeling and LLM input. The final probabilities (61.21% home, 27.67% draw, 11.11% away) align well with bookmaker and market data, suggesting a well-calibrated synthesis. The lineups are confirmed despite the pipeline artifact flagging them as missing.\n\nMultiple independent sources converge on a home outcome\u2014bookmakers, Polymarket, and Sportmonks all point the same direction with no contradictory signals. Data completeness is strong at 1.0, though the absence of secondary models introduces some caution. Given this alignment, I'd recommend BET on the home side, as the primary signals are sufficiently robust despite the secondary feature gaps.\n\nThe main tension is Supabase's away probability sitting notably higher than other sources, which creates a minor divergence I should flag. Synthetic lineups marked as fair don't fully resolve real-world fairness concerns. Final probabilities from the deterministic model are Home 0.6121, Draw 0.2767, Away 0.1111, with confidence at 0.67 and uncertainty at 0.50.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.6121,\"draw\":0.2767,\"away\":0.1111},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Bookmaker, Polymarket, Sportmonks converge on 62-64% home\",\"Lineups confirmed for both sides\",\"Zero signal conflict across sources\",\"Draw consensus 27% across all models\"],\"contradicting_signals\":[\"Supabase away 14.81% vs Sportmonks 6.86% (2.2x spread)\",\"Missing draw_model and llm_claims inputs\",\"Synthetic lineup fairness note\"],\"additional_risk_flags\":[\"missing_secondary_models\",\"supabase_away_divergence\",\"probability_sources_missing_indicator_stale\"],\"rationale\":\"Strong consensus across bookmaker, market, and Sportmonks (61-64% home). Deterministic blend at 61.21% home anchors forecast. Lineup confirmation and zero conflict support BET stance. Supabase away outlier and missing draw calibration warrant caution posture rather than approve.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

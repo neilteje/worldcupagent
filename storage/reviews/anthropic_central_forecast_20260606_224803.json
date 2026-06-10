@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2348,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1188,
+    "output_tokens_details": {
+      "thinking_tokens": 890
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.3724,
+      "draw": 0.3039,
+      "away": 0.3237
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "bookmaker_deterministic_alignment_on_home",
+      "complete_data_score",
+      "zero_signal_conflict",
+      "lineups_confirmed"
+    ],
+    "contradicting_signals": [
+      "sportmonks_away_bias_39pct",
+      "polymarket_draw_preference_35pct",
+      "draw_volatility_across_sources_22_to_35pct",
+      "missing_llm_claims_and_draw_model"
+    ],
+    "additional_risk_flags": [
+      "missing_claim_extraction",
+      "missing_draw_model_contribution",
+      "moderate_calibration_uncertainty",
+      "sportmonks_outlier_away_signal"
+    ],
+    "rationale": "Deterministic model blends four sources into home-lean consensus (37.2%); bookmaker and supabase reinforce. Sportmonks' 39.5% away diverges but is down-weighted (27.8%). No conflicts detected. Data complete but llm_claims and draw_model absent; uncertainty at 0.5. Moderate confidence justified. Watch for live movement before bet commitment.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this comprehensive soccer prediction data:\n\n**Key Data Points:**\n1. **Bookmaker probs**: H: 39.65%, D: 30.82%, A: 29.53%\n2. **Polymarket (market_probs)**: H: 34.89%, D: 35.20%, A: 29.92%\n3. **Sportmonks**: H: 38.15%, D: 22.39%, A: 39.46%\n4. **Supabase priors**: H: 36.03%, D: 33.99%, A: 29.98%\n5. **Deterministic model**: H: 37.24%, D: 30.39%, A: 32.37%\n\n**Consensus Analysis:**\n- Home win: Range 34.89%-39.65% (bookmaker highest, Polymarket lowest)\n- Draw: Range 22.39%-35.20% (Sportmonks lowest, Polymarket highest)\n- Away: Range 29.53%-39.46% (Bookmaker lowest, Sportmonks highest)\n\n**Agreement Assessment:**\n- Bookmaker favors HOME (39.65%)\n- Polymarket slightly favors DRAW (35.20%)\n- Sportmonks favors AWAY (39.46%)\n- Supabase favors HOME (36.03%)\n- Deterministic model favors HOME (37.24%)\n\nThe model is using source_blend with weights:\n- Bookmaker: 33.33%\n- Sportmonks: 27.78%\n- Polymarket: 22.22%\n- Supabase: 16.67%\n\n**Strengths:**\n- Complete data (data_completeness score: 1.0)\n- Lineups confirmed\n- Multiple source agreement on HOME (bookmaker, supabase, deterministic model)\n- Model confidence sits at 67% with no signal conflicts detected. The primary data sources are all available and verified, though some supplementary claims are missing.\n\n**Weaknesses:**\n- Sportmonks diverges significantly on away probability (39.46% vs consensus around 30%), creating notable tension in the ensemble. Draw estimates show substantial volatility across sources, ranging from Sportmonks' conservative 22.39% to Polymarket's elevated 35.20%.\n\n**Risk Assessment:**\n- Three sources align on home preference, but Sportmonks' outlier positioning on away creates model uncertainty. The weighting scheme appropriately discounts the divergent source while maintaining its influence, though the 0.5 uncertainty level reflects this tension.\n\n**Recommendation:**\nThe deterministic model output (H: 37.24%, D: 30.39%, A: 32.37%) provides a reasonable consensus. Given the bookmaker-deterministic alignment on home, complete core data coverage, and moderate confidence level, a cautious bet favoring home is justified while acknowledging draw volatility and Sportmonks' away preference as residual risks. Final probabilities align with the deterministic model at 0.3724 home, 0.3039 draw, 0.3237 away, with confidence maintained at 0.65-0.67 and uncertainty at 0.50.\n\nThe missing secondary sources (llm_claims, draw_model details) and draw volatility suggest adopting a \"WATCH\" stance rather than committing to a full bet position. This approach respects the data constraints while remaining positioned to act if additional signals clarify the draw risk.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.3724,\"draw\":0.3039,\"away\":0.3237},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"bookmaker_deterministic_alignment_on_home\",\"complete_data_score\",\"zero_signal_conflict\",\"lineups_confirmed\"],\"contradicting_signals\":[\"sportmonks_away_bias_39pct\",\"polymarket_draw_preference_35pct\",\"draw_volatility_across_sources_22_to_35pct\",\"missing_llm_claims_and_draw_model\"],\"additional_risk_flags\":[\"missing_claim_extraction\",\"missing_draw_model_contribution\",\"moderate_calibration_uncertainty\",\"sportmonks_outlier_away_signal\"],\"rationale\":\"Deterministic model blends four sources into home-lean consensus (37.2%); bookmaker and supabase reinforce. Sportmonks' 39.5% away diverges but is down-weighted (27.8%). No conflicts detected. Data complete but llm_claims and draw_model absent; uncertainty at 0.5. Moderate confidence justified. Watch for live movement before bet commitment.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

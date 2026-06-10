@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1310,
+    "output_tokens_details": {
+      "thinking_tokens": 1018
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.4,
+      "draw": 0.291,
+      "away": 0.309
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "bookmaker_home_40pct_aligned",
+      "sportmonks_41.5pct_home_strong",
+      "supabase_priors_41pct_agreement",
+      "complete_data_confirmed_lineups"
+    ],
+    "contradicting_signals": [
+      "polymarket_draw_36pct_outlier_vs_consensus_30pct",
+      "missing_draw_model_obscures_true_draw_risk"
+    ],
+    "additional_risk_flags": [
+      "missing_llm_claims_validation",
+      "polymarket_divergence_on_draw",
+      "prematched_no_halftime_signal",
+      "draw_model_absent"
+    ],
+    "rationale": "Home win dominates across bookmaker, sportmonks, supabase (40-41.5%). Draw consensus ~29-31% except polymarket 36% outlier. Deterministic model 38.3% home reasonable blend. Complete data + confirmed lineups support BET. Caution posture due to missing draw_model and claim validation despite strong primary source alignment.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features to generate a final 3-way probability forecast:\n\n**Key Data Points:**\n1. Bookmaker probs: Home 40.0%, Draw 29.9%, Away 30.1%\n2. Polymarket (market_probs): Home 32.3%, Draw 36.0%, Away 31.7%\n3. Sportmonks: Home 41.5%, Draw 27.0%, Away 31.5%\n4. Supabase priors: Home 41.0%, Draw 28.9%, Away 30.1%\n5. Deterministic model: Home 38.3%, Draw 30.7%, Away 31.0%\n\n**Data Completeness:**\n- Score: 1.0 (complete)\n- Missing sources: lineup, draw_model, llm_claims\n- But lineups are confirmed (synthetic for backtest)\n- No halftime data (PRE_MATCH window)\n\n**Source Analysis:**\n- Bookmaker: 33.3% weight \u2192 Home 40%, Draw 29.9%, Away 30.1%\n- Polymarket: 22.2% weight \u2192 Home 32.3%, Draw 36.0%, Away 31.7%\n- Sportmonks: 27.8% weight \u2192 Home 41.5%, Draw 27.0%, Away 31.5%\n- Supabase: 16.7% weight \u2192 Home 41.0%, Draw 28.9%, Away 30.1%\n\n**Consensus Observations:**\n- Home Win: Strong agreement (40.0-41.5% across sources) \u2192 ~40%\n- Draw: Significant divergence (27.0-36.0%), but mostly 28-31% except Polymarket at 36%\n- Away: Tight clustering (30.1-31.7%) \u2192 ~31%\n\n**Model Confidence:** 0.67 (moderate, due to missing lineup details and draw model)\n**Uncertainty:** 0.50 (high due to PRE_MATCH state and missing secondary sources)\n\nThe data completeness is solid and primary sources align well on home and away outcomes. Polymarket's elevated draw estimate at 36% stands out against the 28-31% consensus, though this divergence isn't severe enough to warrant skipping the forecast. No signal conflicts detected, lineups are accounted for despite being synthetic, and there are no stale market indicators to concern me.\n\nAcross bookmakers, Sportmonks, and Supabase, home win probability clusters tightly around 40-41.5%, with Polymarket at 32.3% still following the same directional preference. The deterministic model settles at 38.3% as a reasonable middle ground. Given this convergence and complete data, I'm leaning toward a BET recommendation with moderate confidence, as the home win emerges as the clearest signal. I'll set final probabilities at home 0.40, away 0.31, and draw 0.29, weighting the three-source consensus while acknowledging the Polymarket outlier. Model confidence sits at 0.67, supported by data completeness but tempered by the PRE_MATCH state and missing secondary validation sources.\n\nThe main concern is what I'm not seeing\u2014no draw model to cross-check and no LLM claims to validate against. While sources align well and contradictory evidence is absent, the gaps in secondary insights push me toward caution rather than full approval. Polymarket's divergence on draw probability (36%) and the missing draw model are the key risk flags to monitor.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.400,\"draw\":0.291,\"away\":0.309},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"bookmaker_home_40pct_aligned\",\"sportmonks_41.5pct_home_strong\",\"supabase_priors_41pct_agreement\",\"complete_data_confirmed_lineups\"],\"contradicting_signals\":[\"polymarket_draw_36pct_outlier_vs_consensus_30pct\",\"missing_draw_model_obscures_true_draw_risk\"],\"additional_risk_flags\":[\"missing_llm_claims_validation\",\"polymarket_divergence_on_draw\",\"prematched_no_halftime_signal\",\"draw_model_absent\"],\"rationale\":\"Home win dominates across bookmaker, sportmonks, supabase (40-41.5%). Draw consensus ~29-31% except polymarket 36% outlier. Deterministic model 38.3% home reasonable blend. Complete data + confirmed lineups support BET. Caution posture due to missing draw_model and claim validation despite strong primary source alignment.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

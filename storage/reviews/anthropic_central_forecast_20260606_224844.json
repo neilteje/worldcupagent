@@ -1,0 +1,53 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1161,
+    "output_tokens_details": {
+      "thinking_tokens": 847
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.289,
+      "draw": 0.259,
+      "away": 0.452
+    },
+    "confidence": 0.68,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All major sources aligned on away win 45-47%",
+      "Perfect signal conflict 0.0 with no contradictions",
+      "Lineups confirmed synthetic for fairness",
+      "Bookmaker-Sportmonks-Supabase consensus on away"
+    ],
+    "contradicting_signals": [
+      "Polymarket 44% away vs bookmaker 45.8%",
+      "Draw probability varies 20.9% to 32.6% across sources"
+    ],
+    "additional_risk_flags": [
+      "missing_secondary_sources_draw_model",
+      "moderate_uncertainty_0_5",
+      "confidence_limited_by_missing_llm_claims"
+    ],
+    "rationale": "Strong three-source consensus on away win (45.8%-46.4%-47.9% range) reinforced by deterministic model 45.24%. Despite missing draw_model and llm_claims inputs, perfect data completeness, zero signal conflict, and confirmed lineups enable confident away-favoring forecast. Moderate uncertainty haircut applied for absent secondary sources but insufficient to veto. Caution posture reflects 0.67 model confidence and 0.50 uncertainty.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the signals provided:\n\n**Key Data Points:**\n1. **Bookmaker probs**: Home 31.38%, Draw 22.82%, Away 45.80%\n2. **Polymarket probs**: Home 23.41%, Draw 32.56%, Away 44.03%\n3. **Sportmonks probs**: Home 32.67%, Draw 20.91%, Away 46.41%\n4. **Supabase priors**: Home 25.24%, Draw 26.83%, Away 47.93%\n\n5. **Deterministic Model**: Home 28.90%, Draw 25.86%, Away 45.24%\n   - Confidence: 0.67\n   - Uncertainty: 0.50\n   - Missing sources: lineup, draw_model, llm_claims (but lineups confirmed as synthetic)\n   - Risk flag: probability_sources_missing\n\n**Data Quality:**\n- Data completeness score: 1.0 (nothing missing from provided features)\n- Lineups confirmed (synthetic for backtest fairness)\n- Halftime: null (PRE_MATCH)\n- Signal conflict: 0.0 (perfect alignment)\n- No contradictory signals, no stale market warnings\n\n**Alignment Analysis:**\n- Away: 45.80% (bookmaker) \u2192 46.41% (sportmonks) \u2192 47.93% (supabase) \u2192 44.03% (polymarket) = Strong consensus AWAY ~45-47%\n- Deterministic model: 45.24% for away (aligns well)\n- Home: 31.38% (bookmaker) \u2192 32.67% (sportmonks) \u2192 25.24% (supabase) \u2192 23.41% (polymarket) = Range 23-33%, moderate consensus\n- Draw shows more volatility across sources, ranging from 20.91% to 32.56%, with bookmaker and Sportmonks clustering lower while Polymarket and Supabase lean higher. The deterministic model settles at 25.86%, sitting between these poles. Despite moderate-to-good confidence at 0.67 and medium uncertainty at 0.50, the missing secondary sources create a probability_sources_missing flag, though data completeness remains perfect and no claim signals contradict the consensus.\n\n- All four primary sources converge on away as the strongest outcome at 44-48%, with the deterministic model's 45.24% fitting squarely within this band. The signal_conflict metric of 0.0 confirms no contradictions, lineups are locked in, and the alignment is strong enough that missing sources like draw_model and llm_claims shouldn't override the primary consensus. This warrants a cautious bet recommendation\u2014the confidence haircut from missing secondary sources is offset by the robust alignment across all major data points.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.289,\"draw\":0.259,\"away\":0.452},\"confidence\":0.68,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All major sources aligned on away win 45-47%\",\"Perfect signal conflict 0.0 with no contradictions\",\"Lineups confirmed synthetic for fairness\",\"Bookmaker-Sportmonks-Supabase consensus on away\"],\"contradicting_signals\":[\"Polymarket 44% away vs bookmaker 45.8%\",\"Draw probability varies 20.9% to 32.6% across sources\"],\"additional_risk_flags\":[\"missing_secondary_sources_draw_model\",\"moderate_uncertainty_0_5\",\"confidence_limited_by_missing_llm_claims\"],\"rationale\":\"Strong three-source consensus on away win (45.8%-46.4%-47.9% range) reinforced by deterministic model 45.24%. Despite missing draw_model and llm_claims inputs, perfect data completeness, zero signal conflict, and confirmed lineups enable confident away-favoring forecast. Moderate uncertainty haircut applied for absent secondary sources but insufficient to veto. Caution posture reflects 0.67 model confidence and 0.50 uncertainty.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

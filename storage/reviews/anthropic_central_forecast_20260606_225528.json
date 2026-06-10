@@ -1,0 +1,46 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2346,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1053,
+    "output_tokens_details": {
+      "thinking_tokens": 821
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.488,
+      "draw": 0.3,
+      "away": 0.212
+    },
+    "confidence": 0.7,
+    "uncertainty": 0.45,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all sources aligned: bookmaker 0.478, market 0.511, Sportmonks 0.479, Supabase 0.514",
+      "signal_conflict 0.0 across all sources",
+      "data_completeness 1.0 with confirmed lineups",
+      "deterministic model 0.485 home aligns with consensus"
+    ],
+    "contradicting_signals": [],
+    "additional_risk_flags": [],
+    "rationale": "Home-win bias consistent across bookmaker, market, Sportmonks, Supabase with zero conflict. Perfect data completeness and confirmed lineups mitigate missing draw_model/llm_claims. Model confidence 0.67 + alignment bonus sufficient to approve bet at 70% confidence.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to synthesize a 3-way probability forecast.\n\n**Key Data Points:**\n1. **Bookmaker probs**: Home 0.478, Draw 0.307, Away 0.215\n2. **Market probs (Polymarket)**: Home 0.511, Draw 0.238, Away 0.251\n3. **Sportmonks probs**: Home 0.479, Draw 0.346, Away 0.175\n4. **Supabase priors**: Home 0.514, Draw 0.293, Away 0.193\n5. **Deterministic model**: Home 0.485, Draw 0.299, Away 0.216 (confidence: 0.67)\n\n**Data Completeness:**\n- Score: 1.0 (perfect)\n- Missing: None\n- Lineups: Confirmed (synthetic for backtest fairness)\n- No claim signals or structured claims\n- No halftime data (PRE_MATCH window)\n\n**Source Analysis:**\n- All sources highly aligned around home win (0.478-0.514)\n- Sportmonks notably higher on draw (0.346 vs ~0.30 elsewhere)\n- Supabase slightly higher on home (0.514)\n- Polymarket slight outlier with highest home prob (0.511)\n- Away odds consistently lowest (0.175-0.251)\n\n**Model Confidence & Signals:**\n- Deterministic model confidence: 0.67\n- Signal conflict: 0.0 (excellent alignment)\n- Missing sources: lineup (actually confirmed), draw_model, llm_claims\n- Uncertainty: 0.5 from model, but data completeness is 1.0\n- Risk flags: \"probability_sources_missing\" (mitigated by complete data)\n\n**Calibration Applied:**\n- Draw floor: 0.16 (actual ~0.30 is well above)\n- Temperature: 1.05 (slight variance applied)\n- Shrink: 0.05\n\nAll major sources converge on the same outcome with no contradictory signals, and the data is complete with confirmed lineups. The model's moderate confidence of 0.67 combined with perfect alignment across bookmakers, markets, and statistical models creates a strong case for action. The recommendation is to approve the bet given the multi-source consensus, zero signal conflict, and absence of any red flags.\n\nThe weighted probabilities across all sources cluster around home (0.490), draw (0.300), and away (0.210), with the model's output of 0.485/0.299/0.216 aligning closely to market consensus. I'm adjusting the home probability slightly upward to 0.511 based on market positioning. With perfect data completeness and no conflicting signals, confidence rises to approximately 0.70, while uncertainty drops to 0.45 given the strong alignment despite the model's initial 0.5 uncertainty estimate.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.488,\"draw\":0.300,\"away\":0.212},\"confidence\":0.70,\"uncertainty\":0.45,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all sources aligned: bookmaker 0.478, market 0.511, Sportmonks 0.479, Supabase 0.514\",\"signal_conflict 0.0 across all sources\",\"data_completeness 1.0 with confirmed lineups\",\"deterministic model 0.485 home aligns with consensus\"],\"contradicting_signals\":[],\"additional_risk_flags\":[],\"rationale\":\"Home-win bias consistent across bookmaker, market, Sportmonks, Supabase with zero conflict. Perfect data completeness and confirmed lineups mitigate missing draw_model/llm_claims. Model confidence 0.67 + alignment bonus sufficient to approve bet at 70% confidence.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

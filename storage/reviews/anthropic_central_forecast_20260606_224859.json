@@ -1,0 +1,53 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1222,
+    "output_tokens_details": {
+      "thinking_tokens": 942
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.493,
+      "draw": 0.223,
+      "away": 0.284
+    },
+    "confidence": 0.72,
+    "uncertainty": 0.48,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "All 4 sources aligned on home favoring (45-53% range)",
+      "Perfect data completeness & confirmed lineups",
+      "Zero signal conflict, no stale market detected",
+      "Model calibration stable with draw floor"
+    ],
+    "contradicting_signals": [
+      "Polymarket 53% vs bookmaker 45% on home shows 8pt spread",
+      "Missing draw_model source limits draw calibration confidence"
+    ],
+    "additional_risk_flags": [
+      "market_divergence_home_favoring",
+      "secondary_models_incomplete",
+      "pre_match_window_volatility"
+    ],
+    "rationale": "Sources converge tightly around 49% home, 28% away, 22% draw. Bookmaker-market-sportmonks-supabase consensus is robust. Deterministic model blends all sources appropriately. Confirmed lineups & perfect completeness score override missing secondary signals. Polymarket premium on home noted but consistent with broader trendency. Moderate confidence justified by alignment depth.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this soccer prediction-market forecasting task systematically:\n\n**Key Data Points:**\n1. **Bookmaker Probs**: Home 45.1%, Draw 25.6%, Away 29.3%\n2. **Market Probs (Polymarket)**: Home 53.1%, Draw 18.5%, Away 28.4%\n3. **Sportmonks Probs**: Home 51.4%, Draw 22.6%, Away 26.1%\n4. **Supabase Priors**: Home 51.6%, Draw 20.1%, Away 28.3%\n5. **Deterministic Model Output**: Home 49.1%, Draw 22.6%, Away 28.3%\n\n**Data Completeness:**\n- Score: 1.0 (perfect)\n- Missing: [] (none listed)\n- BUT: Deterministic model has missing sources: [\"lineup\", \"draw_model\", \"llm_claims\"]\n- However, lineups ARE confirmed as synthetic confirmed lineups for backtest fairness\n- No halftime data (PRE_MATCH window)\n\n**Signal Analysis:**\n\nAll four major sources (bookmaker, polymarket, sportmonks, supabase) show strong alignment:\n- Home: ranges from 45.1% to 53.1% (consensus ~49-51%)\n- Away: ranges from 26.1% to 29.3% (consensus ~28%)\n- Draw: ranges from 18.5% to 25.6% (consensus ~22%)\n\n**Deterministic Model:**\n- Confidence: 0.67 (moderate-high)\n- Risk flags: [\"probability_sources_missing\"] - but this is mitigated because lineups are confirmed\n- The model's output (Home 49.1%, Away 28.3%, Draw 22.6%) is a weighted blend of all sources\n- No contradictions between sources (signal_conflict = 0.0) and no reconciliation issues flagged\n- Markets show no staleness, and there are no claim signals or structured claims to evaluate\n- Model uncertainty sits at 0.5, which is reasonable given the tight consensus across independent forecasters\n\nThe alignment across bookmakers, prediction markets, and statistical models is striking\u2014all pointing toward a home-favored outcome with consistent away and draw probabilities. With confirmed lineups and perfect data completeness, the forecast appears well-grounded.\n\nI notice polymarket leans slightly bullish on home (53.1%) compared to bookmakers (45.1%), indicating minor market disagreement worth acknowledging. The deterministic output of 49.1% home, 28.3% away, 22.6% draw sits between these views and represents a reasonable consensus. I'd set confidence around 0.70-0.75 given the strong alignment and data quality, though the absence of draw-specific modeling and LLM analysis introduces a small gap in coverage. This warrants approval as a bet case\u2014sources are well-aligned with no major red flags\u2014but with slight caution due to those missing analytical layers.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.493,\"draw\":0.223,\"away\":0.284},\"confidence\":0.72,\"uncertainty\":0.48,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"All 4 sources aligned on home favoring (45-53% range)\",\"Perfect data completeness & confirmed lineups\",\"Zero signal conflict, no stale market detected\",\"Model calibration stable with draw floor\"],\"contradicting_signals\":[\"Polymarket 53% vs bookmaker 45% on home shows 8pt spread\",\"Missing draw_model source limits draw calibration confidence\"],\"additional_risk_flags\":[\"market_divergence_home_favoring\",\"secondary_models_incomplete\",\"pre_match_window_volatility\"],\"rationale\":\"Sources converge tightly around 49% home, 28% away, 22% draw. Bookmaker-market-sportmonks-supabase consensus is robust. Deterministic model blends all sources appropriately. Confirmed lineups & perfect completeness score override missing secondary signals. Polymarket premium on home noted but consistent with broader trendency. Moderate confidence justified by alignment depth.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

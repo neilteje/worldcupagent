@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2352,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1175,
+    "output_tokens_details": {
+      "thinking_tokens": 866
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.406,
+      "draw": 0.3,
+      "away": 0.294
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Four sources converge on home favorite (40-47%)",
+      "No signal conflict, data complete, lineups confirmed",
+      "Bookmaker/market/model aligned on home > away > draw",
+      "Supabase priors (42.9%) reinforce home consensus"
+    ],
+    "contradicting_signals": [
+      "Polymarket 10.9pp premium over bookmaker on home (46.7% vs 35.8%)",
+      "Moderate model confidence (0.67) not high",
+      "Draw floor (16%) mechanically supports draw vs natural model"
+    ],
+    "additional_risk_flags": [
+      "polymarket_home_outlier",
+      "missing_draw_model_signal",
+      "synthetic_lineup_fairness_bias"
+    ],
+    "rationale": "Home favorite backed by deterministic model (40.6%), Sportmonks (40.2%), Supabase (42.9), and bookmaker (35.8%). Polymarket outlier (46.7%) noted but doesn't break consensus. No severe contradictions, perfect data completeness, zero signal conflict. Moderate confidence acceptable given alignment. Caution on Polymarket premium warrants betting discipline.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features:\n\n1. **Bookmaker probs**: home 35.8%, draw 30.1%, away 34.1%\n2. **Market probs (Polymarket)**: home 46.7%, draw 29.8%, away 23.4%\n3. **Sportmonks probs**: home 40.2%, draw 28.6%, away 31.1%\n4. **Supabase priors**: home 42.9%, draw 31.2%, away 25.9%\n5. **Deterministic model**: home 40.6%, draw 30.0%, away 29.4% (confidence 0.67)\n\n**Key observations:**\n- Bookmaker and market are significantly misaligned on home win probability (35.8% vs 46.7%)\n- Polymarket shows the highest home probability (46.7%)\n- Sportmonks (40.2%) and Supabase (42.9%) align more with deterministic model (40.6%)\n- All sources agree on away being lower than home (23-34%)\n- Draw probabilities are tightly clustered (28.6-31.2%)\n- Data completeness is 1.0 (no missing data)\n- Signal conflict is 0.0 (good alignment)\n- Confidence is 0.67 (moderate-high)\n- Uncertainty is 0.5\n- Missing sources: lineup (but confirmed as synthetic), draw_model, llm_claims\n- No contradicting signals or claim signals provided\n- Halftime is null (pre-match)\n- No stale market flags\n- No structured claims or signals\n\n**Conflict analysis:**\n- Polymarket significantly higher on home (46.7%) vs bookmaker (35.8%) - 10.9pp difference\n- Despite this divergence, signal_conflict registers as 0.0, indicating the system treats this variance as within acceptable bounds\n\nThree sources cluster around 40-43% for home (Sportmonks, Supabase, and the deterministic model), while Polymarket pushes higher at 46.7% and the bookmaker sits lower at 35.8%. The consensus ordering is clear: home > away > draw across all sources.\n\nData quality is solid\u2014lineups confirmed, no missing critical information, and perfect completeness score. The instruction explicitly warns against defaulting to SKIP when bookmaker and model signals align on the favorite, which they do here. Four independent sources agree home is the preference, even if they disagree on magnitude. I'll weight toward the deterministic model's 40.6% while noting the market's slight bullishness on home.\n\nThe case for betting: strong multi-source agreement on home as favorite, no signal conflict flagged, complete data, and moderate confidence of 0.67. The case for caution: Polymarket's 10.9 percentage point premium over the bookmaker, and the confidence level isn't high enough to ignore the draw floor constraint.",
+  "text_preview": "{\"probabilities\":{\"home\":0.406,\"draw\":0.300,\"away\":0.294},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Four sources converge on home favorite (40-47%)\",\"No signal conflict, data complete, lineups confirmed\",\"Bookmaker/market/model aligned on home > away > draw\",\"Supabase priors (42.9%) reinforce home consensus\"],\"contradicting_signals\":[\"Polymarket 10.9pp premium over bookmaker on home (46.7% vs 35.8%)\",\"Moderate model confidence (0.67) not high\",\"Draw floor (16%) mechanically supports draw vs natural model\"],\"additional_risk_flags\":[\"polymarket_home_outlier\",\"missing_draw_model_signal\",\"synthetic_lineup_fairness_bias\"],\"rationale\":\"Home favorite backed by deterministic model (40.6%), Sportmonks (40.2%), Supabase (42.9), and bookmaker (35.8%). Polymarket outlier (46.7%) noted but doesn't break consensus. No severe contradictions, perfect data completeness, zero signal conflict. Moderate confidence acceptable given alignment. Caution on Polymarket premium warrants betting discipline.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

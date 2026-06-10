@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2343,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1245,
+    "output_tokens_details": {
+      "thinking_tokens": 972
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.2657,
+      "draw": 0.3424,
+      "away": 0.392
+    },
+    "confidence": 0.68,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all_sources_converge_on_away_favorite",
+      "zero_signal_conflict_detected",
+      "perfect_data_completeness",
+      "confirmed_lineups_reduce_variance"
+    ],
+    "contradicting_signals": [
+      "sportmonks_shows_stronger_home_tail",
+      "high_model_uncertainty_at_0_50",
+      "away_not_overwhelming_vs_draw"
+    ],
+    "additional_risk_flags": [
+      "draw_model_missing",
+      "away_consensus_but_tight_vs_draw",
+      "supabase_priors_slightly_bullish_away"
+    ],
+    "rationale": "Away is consensus favorite across bookmaker (0.437), market (0.383), supabase (0.404), and model (0.392). Zero signal conflict, perfect data completeness, and confirmed lineups support conviction. Moderate model confidence (0.67) and draw variance are haircuts but insufficient to veto. Recommend backing away.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features systematically:\n\n**Key Data Points:**\n1. **Bookmaker Probs**: away=0.437, draw=0.335, home=0.229\n2. **Market (Polymarket) Probs**: away=0.383, draw=0.355, home=0.261\n3. **Sportmonks Probs**: away=0.350, draw=0.344, home=0.307\n4. **Supabase Priors**: away=0.404, draw=0.336, home=0.260\n5. **Deterministic Model**: away=0.392, draw=0.342, home=0.266\n\n**Data Completeness**: Perfect (score=1.0), no missing data\n**Lineup Status**: Both confirmed (synthetic but marked as fair)\n**Signal Conflict**: 0.0 (no conflicts detected)\n**Halftime**: null (pre-match)\n**Window**: PRE_MATCH\n\n**Source Analysis:**\n- Bookmaker is most bullish on away (0.437)\n- Sportmonks is most bullish on home (0.307)\n- Market, Supabase, and Model are aligned toward away (0.38-0.404)\n- Draw consensus around 0.34-0.36\n\n**Model Confidence**: 0.67 (moderate)\n**Model Uncertainty**: 0.50 (high)\n**Missing Sources**: lineup (actually confirmed), draw_model, llm_claims\n\n**Risk Assessment:**\n- Risk flag: \"probability_sources_missing\" but lineup is confirmed\n- No contradictory evidence\n- Signal conflict = 0.0 suggests good alignment\n- All sources point toward away being favorite (except Sportmonks which still has away at second)\n\n**Reconciliation:**\nThe sources are generally well-aligned despite minor variance:\n- Bookmaker most aggressive on away (0.437)\n- Market slightly lower (0.383)\n- Supabase and Model occupy the middle (0.392-0.404)\n- Consistent ordering across all: away > draw > home\n\n**Recommendation Decision:**\nPerfect data completeness and confirmed lineups support a strong signal. Away emerges as the consensus favorite across nearly all sources, with zero signal conflict reinforcing alignment. Model confidence at 0.67 is reasonable, though the high uncertainty (0.5) provides some caution. This points toward a BET recommendation on AWAY.\n\n**Confidence Calculation:**\nComplete data, confirmed lineups, and zero signal conflict are strong positives. The moderate model confidence and elevated uncertainty temper the signal somewhat, suggesting final confidence around 0.65-0.70.\n\n**Final Probabilities:**\nUsing the deterministic model as the synthesized forecast: away 0.3920, draw 0.3424, home 0.2656.\n\n**Risk Assessment:**\nSources align on away as the primary outcome with complete data and no contradictions. However, Sportmonks leans slightly stronger toward home (0.307 vs 0.266), the model's 0.50 uncertainty is notable, and the missing draw_model source creates a gap. Away isn't overwhelming enough to eliminate caution entirely.\n\n**Recommendation:**\nBET on away, though with measured confidence. The forecast consistently identifies away as strongest across aligned sources, and the 0.67 model confidence supports action. Yet since away already appears favored in bookmaker odds (0.437) and market data (0.383), actual value depends on specific odds offered. The recommendation stands given clean data and source alignment, but warrants a cautious posture given the moderate confidence level and residual uncertainty.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.2657,\"draw\":0.3424,\"away\":0.3920},\"confidence\":0.68,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all_sources_converge_on_away_favorite\",\"zero_signal_conflict_detected\",\"perfect_data_completeness\",\"confirmed_lineups_reduce_variance\"],\"contradicting_signals\":[\"sportmonks_shows_stronger_home_tail\",\"high_model_uncertainty_at_0_50\",\"away_not_overwhelming_vs_draw\"],\"additional_risk_flags\":[\"draw_model_missing\",\"away_consensus_but_tight_vs_draw\",\"supabase_priors_slightly_bullish_away\"],\"rationale\":\"Away is consensus favorite across bookmaker (0.437), market (0.383), supabase (0.404), and model (0.392). Zero signal conflict, perfect data completeness, and confirmed lineups support conviction. Moderate model confidence (0.67) and draw variance are haircuts but insufficient to veto. Recommend backing away.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

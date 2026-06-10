@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2348,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1333,
+    "output_tokens_details": {
+      "thinking_tokens": 1052
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.4499,
+      "draw": 0.2822,
+      "away": 0.2679
+    },
+    "confidence": 0.69,
+    "uncertainty": 0.48,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "four_source_consensus_home_favorite",
+      "data_completeness_perfect",
+      "zero_signal_conflict",
+      "lineups_confirmed_priors_aligned"
+    ],
+    "contradicting_signals": [
+      "sportmonks_outlier_52pct",
+      "moderate_base_uncertainty",
+      "model_confidence_67pct"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing_deprecated",
+      "slight_source_variance",
+      "typical_soccer_variance"
+    ],
+    "rationale": "Home backed by bookmaker(44.9%), polymarket(42.0%), sportmonks(51.9%), supabase(42.4%), and deterministic model(45.0%). Perfect data completeness, zero signal conflict, confirmed lineups, pre-match window clean. Sportmonks outlier (51.9%) noted but within variance bounds. Model confidence 67% with 50% uncertainty acceptable for soccer. All four sources favor home; no contradictions. Aligned bet signal.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this decision context systematically.\n\n**Available Data:**\n1. Bookmaker probs: Home 44.85%, Draw 27.70%, Away 27.46%\n2. Polymarket (market_probs): Home 42.02%, Draw 28.05%, Away 29.92%\n3. Sportmonks: Home 51.90%, Draw 27.90%, Away 20.19%\n4. Supabase priors: Home 42.36%, Draw 28.42%, Away 29.22%\n5. Deterministic model: Home 44.99%, Draw 28.22%, Away 26.79%\n\n**Data Completeness:**\n- score: 1.0 (perfect)\n- missing: [] (nothing missing)\n- Lineups confirmed (synthetic for backtest fairness)\n- No halftime data (PRE_MATCH)\n- No claim signals\n- No market staleness issues\n- No structured claims\n- No source reconciliation issues\n- Signal conflict: 0.0 (no conflict)\n\n**Model Confidence & Uncertainty:**\n- Deterministic model confidence: 0.67\n- Model uncertainty: 0.50\n- Missing sources: lineup, draw_model, llm_claims (but lineup is actually confirmed)\n- Risk flags: probability_sources_missing (but data_completeness is 1.0, so this is old)\n\n**Source Alignment Analysis:**\n- Bookmaker: 44.85% home (heavily weighted at 0.33)\n- Polymarket: 42.02% home (weighted at 0.22)\n- Sportmonks: 51.90% home (weighted at 0.28) - OUTLIER, highest confidence\n- Supabase: 42.36% home (weighted at 0.17)\n- Deterministic blend: 44.99% home\n\nThe sources are fairly well-aligned except Sportmonks is notably higher (51.90% vs ~42-45% elsewhere). \n\nSportmonks' elevation is notable but falls within expected variance. The deterministic model synthesizes these inputs to 44.99% home with 67% confidence. All four independent sources point toward a home advantage, with no conflicting signals present. Lineups are confirmed and data completeness is maximal, which strengthens the reliability of this assessment.\n\nThe pre-match window is clean, signal conflict registers at zero, and uncertainty sits at a moderate 0.50 level. Given the tight alignment between polymarket (42%) and bookmaker odds (44.8%), plus the model's seamless integration of these inputs, this warrants a BET recommendation on HOME. The confidence level of 67% paired with complete data coverage and zero contradictions suggests approval is appropriate here.\n\nSportmonks does run slightly higher at around 52%, creating minor variance, but this doesn't undermine the overall consensus. I'm setting final probabilities at Home 0.45, Draw 0.28, Away 0.27\u2014staying close to the model since sources align well. Confidence bumps to 0.68-0.70 given the perfect data completeness, while uncertainty dips slightly to 0.48, reflecting the strong agreement across inputs. Risk posture remains approve across all indicators.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.4499,\"draw\":0.2822,\"away\":0.2679},\"confidence\":0.69,\"uncertainty\":0.48,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"four_source_consensus_home_favorite\",\"data_completeness_perfect\",\"zero_signal_conflict\",\"lineups_confirmed_priors_aligned\"],\"contradicting_signals\":[\"sportmonks_outlier_52pct\",\"moderate_base_uncertainty\",\"model_confidence_67pct\"],\"additional_risk_flags\":[\"probability_sources_missing_deprecated\",\"slight_source_variance\",\"typical_soccer_variance\"],\"rationale\":\"Home backed by bookmaker(44.9%), polymarket(42.0%), sportmonks(51.9%), supabase(42.4%), and deterministic model(45.0%). Perfect data completeness, zero signal conflict, confirmed lineups, pre-match window clean. Sportmonks outlier (51.9%) noted but within variance bounds. Model confidence 67% with 50% uncertainty acceptable for soccer. All four sources favor home; no contradictions. Aligned bet signal.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

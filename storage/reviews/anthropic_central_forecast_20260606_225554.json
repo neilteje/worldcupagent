@@ -1,0 +1,53 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2350,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1266,
+    "output_tokens_details": {
+      "thinking_tokens": 1012
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.2817,
+      "draw": 0.1986,
+      "away": 0.5197
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "Bookmaker, Sportmonks, Supabase converge on away 52-57%",
+      "Perfect data completeness with confirmed lineups",
+      "Zero signal conflict detected",
+      "Model calibration applied with draw floor"
+    ],
+    "contradicting_signals": [
+      "Polymarket home 32.3% vs model 28.2%",
+      "Market draw 23.1% vs bookmaker 14.4%"
+    ],
+    "additional_risk_flags": [
+      "moderate_uncertainty",
+      "missing_draw_model",
+      "synthetic_lineups"
+    ],
+    "rationale": "Away outcome dominates across all primary sources (bookmaker 55.6%, Sportmonks 56.6%, Supabase 54.9%, model 52.0%). No contradicting claims or halftime data. Confidence 0.67 sufficient for aligned multi-source consensus. Recommend away wager.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this decision context systematically:\n\n**Data Quality Assessment:**\n- Data completeness score: 1.0 (perfect)\n- Lineup confirmed (synthetic, but marked as confirmed)\n- No missing data flagged\n- Window: PRE_MATCH\n\n**Source Analysis:**\n\nBookmaker probabilities:\n- Away: 0.5560 (strong)\n- Home: 0.2998 (weak)\n- Draw: 0.1442 (very weak)\n\nSportmonks probabilities:\n- Away: 0.5661 (very strong)\n- Home: 0.2400 (weak)\n- Draw: 0.1938 (moderate)\n\nMarket (Polymarket?) probabilities:\n- Away: 0.4459 (moderate)\n- Home: 0.3232 (moderate)\n- Draw: 0.2309 (moderate)\n\nSupabase priors:\n- Away: 0.5489 (strong)\n- Home: 0.2245 (weak)\n- Draw: 0.2267 (moderate)\n\n**Deterministic Model Result:**\n- Away: 0.5197 (52%)\n- Home: 0.2817 (28%)\n- Draw: 0.1986 (20%)\n- Confidence: 0.67\n- Uncertainty: 0.50\n\n**Key Observations:**\n\n1. **Strong consensus on away win**: Bookmaker (55.6%), Sportmonks (56.6%), Supabase (54.9%), Model (52.0%) all point to away winning in the 52-57% range\n\n2. **Home weakness**: Consistently weak at 24-30% across all sources\n\n3. **Draw disagreement**: Market suggests 23% vs other sources at 14-23%. This is the main point of divergence.\n4. **Alignment**: Bookmaker, Sportmonks, and Supabase are well-aligned on away dominance. The draw_model and llm_claims are missing, but the synthetic lineup confirmation and strong convergence across primary sources mean these gaps don't undermine the directional signal. No conflicting signals detected\u2014claim_signals and top_signals are both empty, and signal_conflict registers at 0.0.\n\n**Confidence Assessment:**\n- Base model confidence: 0.67\n- Data completeness: Perfect (1.0)\n- Source alignment: Strong (all sources converge on away)\n- Market-model reconciliation: Reasonable\n- Uncertainty: 0.50\n\nThe away outcome dominates at 52-57% across all major sources\u2014well above the 33.3% baseline and supported by bookmaker, Sportmonks, Supabase, and the model itself. Even Polymarket leans away at 44.6%. Given the alignment, perfect data completeness, and absence of contradicting signals, this warrants a **BET** recommendation with **approve** risk posture. The 0.67 model confidence is sufficient given the data quality and source convergence. Final probabilities from the deterministic model: Away 0.5197, Home 0.2817, Draw 0.1986.\n\nSome friction exists\u2014Polymarket suggests higher home probability (32.3% vs 28.2%) and the market draw (23.1%) exceeds bookmaker (14.4%)\u2014but these don't undermine the core away signal. The moderate uncertainty (0.50) and missing draw_model are minor concerns, though the overall evidence supports proceeding with the away bet.",
+  "text_preview": "{\"probabilities\":{\"home\":0.2817,\"draw\":0.1986,\"away\":0.5197},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"Bookmaker, Sportmonks, Supabase converge on away 52-57%\",\"Perfect data completeness with confirmed lineups\",\"Zero signal conflict detected\",\"Model calibration applied with draw floor\"],\"contradicting_signals\":[\"Polymarket home 32.3% vs model 28.2%\",\"Market draw 23.1% vs bookmaker 14.4%\"],\"additional_risk_flags\":[\"moderate_uncertainty\",\"missing_draw_model\",\"synthetic_lineups\"],\"rationale\":\"Away outcome dominates across all primary sources (bookmaker 55.6%, Sportmonks 56.6%, Supabase 54.9%, model 52.0%). No contradicting claims or halftime data. Confidence 0.67 sufficient for aligned multi-source consensus. Recommend away wager.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

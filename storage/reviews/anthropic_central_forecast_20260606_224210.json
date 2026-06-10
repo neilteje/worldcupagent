@@ -1,0 +1,53 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1121,
+    "output_tokens_details": {
+      "thinking_tokens": 833
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.365,
+      "draw": 0.274,
+      "away": 0.361
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "WATCH",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "perfect_data_completeness_score",
+      "zero_signal_conflict_across_sources",
+      "bookmaker_polymarket_market_aligned",
+      "sportmonks_supabase_consensus_on_home"
+    ],
+    "contradicting_signals": [
+      "bookmaker_polymarket_slight_away_favor_vs_sportmonks_home_tilt",
+      "missing_draw_model_and_llm_claims"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "tight_three_way_margins",
+      "moderate_model_confidence"
+    ],
+    "rationale": "Tight three-way match with strong cross-source consensus (Home 36-40%, Away 34-37%, Draw 25-30%). Zero conflict and perfect data completeness support reliability. Bookmaker/market slight away lean (37%) vs Sportmonks/Supabase home bias (40%) net to balanced deterministic output. Missing draw_model and lineup-derived claims warrant caution. Recommend watching for better odds or line movement rather than immediate bet.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to create a final 3-way probability forecast.\n\n**Key Data Points:**\n1. **Bookmaker probs**: Home 0.355, Draw 0.276, Away 0.369\n2. **Market probs (Polymarket)**: Home 0.326, Draw 0.297, Away 0.377\n3. **Sportmonks probs**: Home 0.403, Draw 0.251, Away 0.347\n4. **Supabase priors**: Home 0.399, Draw 0.251, Away 0.350\n5. **Deterministic model**: Home 0.365, Draw 0.274, Away 0.361\n6. **Model confidence**: 0.67\n7. **Data completeness**: 1.0 (perfect score)\n8. **Missing sources**: lineup, draw_model, llm_claims\n9. **Signal conflict**: 0.0 (no conflicts)\n10. **Lineups confirmed**: Yes (synthetic confirmed)\n11. **Window**: PRE_MATCH\n12. **Risk flags**: probability_sources_missing\n\n**Analysis:**\n\nLooking at the source contributions:\n- Bookmaker: Home 0.117, Draw 0.093, Away 0.123\n- Polymarket: Home 0.072, Draw 0.067, Away 0.084\n- Sportmonks: Home 0.111, Draw 0.071, Away 0.096\n- Supabase: Home 0.066, Draw 0.042, Away 0.058\n\nThe deterministic model output gives: Home 0.365, Draw 0.274, Away 0.361\n\nKey observations:\n1. **Strong consensus**: All sources converge around Home ~36-40%, Away ~34-37%, Draw ~25-30%\n2. **Sportmonks is bullish on home** (40.3%), which slightly elevates home\n3. **Bookmaker and Polymarket lean slightly toward away** (36.9-37.7%), while Supabase aligns with Sportmonks at 39.9% home. With zero signal conflict and perfect data completeness, the model's moderate-high confidence of 0.67 reflects appropriate uncertainty for this tightly matched contest. The deterministic synthesis at 36.5% / 27.4% / 36.1% balances these competing signals effectively.\n\nGiven the narrow margins and missing draw_model input, I'm treating this as a WATCH rather than a BET\u2014the probabilities are well-calibrated but the moderate confidence and tight odds warrant caution before committing to a position.",
+  "text_preview": "{\"probabilities\":{\"home\":0.365,\"draw\":0.274,\"away\":0.361},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"WATCH\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"perfect_data_completeness_score\",\"zero_signal_conflict_across_sources\",\"bookmaker_polymarket_market_aligned\",\"sportmonks_supabase_consensus_on_home\"],\"contradicting_signals\":[\"bookmaker_polymarket_slight_away_favor_vs_sportmonks_home_tilt\",\"missing_draw_model_and_llm_claims\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"tight_three_way_margins\",\"moderate_model_confidence\"],\"rationale\":\"Tight three-way match with strong cross-source consensus (Home 36-40%, Away 34-37%, Draw 25-30%). Zero conflict and perfect data completeness support reliability. Bookmaker/market slight away lean (37%) vs Sportmonks/Supabase home bias (40%) net to balanced deterministic output. Missing draw_model and lineup-derived claims warrant caution. Recommend watching for better odds or line movement rather than immediate bet.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}

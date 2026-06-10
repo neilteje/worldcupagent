@@ -1,0 +1,53 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2348,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1488,
+    "output_tokens_details": {
+      "thinking_tokens": 1167
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.565,
+      "draw": 0.293,
+      "away": 0.142
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "all_sources_aligned_home_55_62%",
+      "lineups_confirmed_reduces_injury_risk",
+      "zero_signal_conflict",
+      "full_data_completeness"
+    ],
+    "contradicting_signals": [
+      "bookmaker_away_0.054_vs_market_0.159_weak_tail_divergence",
+      "moderate_confidence_not_high"
+    ],
+    "additional_risk_flags": [
+      "calibration_uncertainty_reflects_draw_floor_application",
+      "away_odds_spread_indicates_minor_disagreement",
+      "prematch_window_no_halftime_adjustment"
+    ],
+    "rationale": "All four primary sources (bookmaker 0.622, market 0.552, sportmonks 0.538, supabase 0.582) strongly converge on home win 55\u201362%. Model synthesis yields 56.5% home with 29.3% draw, 14.2% away. Confirmed lineups eliminate roster risk. Zero signal conflict and perfect data completeness (1.0). Moderate confidence (0.67) justified by alignment strength and no contradictory evidence. Recommend BET on home with caution posture.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze all the provided features to synthesize a final 3-way probability forecast.\n\nKey data points:\n1. **Bookmaker probs**: Home 0.622, Draw 0.324, Away 0.054\n2. **Polymarket (market_probs)**: Home 0.552, Draw 0.289, Away 0.159\n3. **Sportmonks probs**: Home 0.538, Draw 0.267, Away 0.195\n4. **Supabase priors**: Home 0.582, Draw 0.254, Away 0.164\n5. **Deterministic model**: Home 0.565, Draw 0.293, Away 0.142\n6. **Model confidence**: 0.67\n7. **Model uncertainty**: 0.50\n8. **Data completeness**: 1.0 (no missing fields)\n9. **Lineups confirmed**: Both home and away lineups confirmed\n10. **No halftime data** (PRE_MATCH)\n11. **No claim signals** extracted\n12. **Signal conflict**: 0.0 (low conflict)\n13. **Market stale**: Empty (no stale market issues)\n\nAnalysis:\n- All sources point strongly to **home win** (0.54-0.62 range)\n- Bookmaker shows strongest home bias (0.622)\n- Market (Polymarket) is slightly more conservative on home (0.552)\n- Sportmonks and Supabase are in between\n- **Draw** ranges 0.25-0.32 (bookmaker slightly higher)\n- **Away** is consistently low (0.054-0.195), with bookmaker showing very low confidence at 0.054\n\nThe deterministic model already blends all sources with proper weighting:\n- Home: 0.565\n- Draw: 0.293\n- Away: 0.142\n\nKey observations:\n- Lineup confirmed removes uncertainty there\n- Pre-match state with complete data and zero signal conflict strengthens confidence in the model's 0.67 rating. All four probability sources converge on a home victory, with no contradictory signals or stale market conditions to introduce doubt. The confirmed lineups further eliminate roster-related risk factors.\n\n- Using the synthesized prematch model probabilities: home 0.565, draw 0.293, away 0.142. These reflect proper calibration with the draw floor applied and temperature adjustments. The bookmaker shows a notably lower away probability (0.054) compared to market and sportmonks (0.159-0.195), suggesting minor disagreement on tail risk, though all sources still favor home decisively. Uncertainty at 0.50 captures calibration variance rather than signal conflict, and the missing draw_model reference doesn't materially impact the assessment since the draw floor of 0.16 is already incorporated.\n\nThe recommendation is to approve the bet given the strong alignment across all sources, confirmed lineups reducing injury uncertainty, and complete data availability. While confidence at 0.67 is moderate rather than high, the convergence of signals and absence of contradictions support proceeding with this wager.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.565,\"draw\":0.293,\"away\":0.142},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"all_sources_aligned_home_55_62%\",\"lineups_confirmed_reduces_injury_risk\",\"zero_signal_conflict\",\"full_data_completeness\"],\"contradicting_signals\":[\"bookmaker_away_0.054_vs_market_0.159_weak_tail_divergence\",\"moderate_confidence_not_high\"],\"additional_risk_flags\":[\"calibration_uncertainty_reflects_draw_floor_application\",\"away_odds_spread_indicates_minor_disagreement\",\"prematch_window_no_halftime_adjustment\"],\"rationale\":\"All four primary sources (bookmaker 0.622, market 0.552, sportmonks 0.538, supabase 0.582) strongly converge on home win 55\u201362%. Model synthesis yields 56.5% home with 29.3% draw, 14.2% away. Confirmed lineups eliminate roster risk. Zero signal conflict and perfect data completeness (1.0). Moderate confidence (0.67) justified by alignment strength and no contradictory evidence. Recommend BET on home with caution posture.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

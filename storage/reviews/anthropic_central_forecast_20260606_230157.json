@@ -1,0 +1,49 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2353,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 896,
+    "output_tokens_details": {
+      "thinking_tokens": 593
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.289,
+      "draw": 0.293,
+      "away": 0.418
+    },
+    "confidence": 0.68,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "approve",
+    "supporting_signals": [
+      "away_consensus_across_all_sources_0.39_0.46",
+      "signal_conflict_zero_perfect_alignment",
+      "bookmaker_market_sportmonks_supabase_convergent",
+      "calibration_applied_draw_floor_respected"
+    ],
+    "contradicting_signals": [],
+    "additional_risk_flags": [
+      "missing_llm_claims_not_contradictory",
+      "synthetic_lineups_backtest_context"
+    ],
+    "rationale": "Away probability 0.418 shows strong multi-source consensus (bookmaker 0.457, market 0.421, Sportmonks 0.393, Supabase 0.401). Signal conflict zero indicates no contradictions. Deterministic model confidence 0.67 with perfect data completeness. Home underdog at 0.289 supported across all sources. Draw legitimately placed at 0.293 with calibrated floor. Missing secondary sources (lineup details, draw models, LLM) do not create contradictions and are expected in synthetic backtest context. Recommend backing away outcome.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze the provided data systematically:\n\n**Key Data Points:**\n1. **Bookmaker**: Home 0.2745, Draw 0.2687, Away 0.4568\n2. **Market (Polymarket)**: Home 0.2922, Draw 0.2869, Away 0.4209\n3. **Sportmonks**: Home 0.2841, Draw 0.3226, Away 0.3933\n4. **Supabase**: Home 0.3078, Draw 0.2913, Away 0.4009\n5. **Deterministic Model**: Home 0.2891, Draw 0.2933, Away 0.4177 (confidence 0.67)\n\n**Alignment Analysis:**\n- Away is consistently strongest across all sources (0.39-0.46)\n- Home is weakest (0.27-0.31)\n- Draw clusters around 0.27-0.33\n- The deterministic model confidence is 0.67 (reasonable)\n- Data completeness score is 1.0 (complete)\n- Missing sources: lineup, draw_model, llm_claims\n- However, lineups are confirmed as synthetic for backtest fairness\n\n**Signal Conflict:**\n- Signal conflict = 0.0 (excellent alignment)\n- No contradicting signals noted\n- No stale market issues\n\n**Risk Assessment:**\n- Risk flags: \"probability_sources_missing\" but these are expected for pre-match with synthetic lineups\n- No structured claims or top signals to evaluate\n- No halftime state (expected for PRE_MATCH)\n\n**Confidence Calculation:**\n- Deterministic confidence: 0.67\n- Data completeness: 1.0\n- Signal conflict: 0.0 (perfect alignment)\n- Missing sources are documented but don't contradict\n- Confidence should be reasonable but not max due to missing sources\n- The model's away probability of 0.4177 sits squarely between the bookmaker's 0.4568 and other sources, suggesting a well-calibrated forecast. All probability distributions point toward the same outcome with no conflicting signals, which supports moving forward with a BET recommendation given the strong consensus and complete data alignment.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.289,\"draw\":0.293,\"away\":0.418},\"confidence\":0.68,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"approve\",\"supporting_signals\":[\"away_consensus_across_all_sources_0.39_0.46\",\"signal_conflict_zero_perfect_alignment\",\"bookmaker_market_sportmonks_supabase_convergent\",\"calibration_applied_draw_floor_respected\"],\"contradicting_signals\":[],\"additional_risk_flags\":[\"missing_llm_claims_not_contradictory\",\"synthetic_lineups_backtest_context\"],\"rationale\":\"Away probability 0.418 shows strong multi-source consensus (bookmaker 0.457, market 0.421, Sportmonks 0.393, Supabase 0.401). Signal conflict zero indicates no contradictions. Deterministic model confidence 0.67 with perfect data completeness. Home underdog at 0.289 supported across all sources. Draw legitimately placed at 0.293 with calibrated floor. Missing secondary sources (lineup details, draw models, LLM) do not create contradictions and are expected in synthetic backtest context. Recommend backing away outcome.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

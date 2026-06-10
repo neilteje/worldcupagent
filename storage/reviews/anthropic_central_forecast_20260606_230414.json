@@ -1,0 +1,56 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2351,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1288,
+    "output_tokens_details": {
+      "thinking_tokens": 989
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.242,
+      "draw": 0.262,
+      "away": 0.496
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Bookmaker/Sportmonks/Supabase consensus on away>home",
+      "Perfect data completeness (1.0)",
+      "Zero signal conflict",
+      "Confirmed lineups both teams"
+    ],
+    "contradicting_signals": [
+      "Polymarket significantly outlier (0.625 away vs 0.45-0.50 consensus)",
+      "Model confidence 0.67 (moderate, not high)",
+      "Missing draw_model source",
+      "probability_sources_missing flag"
+    ],
+    "additional_risk_flags": [
+      "polymarket_outlier_high_away",
+      "missing_draw_model_source",
+      "moderate_model_confidence",
+      "supabase_home_draw_parity"
+    ],
+    "rationale": "Deterministic model blend (away 0.496, draw 0.262, home 0.242) well-aligned across bookmaker, Sportmonks, Supabase with zero conflict. Polymarket outlier noted but does not override consensus. Complete data + confirmed lineups support BET, though caution warranted on missing draw model and moderate confidence.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features into a final 3-way probability forecast:\n\n**Key inputs:**\n1. Bookmaker probs: away=0.4446, draw=0.2863, home=0.2691\n2. Market (Polymarket) probs: away=0.6251, draw=0.2130, home=0.1619\n3. Sportmonks probs: away=0.4916, draw=0.2568, home=0.2515\n4. Supabase priors: away=0.4421, draw=0.2798, home=0.2781\n5. Deterministic model: away=0.4960, draw=0.2619, home=0.2420\n6. Data completeness: score 1.0 (perfect)\n7. Confidence: 0.67\n8. Uncertainty: 0.50\n9. Signal conflict: 0.0 (no conflict)\n10. Lineup: confirmed (both teams)\n11. Window: PRE_MATCH\n12. Risk flags: probability_sources_missing (lineup, draw_model, llm_claims)\n\n**Analysis:**\n\nThe sources show:\n- Bookmaker: away favored (0.4446) but balanced home/draw\n- Polymarket: strongly away favored (0.6251) - outlier high\n- Sportmonks: away favored (0.4916) with tight home/draw race\n- Supabase: away favored (0.4421) with home nearly tied (0.2781)\n- Deterministic model: away=0.4960, draw=0.2619, home=0.2420\n\n**Consensus pattern:**\nAll sources agree: Away > Home, with draw in middle. Away favored across all sources (0.44-0.63 range). The deterministic model at 0.496/0.262/0.242 represents a good blend.\nPolymarket stands out as notably higher on away (0.625) compared to the 0.44-0.50 range elsewhere, while home consistently emerges as the weakest outcome across all sources. Draw sits between home and away, with most estimates clustering between 0.21-0.29. The deterministic model's alignment with bookmaker and Sportmonks suggests a reliable central estimate, supported by perfect data completeness and zero signal conflict.\n\nI'll proceed with the model's primary output of away=0.4960, draw=0.2619, home=0.2420, treating this as the baseline forecast. The 0.67 model confidence paired with 0.50 uncertainty reflects meaningful but not overwhelming conviction in these probabilities.\n\nThe recommendation to bet is supported by strong convergence across bookmakers, Sportmonks, and Supabase on the away lean, combined with complete lineup confirmation and no conflicting signals. However, Polymarket's notably higher away probability (0.625) and the absence of a draw model output introduce some caution\u2014these gaps suggest I shouldn't treat this forecast as highly certain despite the alignment elsewhere.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.242,\"draw\":0.262,\"away\":0.496},\"confidence\":0.67,\"uncertainty\":0.50,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Bookmaker/Sportmonks/Supabase consensus on away>home\",\"Perfect data completeness (1.0)\",\"Zero signal conflict\",\"Confirmed lineups both teams\"],\"contradicting_signals\":[\"Polymarket significantly outlier (0.625 away vs 0.45-0.50 consensus)\",\"Model confidence 0.67 (moderate, not high)\",\"Missing draw_model source\",\"probability_sources_missing flag\"],\"additional_risk_flags\":[\"polymarket_outlier_high_away\",\"missing_draw_model_source\",\"moderate_model_confidence\",\"supabase_home_draw_parity\"],\"rationale\":\"Deterministic model blend (away 0.496, draw 0.262, home 0.242) well-aligned across bookmaker, Sportmonks, Supabase with zero conflict. Polymarket outlier noted but does not override consensus. Complete data + confirmed lineups support BET, though caution warranted on missing draw model and moderate confidence.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

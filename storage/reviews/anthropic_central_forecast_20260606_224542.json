@@ -1,0 +1,51 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2346,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1146,
+    "output_tokens_details": {
+      "thinking_tokens": 836
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.4454,
+      "draw": 0.2978,
+      "away": 0.2568
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "All four sources favor home (H=0.41\u20130.49 tight band)",
+      "Bookmaker H=0.49 anchors forecast",
+      "Zero signal conflict across Sportmonks/Supabase/Polymarket/bookmaker",
+      "Calibration shrink applied; draw floor 0.16 protects against underestimation"
+    ],
+    "contradicting_signals": [],
+    "additional_risk_flags": [
+      "draw_model_missing",
+      "llm_claims_missing",
+      "confidence_0.67_pre_match_moderate",
+      "no_halftime_validation_available"
+    ],
+    "rationale": "Home strongly favored with perfect source alignment (zero conflict). Deterministic model H=0.4454 supported by bookmaker (0.4923), Supabase (0.4638), Sportmonks (0.4110), Polymarket (0.4337). Data complete. Pre-match window; lineups confirmed. Recommend BET on HOME with caution owing to moderate confidence and missing draw-model signals, but no contradicting evidence merits SKIP.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me analyze this soccer prediction data systematically:\n\n**Source Alignment:**\n- Bookmaker: H=0.4923, D=0.2499, A=0.2578\n- Polymarket: H=0.4337, D=0.3394, A=0.2269\n- Sportmonks: H=0.4110, D=0.3192, A=0.2699\n- Supabase: H=0.4638, D=0.2759, A=0.2603\n- Deterministic Model: H=0.4454, D=0.2978, A=0.2568\n\n**Consensus Analysis:**\nAll sources strongly favor HOME. The ordering is:\n- Home: ranges 0.41-0.49 (tight clustering around 0.44-0.46)\n- Draw: ranges 0.25-0.34 (moderate spread)\n- Away: ranges 0.23-0.27 (tight clustering around 0.26)\n\n**Key Observations:**\n1. Complete data: data_completeness score = 1.0 (no missing features)\n2. Lineups confirmed: both teams have confirmed lineups\n3. Model confidence: 0.67 (moderate-good)\n4. Signal conflict: 0.0 (perfect alignment)\n5. PRE_MATCH window (no halftime data)\n6. Missing sources flagged: lineup, draw_model, llm_claims (but lineups ARE confirmed)\n7. No claim signals provided (empty list)\n8. No contradicting signals\n9. Model uncertainty: 0.5 (standard, not elevated)\n\n**Deterministic Model Output:**\n- H=0.4454, D=0.2978, A=0.2568\n- Confidence: 0.67\n- Uncertainty: 0.5\n\n**Strength Assessment:**\nThe model shows HOME strongly favored with 44.5% (vs 45.2% bookmaker), which is well-reasoned across all sources. \n\nThe draw probability sits at 29.8%, notably higher than most sources, suggesting a conservative stance. Away is compressed at 25.7%, reflecting the consensus lean toward home advantage.\n\n**Recommendation Logic:**\nAll sources point in the same direction with zero signal conflict and complete data coverage. The 0.67 confidence level is reasonable for pre-match analysis. While some secondary sources aren't available (draw model, LLM claims), the core data is solid and aligned. A HOME bet appears justified, though the moderate confidence suggests caution\u2014this isn't a high-conviction play.\n\nThe calibrated probabilities (H=0.4454, D=0.2978, A=0.2568) reflect this balanced view. Bookmakers show strong home conviction at 0.49, and all three data sources (Sportmonks, Supabase, Polymarket) agree without contradiction. The temperature adjustment of 1.05 was applied appropriately. No stale market signals or halftime data undermine the pre-match assessment.\n\nRisk considerations include the missing secondary models and the moderate confidence ceiling, but these don't negate the directional alignment across primary sources.",
+  "text_preview": "```json\n{\"probabilities\":{\"home\":0.4454,\"draw\":0.2978,\"away\":0.2568},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"All four sources favor home (H=0.41\u20130.49 tight band)\",\"Bookmaker H=0.49 anchors forecast\",\"Zero signal conflict across Sportmonks/Supabase/Polymarket/bookmaker\",\"Calibration shrink applied; draw floor 0.16 protects against underestimation\"],\"contradicting_signals\":[],\"additional_risk_flags\":[\"draw_model_missing\",\"llm_claims_missing\",\"confidence_0.67_pre_match_moderate\",\"no_halftime_validation_available\"],\"rationale\":\"Home strongly favored with perfect source alignment (zero conflict). Deterministic model H=0.4454 supported by bookmaker (0.4923), Supabase (0.4638), Sportmonks (0.4110), Polymarket (0.4337). Data complete. Pre-match window; lineups confirmed. Recommend BET on HOME with caution owing to moderate confidence and missing draw-model signals, but no contradicting evidence merits SKIP.\",\"order_authorization\":\"NO_AUTHORITY\"}\n```",
+  "order_authorization_allowed": false
+}

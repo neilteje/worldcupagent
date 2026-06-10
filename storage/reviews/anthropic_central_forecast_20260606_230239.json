@@ -1,0 +1,54 @@
+{
+  "called": true,
+  "ok": true,
+  "provider": "anthropic",
+  "role": "central_forecaster",
+  "model": "claude-haiku-4-5-20251001",
+  "usage": {
+    "input_tokens": 2351,
+    "cache_creation_input_tokens": 0,
+    "cache_read_input_tokens": 0,
+    "cache_creation": {
+      "ephemeral_5m_input_tokens": 0,
+      "ephemeral_1h_input_tokens": 0
+    },
+    "output_tokens": 1261,
+    "output_tokens_details": {
+      "thinking_tokens": 942
+    },
+    "service_tier": "standard",
+    "inference_geo": "not_available"
+  },
+  "parsed": {
+    "probabilities": {
+      "home": 0.454,
+      "draw": 0.251,
+      "away": 0.295
+    },
+    "confidence": 0.67,
+    "uncertainty": 0.5,
+    "recommendation": "BET",
+    "risk_posture": "caution",
+    "supporting_signals": [
+      "Perfect multi-source alignment (0.0 conflict)",
+      "Bookmaker + Polymarket + Sportmonks converge on home 43-49%",
+      "Data completeness 1.0 with confirmed lineups",
+      "Home favorite consistent across all four sources"
+    ],
+    "contradicting_signals": [
+      "Bookmaker-to-market away spread (34.4% vs 24.2%, 10pp delta)",
+      "Missing draw_model and llm_claims secondary signals",
+      "Moderate uncertainty (0.5) with 0.67 confidence suggests calibration softness"
+    ],
+    "additional_risk_flags": [
+      "probability_sources_missing",
+      "synthetic_lineups_backtest",
+      "missing_draw_model_signal"
+    ],
+    "rationale": "Strong 4-source consensus around home ~45%, away ~29%, draw ~25%. Deterministic model confidence 0.67 justified by perfect data completeness and zero signal conflict. Bookmaker-market away divergence noted but subordinate to overall alignment. Recommend BET with caution haircut due to missing draw_model and llm_claims; do not veto on secondary source gaps when primary signals are unanimously aligned.",
+    "order_authorization": "NO_AUTHORITY"
+  },
+  "internal_reasoning": "Let me synthesize all the provided features into a 3-way probability forecast.\n\nKey data points:\n1. **Bookmaker probs**: Home 44.87%, Draw 20.74%, Away 34.39%\n2. **Market (Polymarket) probs**: Home 49.64%, Draw 26.19%, Away 24.16%\n3. **Sportmonks probs**: Home 42.96%, Draw 28.75%, Away 28.29%\n4. **Supabase priors**: Home 47.17%, Draw 23.03%, Away 29.79%\n5. **Deterministic model**: Home 45.39%, Draw 25.02%, Away 29.59% (confidence: 0.67)\n\n**Signal alignment check:**\n- Home: All sources converge around 42-49% (strong alignment)\n- Away: 24-34% range (reasonable alignment)\n- Draw: 20-28% range (reasonable alignment)\n- **Signal conflict: 0.0** (perfect alignment)\n\n**Data completeness**: Score 1.0 (perfect)\n- Missing sources noted in model: lineup (but lineup confirmed as synthetic), draw_model, llm_claims\n- No missing data in main features\n- Claim signals: empty (no contradictions)\n- Source reconciliation: empty (no conflicts)\n\n**Confidence factors:**\n- Deterministic model confidence: 0.67\n- Uncertainty: 0.5 (moderate)\n- Data completeness: 1.0 (excellent)\n- All major sources aligned with signal_conflict = 0.0\n- Lineups confirmed (synthetic but confirmed)\n- No halftime data (PRE_MATCH window)\n\n**Risk assessment:**\n- Missing sources flag noted but not severe given strong source alignment\n- No stale market detected\n- No contradicting signals\n- Synthetic lineups should not be a major concern for this forecast\n- The deterministic model already incorporates weighted blends from bookmaker (33.3%), polymarket (22.2%), sportmonks (27.8%), and supabase (16.7%), producing 45.39% / 25.02% / 29.59%. This output reflects balanced consideration across all major probability sources with strong internal consistency.\n\nThere's notable divergence between bookmaker and market on away odds (34.39% vs 24.16%), though the aggregate across all five sources converges around home 46%, draw 24.5%, away 29%. The moderate-high confidence score of 0.67 combined with alignment across independent sources supports a BET recommendation, despite missing secondary validation from draw_model and llm_claims. I'll proceed with caution rather than full approval given these gaps, but the strong convergence across primary signals and complete data availability mitigates the risk.",
+  "text_preview": "{\"probabilities\":{\"home\":0.454,\"draw\":0.251,\"away\":0.295},\"confidence\":0.67,\"uncertainty\":0.5,\"recommendation\":\"BET\",\"risk_posture\":\"caution\",\"supporting_signals\":[\"Perfect multi-source alignment (0.0 conflict)\",\"Bookmaker + Polymarket + Sportmonks converge on home 43-49%\",\"Data completeness 1.0 with confirmed lineups\",\"Home favorite consistent across all four sources\"],\"contradicting_signals\":[\"Bookmaker-to-market away spread (34.4% vs 24.2%, 10pp delta)\",\"Missing draw_model and llm_claims secondary signals\",\"Moderate uncertainty (0.5) with 0.67 confidence suggests calibration softness\"],\"additional_risk_flags\":[\"probability_sources_missing\",\"synthetic_lineups_backtest\",\"missing_draw_model_signal\"],\"rationale\":\"Strong 4-source consensus around home ~45%, away ~29%, draw ~25%. Deterministic model confidence 0.67 justified by perfect data completeness and zero signal conflict. Bookmaker-market away divergence noted but subordinate to overall alignment. Recommend BET with caution haircut due to missing draw_model and llm_claims; do not veto on secondary source gaps when primary signals are unanimously aligned.\",\"order_authorization\":\"NO_AUTHORITY\"}",
+  "order_authorization_allowed": false
+}
