@@ -234,3 +234,137 @@ def extract_implied_probs(moneyline: dict) -> dict[str, float]:
     if total > 0:
         probs = {k: v / total for k, v in probs.items()}
     return probs
+
+# ── Robust strategy-agent helpers (three-way home/draw/away keys) ──────────
+def _body(resp_json):
+    return resp_json.get("body", resp_json) if isinstance(resp_json, dict) else resp_json
+
+
+def get_mapping(fixture_id: int | str) -> dict | None:
+    try:
+        r = httpx.get(f"{_ARENA_API}/v1/web/mapping", headers=_HEADERS, params={"fixture_id": fixture_id}, timeout=15)
+        if not r.is_success: return None
+        mappings = r.json().get("mappings") or []
+        return mappings[0] if mappings else None
+    except Exception:
+        return None
+
+
+def get_gamma_event(slug: str) -> dict | None:
+    try:
+        r = httpx.get(f"{_GAMMA}/events", headers=_HEADERS, params={"slug": slug}, timeout=15)
+        if not r.is_success: return None
+        body = _body(r.json()) or []
+        return body[0] if isinstance(body, list) and body else body if isinstance(body, dict) else None
+    except Exception:
+        return None
+
+
+def extract_yes_token_ids(event: dict) -> dict[str, str | None]:
+    tokens = {"home": None, "draw": None, "away": None}
+    markets = event.get("markets") or event.get("data", {}).get("markets") or []
+    ticker = (event.get("ticker") or event.get("slug") or "").lower()
+    parsed = _TICKER_RE.match(ticker)
+    home_code, away_code = (parsed.group(1), parsed.group(2)) if parsed else ("home", "away")
+    for mkt in markets:
+        slug = (mkt.get("slug") or mkt.get("market_slug") or "").lower()
+        title = (mkt.get("question") or mkt.get("title") or "").lower()
+        key = _outcome_from_slug(slug, ticker, home_code, away_code) if ticker else None
+        if key is None:
+            if "draw" in slug or "draw" in title: key = "draw"
+            elif home_code in slug or " home" in title: key = "home"
+            elif away_code in slug or " away" in title: key = "away"
+        if key in tokens:
+            raw = mkt.get("clobTokenIds") or mkt.get("clob_token_ids") or mkt.get("tokens") or []
+            if isinstance(raw, str):
+                try: raw = json.loads(raw)
+                except json.JSONDecodeError: raw = [raw]
+            if raw and isinstance(raw[0], dict): token = raw[0].get("token_id") or raw[0].get("id")
+            else: token = raw[0] if raw else None
+            tokens[key] = str(token) if token else None
+    return tokens
+
+
+def get_midpoint(token_id: str) -> float | None:
+    return _clob_mid(str(token_id))
+
+
+def get_three_way_from_tokens(home_token: str | None, draw_token: str | None, away_token: str | None, slug: str = "") -> dict:
+    """
+    Fetch CLOB midpoints for three pre-known YES token IDs and return a normalised
+    market probability dict.  This is the fast path when token IDs come from the
+    arena mapping endpoint directly (no Gamma API call needed).
+    """
+    tokens = {"home": home_token, "draw": draw_token, "away": away_token}
+    if not all(tokens.values()):
+        return {"complete": False, "raw_midpoints": {}, "normalized_probs": None,
+                "reason": "missing_token_ids", "slug": slug}
+    raw: dict[str, float | None] = {k: _clob_mid(str(v)) for k, v in tokens.items()}
+    if any(raw.get(k) is None for k in ("home", "draw", "away")):
+        return {"complete": False, "raw_midpoints": raw, "normalized_probs": None,
+                "tokens": tokens, "slug": slug, "reason": "clob_midpoint_missing"}
+    total = sum(float(raw[k]) for k in ("home", "draw", "away"))  # type: ignore[arg-type]
+    if not total:
+        return {"complete": False, "raw_midpoints": raw, "normalized_probs": None,
+                "tokens": tokens, "slug": slug, "reason": "zero_total"}
+    norm = {k: float(raw[k]) / total for k in ("home", "draw", "away")}  # type: ignore[arg-type]
+    return {"complete": True, "raw_midpoints": raw, "normalized_probs": norm,
+            "tokens": tokens, "slug": slug, "reason": "ok"}
+
+
+def get_three_way_market_probs(fixture_id: int | str, tokens: dict | None = None) -> dict:
+    """
+    Return normalised 3-way (home/draw/away) market probabilities for a fixture.
+
+    Fast path: if caller supplies a ``tokens`` dict with keys
+    ``home``, ``draw``, ``away`` (token ID strings from the arena mapping),
+    skip the Gamma API entirely and go straight to the CLOB.
+
+    Slow path: look up the mapping, then try Gamma (deprecated -- may return empty).
+    """
+    # Fast path: caller already has token IDs from the mapping
+    if tokens and all(tokens.get(k) for k in ("home", "draw", "away")):
+        return get_three_way_from_tokens(
+            tokens["home"], tokens["draw"], tokens["away"],
+            slug=tokens.get("slug", ""),
+        )
+
+    # Slow path: mapping lookup + Gamma (deprecated but kept as fallback)
+    mapping = get_mapping(fixture_id)
+    if mapping:
+        # Mapping already contains the token IDs -- use fast path
+        home_t = mapping.get("polymarket_home_token_yes")
+        draw_t = mapping.get("polymarket_draw_token_yes")
+        away_t = mapping.get("polymarket_away_token_yes")
+        slug   = mapping.get("polymarket_event_slug", "")
+        if home_t and draw_t and away_t:
+            return get_three_way_from_tokens(home_t, draw_t, away_t, slug=slug)
+
+    slug = (mapping or {}).get("polymarket_event_slug") or (mapping or {}).get("slug")
+    if not slug:
+        return {"complete": False, "raw_midpoints": {}, "normalized_probs": None, "reason": "mapping_missing"}
+    event = get_gamma_event(slug)
+    if not event:
+        return {"complete": False, "raw_midpoints": {}, "normalized_probs": None, "reason": "gamma_event_missing", "slug": slug}
+    extracted = extract_yes_token_ids(event)
+    raw: dict[str, float | None] = {k: get_midpoint(v) if v else None for k, v in extracted.items()}
+    if any(raw.get(k) is None for k in ("home", "draw", "away")):
+        return {"complete": False, "raw_midpoints": raw, "normalized_probs": None, "tokens": extracted, "slug": slug, "reason": "midpoint_missing"}
+    total = sum(float(raw[k]) for k in ("home", "draw", "away"))  # type: ignore[arg-type]
+    norm = {k: float(raw[k]) / total for k in ("home", "draw", "away")} if total else None  # type: ignore[arg-type]
+    return {"complete": bool(norm), "raw_midpoints": raw, "normalized_probs": norm, "tokens": extracted, "slug": slug, "reason": "ok" if norm else "zero_total"}
+
+
+def get_all_mappings() -> list[dict]:
+    """
+    Return all arena fixture mappings (all 72 WC2026 group-stage fixtures).
+    Includes Sportmonks fixture IDs, team codes, token IDs, and kickoff times.
+    Call with no params -- the endpoint returns the complete list.
+    """
+    try:
+        r = httpx.get(f"{_ARENA_API}/v1/web/mapping", headers=_HEADERS, timeout=15)
+        if not r.is_success:
+            return []
+        return r.json().get("mappings") or []
+    except Exception:
+        return []
