@@ -7,6 +7,9 @@ env/
 ENV/
 .ipynb_checkpoints/
 jupyter/.ipynb_checkpoints/
+ui/node_modules/
+ui/dist/
+
 
 # Deterministic-engine run artifacts: keep the directory skeleton (.gitkeep),
 # ignore everything written into them at runtime.

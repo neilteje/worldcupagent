@@ -3,14 +3,18 @@ Central configuration. All secrets come from environment variables.
 Copy .env.example → .env and fill in your keys.
 """
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 
-load_dotenv(override=True)
+# Always load the .env next to this config file, regardless of cwd
+load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=True)
+
+
 
 # ── Arena ──────────────────────────────────────────────────────────────────
 # Env var is STAIR_API_KEY (matches the .env file from the arena team)
 ARENA_KEY: str = os.environ.get("STAIR_API_KEY") or os.environ.get("ARENA_KEY", "")
-ARENA_BASE: str = "https://staging.stair-ai.com"
+ARENA_BASE: str = "https://stair-ai.com"
 ARENA_API: str = f"{ARENA_BASE}/api"
 
 # ── Supabase (shared publishable key — same for all builders, no setup needed) ─
