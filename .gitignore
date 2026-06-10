@@ -7,3 +7,10 @@ env/
 ENV/
 .ipynb_checkpoints/
 jupyter/.ipynb_checkpoints/
+
+# Deterministic-engine run artifacts: keep the directory skeleton (.gitkeep),
+# ignore everything written into them at runtime.
+storage/**
+!storage/
+!storage/**/
+!storage/**/.gitkeep

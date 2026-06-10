@@ -148,3 +148,144 @@ def extract_ht_stats(fixture: dict) -> dict:
         ):
             stats[type_name] = value
     return stats
+
+# ── Robust scheduler helpers for package agent ─────────────────────────────
+def _extract_list(payload):
+    if isinstance(payload, list): return payload
+    if isinstance(payload, dict):
+        for key in ("data", "fixtures", "matches", "body"):
+            val = payload.get(key)
+            if isinstance(val, list): return val
+            if isinstance(val, dict):
+                nested = _extract_list(val)
+                if nested: return nested
+    return []
+
+
+_DEMO_FIXTURE = {
+    "id": "DEMO-FIXTURE",
+    "fixture_code": "DEMO-FIXTURE",
+    "name": "Demo Home vs Demo Away",
+    "starting_at": None,
+    "home_team_code": "HOME",
+    "away_team_code": "AWAY",
+    "home_country": "Demo Home",
+    "away_country": "Demo Away",
+    "demo": True,
+}
+
+
+def discover_fixtures_safe(limit: int = 5) -> list[dict]:
+    """
+    Return upcoming WC2026 fixtures from the arena mapping endpoint.
+
+    Each returned fixture dict is enriched with polymarket token IDs and team
+    names so downstream callers (run_cycle) can use them without extra lookups.
+    Falls back to a single demo fixture if the arena key is missing or the
+    call fails.
+    """
+    try:
+        from data.polymarket import get_all_mappings
+        from datetime import datetime, timezone
+
+        mappings = get_all_mappings()
+        if not mappings:
+            return [_DEMO_FIXTURE]
+
+        now_ms = datetime.now(timezone.utc).timestamp() * 1000
+        fixtures: list[dict] = []
+        for m in mappings:
+            kickoff_ms = m.get("sportmonks_kickoff_utc")
+            if kickoff_ms is None or float(kickoff_ms) < now_ms:
+                continue  # skip past matches
+            try:
+                fixture_id = int(m["sportmonks_fixture_id"])
+            except (KeyError, TypeError, ValueError):
+                continue
+            # Convert ms UTC timestamp to ISO string
+            try:
+                kickoff_iso = datetime.fromtimestamp(
+                    float(kickoff_ms) / 1000, tz=timezone.utc
+                ).isoformat()
+            except Exception:
+                kickoff_iso = None
+            fixtures.append({
+                "id": fixture_id,
+                "fixture_code": str(fixture_id),
+                "name": m.get("sportmonks_match_name", f"{m.get('home_country')} vs {m.get('away_country')}"),
+                "starting_at": kickoff_iso,
+                "home_team_code": m.get("home_short_code", "HOME"),
+                "away_team_code": m.get("away_short_code", "AWAY"),
+                "home_country": m.get("home_country"),
+                "away_country": m.get("away_country"),
+                "polymarket_event_slug": m.get("polymarket_event_slug"),
+                "polymarket_home_token_yes": m.get("polymarket_home_token_yes"),
+                "polymarket_draw_token_yes": m.get("polymarket_draw_token_yes"),
+                "polymarket_away_token_yes": m.get("polymarket_away_token_yes"),
+                "match_confidence": m.get("match_confidence"),
+            })
+        # Sort by kickoff, return the next `limit` upcoming
+        fixtures.sort(key=lambda f: f.get("starting_at") or "")
+        return fixtures[:limit] if fixtures else [_DEMO_FIXTURE]
+    except Exception:
+        return [_DEMO_FIXTURE]
+
+
+def get_fixture_detail_safe(fixture_id) -> dict:
+    """
+    Fetch the full Sportmonks fixture record with predictions, odds, and participants.
+    Falls back to a minimal stub dict on any failure.
+    """
+    try:
+        fixture_id_int = int(fixture_id)
+        detail = get_fixture(fixture_id_int)
+        if detail:
+            return detail
+    except Exception:
+        pass
+    return {"id": fixture_id, "fixture_code": str(fixture_id), "demo": True}
+
+
+def extract_sportmonks_prediction(payload: dict) -> dict | None:
+    def walk(o):
+        if isinstance(o, dict):
+            keys = {k.lower(): k for k in o}
+            if all(k in keys for k in ("home", "draw", "away")):
+                try: return {"home": float(o[keys["home"]]), "draw": float(o[keys["draw"]]), "away": float(o[keys["away"]])}
+                except Exception: pass
+            for v in o.values():
+                got = walk(v)
+                if got: return got
+        elif isinstance(o, list):
+            for v in o:
+                got = walk(v)
+                if got: return got
+        return None
+    return walk(payload)
+
+
+def extract_bookmaker_probs(payload: dict) -> dict | None:
+    odds = []
+    def walk(o):
+        if isinstance(o, dict):
+            lower = {k.lower(): v for k,v in o.items()}
+            if all(k in lower for k in ("home", "draw", "away")):
+                vals = lower
+            elif all(k in lower for k in ("home_odds", "draw_odds", "away_odds")):
+                vals = {"home": lower["home_odds"], "draw": lower["draw_odds"], "away": lower["away_odds"]}
+            else:
+                vals = None
+            if vals:
+                try:
+                    row = {k: 1/float(vals[k]) for k in ("home","draw","away") if float(vals[k]) > 1.01}
+                    if len(row) == 3: odds.append(row)
+                except Exception: pass
+            for v in o.values(): walk(v)
+        elif isinstance(o, list):
+            for v in o: walk(v)
+    walk(payload)
+    if not odds: return None
+    import statistics
+    med = {k: statistics.median(row[k] for row in odds) for k in ("home","draw","away")}
+    total = sum(med.values())
+    return {k: med[k]/total for k in med} if total else None
