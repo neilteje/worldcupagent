@@ -75,6 +75,8 @@ class Forecast:
     scout_flags: list = field(default_factory=list)
     grounding: dict = field(default_factory=dict)
     summary: str = ""
+    engine: str = "unknown"
+    deterministic_model: dict = field(default_factory=dict)
 
 
 def _fetch_market(fixture_id: int) -> tuple[str | None, dict | None, dict]:
@@ -96,6 +98,139 @@ def _fetch_market(fixture_id: int) -> tuple[str | None, dict | None, dict]:
         if not any(isinstance(v, (int, float)) for v in mids.values()):
             ml = None  # market exists but no prices → predict-only
     return slug, ml, mids
+
+
+def _normalize_hda(probs: dict | None) -> dict | None:
+    if not probs:
+        return None
+    raw = {
+        "home": probs.get("home", probs.get("home_win")),
+        "draw": probs.get("draw"),
+        "away": probs.get("away", probs.get("away_win")),
+    }
+    vals = {}
+    for key, value in raw.items():
+        if not isinstance(value, (int, float)):
+            return None
+        vals[key] = max(0.0, float(value))
+    total = sum(vals.values())
+    if total <= 0:
+        return None
+    return {k: vals[k] / total for k in ("home", "draw", "away")}
+
+
+def _hda_to_code(probs: dict, home_code: str, away_code: str) -> dict:
+    hda = _normalize_hda(probs) or {"home": 0.40, "draw": 0.28, "away": 0.32}
+    return {
+        home_code: round(float(hda["home"]), 4),
+        "draw": round(float(hda["draw"]), 4),
+        away_code: round(float(hda["away"]), 4),
+    }
+
+
+def _market_prior(fx: Forecast, fixture: dict) -> tuple[dict | None, str]:
+    if fx.moneyline:
+        mids = {
+            slot: (fx.moneyline.get("outcomes", {}).get(slot) or {}).get("current_mid_yes")
+            for slot in ("home", "draw", "away")
+        }
+        prior = _normalize_hda(mids)
+        if prior:
+            return prior, "polymarket"
+    bookmaker = _normalize_hda(sportmonks.extract_bookmaker_probs(fixture))
+    if bookmaker:
+        return bookmaker, "sportmonks_bookmaker"
+    sm = sportmonks.extract_ml_probabilities(fixture)
+    prior = _normalize_hda(sm)
+    if prior:
+        return prior, "sportmonks_ml"
+    return None, "neutral"
+
+
+def _state_from_prior(prior: dict | None, side: str) -> dict:
+    p = prior or {"home": 0.40, "draw": 0.28, "away": 0.32}
+    diff = float(p.get("home", 0.40) or 0.40) - float(p.get("away", 0.32) or 0.32)
+    rating = diff if side == "home" else -diff
+    return {
+        "live_rating": rating,
+        "matches": 0,
+        "xg_for": 0.0,
+        "xg_against": 0.0,
+        "goals_for": 0.0,
+        "goals_against": 0.0,
+    }
+
+
+def _confidence_label(value: float) -> str:
+    if value >= 0.72:
+        return "high"
+    if value >= 0.55:
+        return "medium"
+    return "low"
+
+
+def _deterministic_v2_model(fx: Forecast, fixture: dict) -> dict:
+    from models.deterministic_v2 import EnsembleConfig, predict_v2
+
+    prior, prior_source = _market_prior(fx, fixture)
+    cfg = EnsembleConfig()
+    stage = str((fixture.get("stage") or {}).get("name") or fixture.get("stage") or "").lower()
+    is_knockout = bool(stage) and "group" not in stage
+    home_state = _state_from_prior(prior, "home")
+    away_state = _state_from_prior(prior, "away")
+    out = predict_v2(home_state, away_state, market_probs=prior, cfg=cfg, is_knockout=is_knockout)
+    confidence = float(out.get("confidence", 0.5) or 0.5)
+    return {
+        "probabilities": out["probabilities"],
+        "confidence": confidence,
+        "uncertainty": max(0.12, min(0.70, 1.0 - confidence)),
+        "risk_flags": [] if prior else ["deterministic_v2_neutral_cold_start"],
+        "steps": [{
+            "name": "deterministic_v2",
+            "prior_source": prior_source,
+            "weights": out["weights"],
+            "probabilities": out["probabilities"],
+        }],
+        "model_version": "deterministic_v2.0",
+        "prior_source": prior_source,
+        "prior_hda": prior,
+        "home_state": home_state,
+        "away_state": away_state,
+        "expected_goals": out["expected_goals"],
+        "components": out["components"],
+        "weights": out["weights"],
+        "blended_raw": out["blended_raw"],
+        "config": out["config"],
+    }
+
+
+def _deterministic_context_for_council(fx: Forecast, fixture: dict) -> dict:
+    det = _deterministic_v2_model(fx, fixture)
+    fx.deterministic_model = det
+    return {
+        "engine": "deterministic_v2",
+        "model_version": det["model_version"],
+        "prior_source": det["prior_source"],
+        "probabilities_hda": det["probabilities"],
+        "probabilities_by_code": _hda_to_code(det["probabilities"], fx.home_code, fx.away_code),
+        "confidence": det["confidence"],
+        "uncertainty": det["uncertainty"],
+        "risk_flags": det["risk_flags"],
+        "expected_goals": det["expected_goals"],
+        "components": det["components"],
+        "component_weights": det["weights"],
+        "blended_raw": det["blended_raw"],
+        "prior_hda": det["prior_hda"],
+        "home_state": det["home_state"],
+        "away_state": det["away_state"],
+        "steps": det["steps"],
+        "config": det["config"],
+        "instruction": (
+            "Use this deterministic_v2 output and component signals as a quantitative "
+            "input. You may agree or disagree, but name concrete evidence whenever "
+            "you move materially away from it."
+        ),
+    }
 
 
 # ── Shared brain: PRE_MATCH ─────────────────────────────────────────────────
@@ -162,10 +297,12 @@ def gather_prematch(fixture_id: int) -> Forecast:
         fx.pm_digest_result = r
 
     # The council (Scout → Analyst → Devil → Judge + grounding)
+    deterministic_context = _deterministic_context_for_council(fx, fixture)
     cr = council.run_council(
         fx.fixture_name, fx.home_code, fx.away_code, fx.home_name, fx.away_name,
         fx.kickoff, fx.sm_digest, fx.sb_digest, fx.pm_digest_result.parsed,
         fx.kalshi_ml, fx.web_research, fx.reddit_bundle,
+        deterministic_context=deterministic_context,
     )
     fx.cr = cr
     fx.probabilities = cr.probabilities
@@ -173,9 +310,10 @@ def gather_prematch(fixture_id: int) -> Forecast:
     fx.probability = float(cr.probability)
     fx.confidence = cr.confidence
     fx.scout_flags = cr.scout_flags
-    fx.grounding = cr.grounding
+    fx.grounding = {"council": cr.grounding, "deterministic_context": deterministic_context}
     fx.summary = cr.council_summary
-    print(f"  [live] council: {fx.outcome} @ {fx.probability:.1%} "
+    fx.engine = "council_with_deterministic_v2"
+    print(f"  [live] council+deterministic_v2: {fx.outcome} @ {fx.probability:.1%} "
           f"({fx.confidence})  probs={ {k: round(v, 3) for k, v in fx.probabilities.items()} }")
     return fx
 
@@ -247,6 +385,7 @@ def gather_halftime(fixture_id: int, prematch_note: dict | None = None) -> Forec
     fx.probabilities = {fx.outcome: fx.probability}
     for k, w in zip(rest, rest_pre):
         fx.probabilities[k] = residual * w / rest_tot
+    fx.engine = "ht_bayesian_llm"
     print(f"  [live] HT update: {fx.outcome} @ {fx.probability:.1%} ({fx.confidence})")
     return fx
 
@@ -389,6 +528,12 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
     upstream_data = [rec_sm["record_id"], rec_pm["record_id"], rec_kalshi["record_id"]]
 
     if fx.window == "PRE_MATCH" and fx.cr is not None:
+        rec_det = session.thinking(
+            prompt_system="[DETERMINISTIC_V2] Elo + Poisson + market-prior calibrated ensemble",
+            inputs=[{"record_id": rec_sm["record_id"], "payload": fx.sm_digest},
+                    {"record_id": rec_pm["record_id"], "payload": fx.pm_digest_result.parsed}],
+            output_payload=fx.deterministic_model,
+            upstream_ids=[rec_sm["record_id"], rec_pm["record_id"]])
         rec_web = session.tool_call(
             name="web_search", endpoint="search",
             description="Injury/lineup/preview research",
@@ -410,6 +555,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             prompt_system="[SCOUT_SYS] Severity-ranked triage of news/sentiment/pulse",
             inputs=[{"record_id": rec_web["record_id"], "payload": fx.web_research},
                     {"record_id": rec_reddit["record_id"], "payload": fx.reddit_bundle},
+                    {"record_id": rec_det["record_id"], "payload": fx.deterministic_model},
                     {"payload": cr.social_pulse}],
             output_payload=cr.scout.parsed if cr.scout else {},
             provider=cr.scout.provider if cr.scout else "",
@@ -420,6 +566,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             prompt_system="[ANALYST_SYS] Market-blind base-rate forecast vs anchor",
             inputs=[{"record_id": rec_sm["record_id"], "payload": fx.sm_digest},
                     {"payload": fx.sb_digest},
+                    {"record_id": rec_det["record_id"], "payload": fx.deterministic_model},
                     {"record_id": rec_scout["record_id"],
                      "payload": cr.scout.parsed if cr.scout else {}}],
             output_payload=cr.analyst.parsed if cr.analyst else {},
@@ -444,6 +591,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
                      "payload": cr.devil.parsed if cr.devil else {}},
                     {"record_id": rec_pm["record_id"],
                      "payload": fx.pm_digest_result.parsed},
+                    {"record_id": rec_det["record_id"], "payload": fx.deterministic_model},
                     {"record_id": rec_kalshi["record_id"], "payload": fx.kalshi_ml}],
             output_payload={"probabilities": fx.probabilities, "outcome": fx.outcome,
                             "probability": fx.probability, "confidence": fx.confidence,
@@ -452,7 +600,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             model_name=cr.judge.model if cr.judge else "",
             internal_reasoning=cr.judge.thinking if cr.judge else "",
             upstream_ids=[rec_analyst["record_id"], rec_devil["record_id"],
-                          rec_pm["record_id"], rec_kalshi["record_id"]])
+                          rec_pm["record_id"], rec_det["record_id"], rec_kalshi["record_id"]])
     else:
         # HT trace: one Thinking record for the Bayesian update.
         r = fx.ht_pred_result or _EmptyResult()
@@ -583,7 +731,9 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
 
     summary = {
         "prediction": {"outcome": fx.outcome, "probability": fx.probability,
-                       "confidence": fx.confidence},
+                       "probabilities": fx.probabilities,
+                       "confidence": fx.confidence,
+                       "engine": fx.engine},
         "wallet_available": available,
         "n_picks": len(picks),
         "orders": order_results,
@@ -595,6 +745,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         "agent_window",
         fixture_id=fx.fixture_id, window=fx.window, fixture_name=fx.fixture_name,
         agent=agent.name, profile=profile.name,
+        engine=fx.engine,
         probabilities=fx.probabilities, confidence=fx.confidence,
         market_source=fx.market_source, mids=fx.mids,
         grounding=fx.grounding, **{k: summary[k] for k in
@@ -618,6 +769,7 @@ def run_window_cycle(fixture_id: int, window: str, agents: list[LiveAgent],
         "forecast",
         fixture_id=fixture_id, window=window, fixture_name=fx.fixture_name,
         kickoff=fx.kickoff, home_code=fx.home_code, away_code=fx.away_code,
+        engine=fx.engine,
         probabilities=fx.probabilities, outcome=fx.outcome,
         probability=fx.probability, confidence=fx.confidence,
         market_source=fx.market_source, mids=fx.mids, grounding=fx.grounding,
@@ -635,5 +787,6 @@ def run_window_cycle(fixture_id: int, window: str, agents: list[LiveAgent],
     return {"fixture_name": fx.fixture_name, "window": window,
             "forecast": {"outcome": fx.outcome, "probability": fx.probability,
                          "probabilities": fx.probabilities,
-                         "confidence": fx.confidence},
+                         "confidence": fx.confidence,
+                         "engine": fx.engine},
             "agents": results}

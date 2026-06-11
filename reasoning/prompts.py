@@ -417,6 +417,7 @@ def scout_input(
     web_research: dict | None,
     reddit_bundle: dict | None,
     social_pulse: dict | None = None,
+    deterministic_context: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
@@ -424,6 +425,7 @@ def scout_input(
         "home_code": home_code,
         "away_code": away_code,
         "sportmonks_digest": sportmonks_digest,
+        "deterministic_context": deterministic_context,
         "web_research": web_research,
         "reddit_sentiment": reddit_bundle,
         "social_pulse_grok": social_pulse,
@@ -441,20 +443,23 @@ ANALYST_SYS = (
     "## Method (follow IN ORDER)\n"
     "  1. BASE RATE FIRST. Start from international base rates "
     "(~0.40 home / 0.28 draw / 0.32 away) and state them as your starting point.\n"
-    "  2. ANCHOR RECONCILIATION. If an `anchor` distribution is provided "
+    "  2. DETERMINISTIC ENGINE. Treat `deterministic_context` as a quantitative "
+    "model output with component signals, expected goals, uncertainty, and risk "
+    "flags. Use it as evidence; if you move materially away from it, name why.\n"
+    "  3. ANCHOR RECONCILIATION. If an `anchor` distribution is provided "
     "(bookmaker consensus or Sportmonks ML — a data signal, not a market you "
     "can trade), treat it as the strongest single prior. You may diverge from "
     "it, but every divergence >5pp on any outcome must name the specific "
     "evidence that justifies it. Do not blindly copy it either — your job is "
     "reconciliation, not transcription.\n"
-    "  3. EVIDENCE PER OUTCOME. For EACH of the three outcomes, list the "
+    "  4. EVIDENCE PER OUTCOME. For EACH of the three outcomes, list the "
     "evidence FOR it (may be 'none'). An outcome with no evidence for or "
     "against stays near its base/anchor value.\n"
-    "  4. UNKNOWNS. List what you do NOT know that materially matters "
+    "  5. UNKNOWNS. List what you do NOT know that materially matters "
     "(lineups unconfirmed, no xG, sparse priors...). Check the digests' "
     "`data_availability` fields — if a field says 'missing', that data does "
     "not exist; NEVER invent injuries, lineups, or form.\n"
-    "  5. ADJUST + CALIBRATE. Move off the base/anchor only as far as the "
+    "  6. ADJUST + CALIBRATE. Move off the base/anchor only as far as the "
     "evidence carries. Sparse evidence → small moves and confidence='low'. "
     "'low' must mean 'data is thin / uncertainty is high'.\n\n"
 
@@ -484,6 +489,7 @@ def analyst_input(
     supabase_digest: dict | None,
     scout_output: dict | None,
     anchor: dict | None = None,
+    deterministic_context: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
@@ -491,6 +497,7 @@ def analyst_input(
         "home_code": home_code,
         "away_code": away_code,
         "anchor": anchor,                # {'source', 'probabilities'} | null
+        "deterministic_context": deterministic_context,
         "sportmonks_digest": sportmonks_digest,
         "supabase_digest": supabase_digest,
         "scout_flags": scout_output,
@@ -542,6 +549,7 @@ def devil_input(
     analyst_output: dict | None,
     sportmonks_digest: dict | None,
     supabase_digest: dict | None,
+    deterministic_context: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
@@ -549,6 +557,7 @@ def devil_input(
         "home_code": home_code,
         "away_code": away_code,
         "lead_analyst_prediction": analyst_output,
+        "deterministic_context": deterministic_context,
         "sportmonks_digest": sportmonks_digest,
         "supabase_digest": supabase_digest,
     }, default=str)
@@ -557,7 +566,7 @@ def devil_input(
 # ── 4. JUDGE (final calibrated synthesis, sees the markets) ─────────────────
 
 JUDGE_SYS = (
-    "You are the chief arbiter of a football betting desk. You synthesize the "
+    "You are the final judge of a football betting desk. You synthesize the "
     "lead analyst's market-blind view and the devil's-advocate counter, and ONLY "
     "NOW are you allowed to see the tradable markets (Polymarket and Kalshi). "
     "Produce the desk's FINAL calibrated 3-way distribution — every decision "
@@ -567,7 +576,9 @@ JUDGE_SYS = (
     "  1. Start from the analyst's probabilities.\n"
     "  2. Move toward the devil's counter-map in proportion to how plausible its "
     "     weakest-assumption attack is — especially shrink an inflated favorite.\n"
-    "  3. MOVE vs HOLD rules against the market:\n"
+    "  3. Compare that synthesis to `deterministic_context`; treat its component "
+    "     signals and risk flags as a required quantitative cross-check.\n"
+    "  4. MOVE vs HOLD rules against the market:\n"
     "     - HOLD near your synthesis when you can name concrete evidence the "
     "       market may not price (confirmed lineup news, scout flags, xG signal).\n"
     "     - MOVE toward the market when both markets agree, your divergence is "
@@ -575,11 +586,11 @@ JUDGE_SYS = (
     "       evidence for the divergence — the crowd likely knows something.\n"
     "     - When the two markets disagree with each other, trust your analysis "
     "       and label the signal contested.\n"
-    "  4. Calibration discipline: probabilities sum to 1.0; no outcome <0.02 or "
+    "  5. Calibration discipline: probabilities sum to 1.0; no outcome <0.02 or "
     "     >0.92 unless you cite the concrete evidence; if the inputs' "
     "     data_availability is thin, confidence MUST be 'low' (low = thin "
     "     data / high uncertainty, never 'guessing anyway').\n"
-    "  5. Output the final distribution you would stake money on.\n\n"
+    "  6. Output the final distribution you would stake money on.\n\n"
 
     "## Output (return ONLY valid JSON — no prose, no code fences)\n"
     "{\n"
@@ -603,12 +614,14 @@ def judge_input(
     devil_output: dict | None,
     polymarket_digest: dict | None,
     kalshi_moneyline: dict | None,
+    deterministic_context: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
         "fixture": fixture_name,
         "home_code": home_code,
         "away_code": away_code,
+        "deterministic_context": deterministic_context,
         "lead_analyst_prediction": analyst_output,
         "devils_advocate_counter": devil_output,
         "polymarket": polymarket_digest,

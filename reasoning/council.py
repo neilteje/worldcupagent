@@ -91,6 +91,7 @@ def run_council(
     kalshi_moneyline: dict | None,
     web_research: dict | None,
     reddit_bundle: dict | None,
+    deterministic_context: dict | None = None,
 ) -> CouncilResult:
     # 0 — Social pulse: Grok reads live X/Twitter + news for breaking signals.
     pulse = _safe_call(
@@ -111,7 +112,8 @@ def run_council(
         llm.call_claude,
         SCOUT_SYS,
         scout_input(fixture_name, home_code, away_code,
-                    sportmonks_digest, web_research, reddit_bundle, social_pulse),
+                    sportmonks_digest, web_research, reddit_bundle, social_pulse,
+                    deterministic_context=deterministic_context),
         model=config.SCOUT_MODEL,
         thinking_budget=config.SCOUT_THINKING_BUDGET,
     )
@@ -125,7 +127,8 @@ def run_council(
         ANALYST_SYS,
         analyst_input(fixture_name, home_code, away_code,
                       sportmonks_digest, supabase_digest, scout.parsed,
-                      anchor=anchor),
+                      anchor=anchor,
+                      deterministic_context=deterministic_context),
         model=config.ANALYST_MODEL,
         thinking_budget=config.THINKING_BUDGET,
     )
@@ -136,7 +139,8 @@ def run_council(
         llm.call_deepseek,
         DEVIL_SYS,
         devil_input(fixture_name, home_code, away_code,
-                    analyst.parsed, sportmonks_digest, supabase_digest),
+                    analyst.parsed, sportmonks_digest, supabase_digest,
+                    deterministic_context=deterministic_context),
         model=config.DEVIL_MODEL,
     )
 
@@ -146,7 +150,8 @@ def run_council(
         llm.call_claude,
         JUDGE_SYS,
         judge_input(fixture_name, home_code, away_code,
-                    analyst.parsed, devil.parsed, polymarket_digest, kalshi_moneyline),
+                    analyst.parsed, devil.parsed, polymarket_digest, kalshi_moneyline,
+                    deterministic_context=deterministic_context),
         model=config.JUDGE_MODEL,
         thinking_budget=config.THINKING_BUDGET,
     )

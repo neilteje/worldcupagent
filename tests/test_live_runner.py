@@ -7,6 +7,7 @@ import pytest
 from betting.policy import select_picks
 from harness.profiles import get_profile
 from ledger.client import LedgerSession
+from live.cycle import Forecast, _deterministic_context_for_council
 from live.state import LiveState
 from live.runner import LiveRunner, flatten_schedule, _parse_kickoff
 
@@ -134,6 +135,24 @@ def test_policy_confidence_floor():
     picks = select_picks(monk, probs, _ml(), "AAA", "BBB", 100.0,
                          confidence_num=0.40)   # below monk's 0.55 floor
     assert picks == []
+
+
+def test_live_prematch_builds_deterministic_context_for_council():
+    fx = Forecast(
+        fixture_id=1,
+        window="PRE_MATCH",
+        home_code="AAA",
+        away_code="BBB",
+        moneyline=_ml(home=0.50, draw=0.28, away=0.24),
+        sm_digest={"bookmaker_consensus_win_prob": {"AAA": 0.50, "draw": 0.28, "BBB": 0.22}},
+    )
+    ctx = _deterministic_context_for_council(fx, {"stage": {"name": "Group Stage"}})
+    assert ctx["engine"] == "deterministic_v2"
+    assert ctx["model_version"] == "deterministic_v2.0"
+    assert set(ctx["probabilities_by_code"]) == {"AAA", "draw", "BBB"}
+    assert sum(ctx["probabilities_by_code"].values()) == pytest.approx(1.0, abs=0.001)
+    assert "components" in ctx and "expected_goals" in ctx
+    assert ctx["component_weights"]["market"] == pytest.approx(0.8)
 
 
 # ── Ledger: schema v0.3 shapes ───────────────────────────────────────────────
