@@ -27,6 +27,12 @@ Usage:
   python agent.py --fixture-id 19609127 --window halftime
   python agent.py --scan [--window prematch|halftime]
   python agent.py --test-connection
+
+Trading aggressiveness comes from an agent PROFILE (monk | anchor | hunter |
+blitz) — resolved from --profile, else the AGENT_PROFILE env var, else
+'anchor'. Four arena identities = four processes, each with its own API key and
+AGENT_PROFILE. Profiles are defined once in harness/profiles.py (single source
+of truth shared with the paper-trading harness).
 """
 from __future__ import annotations
 import argparse
@@ -47,8 +53,9 @@ from reasoning.prompts import (
     predict_input, strategy_input, ht_predict_input,
 )
 from ledger.client import LedgerSession
-from betting.kelly import should_bet, expected_value, kelly_usd
 from betting import decision as ev_decision
+from harness.profiles import AgentProfile, get_profile, confidence_to_num
+from live.arena_client import ArenaClient
 
 console = Console()
 _H = {"x-api-key": config.ARENA_KEY, "Content-Type": "application/json"}
@@ -56,9 +63,8 @@ _H = {"x-api-key": config.ARENA_KEY, "Content-Type": "application/json"}
 # ── Utilities ──────────────────────────────────────────────────────────────
 
 def get_wallet_balance() -> float:
-    resp = httpx.get(f"{config.ARENA_API}/v1/arena/agents/me", headers=_H, timeout=15)
-    resp.raise_for_status()
-    return float(resp.json().get("wallet_balance_usd") or 0)
+    """Spendable USDC (20260610 wallet shape, legacy fallback inside)."""
+    return ArenaClient().wallet()["available"]
 
 
 def place_order(
@@ -67,25 +73,8 @@ def place_order(
     usd_size: float,
     limit_price: float,
 ) -> dict:
-    """POST /api/v1/arena/orders — usd_size must be a string."""
-    payload = {
-        "fixture_code":          str(fixture_id),
-        "team_code":             team_code,
-        "usd_size":              str(round(usd_size, 2)),
-        "limit_price":           round(limit_price, 4),
-        "time_in_force_seconds": config.DEFAULT_TIF_SECONDS,
-        "idempotency_key":       str(uuid.uuid4()),
-    }
-    resp = httpx.post(
-        f"{config.ARENA_API}/v1/arena/orders",
-        headers=_H,
-        json=payload,
-        timeout=60,
-    )
-    if resp.status_code == 404:
-        return {"status": "not_live", "payload": payload}
-    resp.raise_for_status()
-    return resp.json()
+    """POST /api/v1/arena/orders — fixture_id field (renamed from fixture_code)."""
+    return ArenaClient().place_order(fixture_id, team_code, usd_size, limit_price)
 
 
 def get_season_fixtures() -> list[dict]:
@@ -180,17 +169,38 @@ def _print_decision_table(decision: ev_decision.GameDecision) -> None:
 
 # ── Pre-match run ──────────────────────────────────────────────────────────
 
-def run_prematch(fixture_id: int) -> dict | None:
+def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict | None:
     """
     Full pre-match flow for one fixture.
     Returns the prediction dict for HT reference, or None on failure.
     """
-    console.print(Panel(f"[bold cyan]PRE-MATCH[/bold cyan]  fixture_id={fixture_id}",
-                        expand=False))
+    profile = profile or get_profile()
+    console.print(Panel(
+        f"[bold cyan]PRE-MATCH[/bold cyan]  fixture_id={fixture_id}  "
+        f"profile=[bold]{profile.name}[/bold] ({profile.label})",
+        expand=False))
     session = LedgerSession(fixture_id, f"fixture_{fixture_id}", "PRE_MATCH")
 
-    # ── (1) Trigger record ─────────────────────────────────────────────────
+    # ── (1) Trigger record + plan (goal decomposition for the ledger DAG) ──
     rec_trigger = session.trigger("cron_or_manual")
+    session.planning(
+        goal=f"Form a calibrated 1X2 forecast for fixture {fixture_id} and "
+             f"place at most one +EV buy-YES order under the {profile.name} policy",
+        steps=[
+            "Fetch Sportmonks fixture data (predictions, odds, xG) and digest",
+            "Fetch Polymarket moneyline + mids and Kalshi cross-market view",
+            "Gather web research, Reddit sentiment, and Grok social pulse",
+            "Run the council: Scout triage → Analyst → Devil → Judge, then ground the output",
+            "Submit the prediction; rank all outcomes by EV vs the de-vigged fair price",
+            "Apply deterministic gates + profile policy; size and place the order if tradable",
+            "Reflect and submit the full reasoning trace",
+        ],
+        contingencies=[
+            "If any data source fails, proceed with degraded inputs and flag low confidence",
+            "If no Polymarket market exists, run predict-only (prediction is still scored)",
+        ],
+        upstream_ids=[rec_trigger["record_id"]],
+    )
 
     # ── (2) Wallet ─────────────────────────────────────────────────────────
     console.print("[dim]Checking wallet…[/dim]")
@@ -467,20 +477,21 @@ def run_prematch(fixture_id: int) -> dict | None:
     console.print(f"  Grok pulse: lean={pulse_lean} "
                   f"({(cr.social_pulse or {}).get('confidence','?')} conf)")
 
-    # Scout → Planning record
-    rec_scout = session.planning(
-        description="Scout triage of injuries / lineups / crowd + social pulse",
+    # Scout → Thinking record (schema: Planning has no free-form payload slot)
+    rec_scout = session.thinking(
+        prompt_system="[SCOUT_SYS] Triage injuries / lineups / crowd + social pulse "
+                      "into severity-ranked flags",
+        inputs=[
+            {"record_id": rec_web["record_id"], "payload": web_research},
+            {"record_id": rec_reddit["record_id"], "payload": reddit_bundle},
+            {"record_id": rec_pulse["record_id"], "payload": cr.social_pulse},
+        ],
         output_payload=cr.scout.parsed if cr.scout else {},
         provider=cr.scout.provider if cr.scout else "",
         model_name=cr.scout.model if cr.scout else "",
         internal_reasoning=cr.scout.thinking if cr.scout else "",
         tokens_in=cr.scout.tokens_in if cr.scout else 0,
         tokens_out=cr.scout.tokens_out if cr.scout else 0,
-        inputs=[
-            {"record_id": rec_web["record_id"], "payload": web_research},
-            {"record_id": rec_reddit["record_id"], "payload": reddit_bundle},
-            {"record_id": rec_pulse["record_id"], "payload": cr.social_pulse},
-        ],
         upstream_ids=[rec_web["record_id"], rec_reddit["record_id"],
                       rec_pulse["record_id"], rec_th_sportmonks["record_id"]],
     )
@@ -564,10 +575,13 @@ def run_prematch(fixture_id: int) -> dict | None:
     console.print("[dim][7/7] Ranking all outcomes by EV + running gates…[/dim]")
 
     # The EV engine evaluates home/draw/away (not just the favorite), de-vigs the
-    # market, and picks the highest-EV tradable side. The gates then act as a risk
-    # overlay (scout veto / cross-market consensus / confidence) on THAT side.
+    # market, and picks the highest-EV tradable side. The profile supplies the
+    # ONLY edge bar (vs fair price); the gates then act as a pure risk overlay
+    # (scout veto / cross-market consensus / confidence) on THAT side.
     decision = ev_decision.evaluate_game(
         cr.probabilities, moneyline, home_code, away_code, wallet,
+        kelly_fraction=profile.kelly_fraction,
+        min_edge_vs_fair=profile.min_edge_vs_fair,
     )
     _print_decision_table(decision)
 
@@ -585,15 +599,36 @@ def run_prematch(fixture_id: int) -> dict | None:
         scout_flags=cr.scout_flags,
         confidence=cr.confidence,
         wallet_balance=wallet,
+        min_edge=None,                                # edge bar lives in decision.py
+        scout_veto=profile.skip_on_high_scout_flag,
     )
-    # Trade only when BOTH the EV engine finds a +EV side and the gates allow it.
+    # Trade only when BOTH the EV engine finds a +EV side and the gates allow it,
+    # plus the profile's policy filters.
     should_trade = bool(decision.should_trade and gate.should_trade)
+    policy_reasons: list[str] = []
+    if should_trade and not profile.trade_prematch:
+        should_trade = False
+        policy_reasons.append(f"profile {profile.name} does not trade PRE_MATCH")
+    if should_trade and best and best.ev_per_dollar < profile.min_ev_per_dollar:
+        should_trade = False
+        policy_reasons.append(
+            f"EV {best.ev_per_dollar*100:+.1f}%/$ below profile floor "
+            f"{profile.min_ev_per_dollar*100:.1f}%/$")
+    conf_num = confidence_to_num(cr.confidence)
+    if should_trade and conf_num < profile.min_confidence:
+        should_trade = False
+        policy_reasons.append(
+            f"confidence {conf_num:.2f} below profile floor {profile.min_confidence:.2f}")
+    gate.reasons.extend(policy_reasons)
 
     size_usdc = 0.0
     limit_price = 0.0
     if should_trade and pm_mid and best:
-        # Base size from the EV engine's half-Kelly, scaled by the gate multiplier.
+        # Base size from the EV engine's fractional Kelly, scaled by the gate
+        # multiplier and capped by profile + arena rules.
         size_usdc = round(min(best.kelly_usd * gate.bet_multiplier,
+                              profile.max_bet_usd,
+                              wallet * profile.stake_cap_fraction,
                               config.MAX_BET_USD, wallet), 2)
         if size_usdc < 1.0:
             should_trade = False
@@ -602,9 +637,26 @@ def run_prematch(fixture_id: int) -> dict | None:
         else:
             limit_price = min(round(pm_mid + 0.02, 4), 0.99)
 
-    rec_gate = session.planning(
-        description="EV-ranked all-outcome decision + deterministic gates + Kelly sizing",
+    rec_gate = session.thinking(
+        prompt_system="[DETERMINISTIC] EV-ranked all-outcome decision + "
+                      "deterministic gates + Kelly sizing (no LLM)",
+        inputs=[
+            {"record_id": rec_judge["record_id"],
+             "payload": {"probabilities": cr.probabilities, "confidence": cr.confidence}},
+            {"record_id": rec_th_polymarket["record_id"],
+             "payload": {"pm_mid": pm_mid, "kalshi_mid": kalshi_mid}},
+        ],
         output_payload={
+            "profile": profile.name,
+            "profile_thresholds": {
+                "min_edge_vs_fair": profile.min_edge_vs_fair,
+                "min_ev_per_dollar": profile.min_ev_per_dollar,
+                "min_confidence": profile.min_confidence,
+                "kelly_fraction": profile.kelly_fraction,
+                "max_bet_usd": profile.max_bet_usd,
+                "scout_veto": profile.skip_on_high_scout_flag,
+            },
+            "market_source": "polymarket" if moneyline else "none",
             "should_trade": should_trade,
             "trade_outcome": trade_outcome,
             "decision_summary": decision.summary,
@@ -616,6 +668,7 @@ def run_prematch(fixture_id: int) -> dict | None:
                  "tradable": e.tradable}
                 for e in decision.ranked
             ],
+            "grounding": cr.grounding,
             "edge": round(gate.edge, 4),
             "bet_multiplier": gate.bet_multiplier,
             "market_agreement": gate.market_agreement,
@@ -639,16 +692,9 @@ def run_prematch(fixture_id: int) -> dict | None:
     order_response = None
     if should_trade and pm_slug and size_usdc >= 1.0 and limit_price > 0:
         team_code = trade_outcome
-        order_payload = {
-            "fixture_code":          str(fixture_id),
-            "team_code":             team_code,
-            "usd_size":              str(round(size_usdc, 2)),
-            "limit_price":           round(limit_price, 4),
-            "time_in_force_seconds": config.DEFAULT_TIF_SECONDS,
-            "idempotency_key":       str(uuid.uuid4()),
-        }
+        client = ArenaClient()
         try:
-            order_response = place_order(fixture_id, team_code, size_usdc, limit_price)
+            order_response = client.place_order(fixture_id, team_code, size_usdc, limit_price)
             order_id = order_response.get("order_id") or order_response.get("status")
             ok = isinstance(order_response, dict) and "order_id" in order_response
             console.print(f"  Order: [{'green' if ok else 'yellow'}]{order_id}[/]")
@@ -657,24 +703,42 @@ def run_prematch(fixture_id: int) -> dict | None:
             console.print(f"  Order failed: [red]{e}[/red]")
 
         submitted_ok = isinstance(order_response, dict) and "order_id" in order_response
+        # Poll to a terminal state (≈ the 30s TIF) so the Acting record carries
+        # the real execution outcome, not just "pending".
+        outcome_poll = {"final_status": None, "tx_hash": None}
+        if submitted_ok:
+            outcome_poll = client.poll_order(order_response["order_id"])
+            console.print(f"  Order final: {outcome_poll.get('final_status')}"
+                          + (f"  (reject: {outcome_poll['reject_reason']})"
+                             if outcome_poll.get("reject_reason") else ""))
+        exec_status = ArenaClient.execution_status_for(
+            outcome_poll.get("final_status"), outcome_poll.get("tx_hash"), submitted_ok)
         session.acting_order(
             direction="long",
             outcome=trade_outcome,
             size_usdc=size_usdc,
             limit_price=limit_price,
-            order_payload=order_payload,
-            execution_status="pending" if submitted_ok else "failed",
+            order_payload=order_response.get("payload") if isinstance(order_response, dict) else {},
+            execution_status=exec_status,
             execution_id=order_response.get("order_id") if submitted_ok else None,
             upstream_ids=[rec_gate["record_id"]],
         )
 
     # ── (10b) Closing reflection ───────────────────────────────────────────
     session.reflecting(
-        description="Post-decision reflection on the council run",
+        inputs=[
+            {"record_id": rec_judge["record_id"],
+             "payload": cr.judge.parsed if cr.judge else {}},
+            {"record_id": rec_gate["record_id"],
+             "payload": {"should_trade": should_trade, "size_usdc": size_usdc}},
+        ],
         output_payload={
             "fixture": fixture_name,
+            "profile": profile.name,
             "final_pick": pred_outcome,
             "final_probability": pred_prob,
+            "grounding_flags": (cr.grounding or {}).get("sanity_flags"),
+            "shrink_lambda": (cr.grounding or {}).get("shrink_lambda"),
             "trade_side": trade_outcome if should_trade else None,
             "decision_summary": decision.summary,
             "market_alignment": cr.market_alignment,
@@ -731,9 +795,13 @@ def run_prematch(fixture_id: int) -> dict | None:
 
 # ── Half-time run ──────────────────────────────────────────────────────────
 
-def run_halftime(fixture_id: int, prematch_prediction: dict | None = None) -> None:
-    console.print(Panel(f"[bold yellow]HALF-TIME[/bold yellow]  fixture_id={fixture_id}",
-                        expand=False))
+def run_halftime(fixture_id: int, prematch_prediction: dict | None = None,
+                 profile: AgentProfile | None = None) -> None:
+    profile = profile or get_profile()
+    console.print(Panel(
+        f"[bold yellow]HALF-TIME[/bold yellow]  fixture_id={fixture_id}  "
+        f"profile=[bold]{profile.name}[/bold]",
+        expand=False))
     session = LedgerSession(fixture_id, f"fixture_{fixture_id}", "HT")
     rec_trigger = session.trigger("ht_window_cron")
 
@@ -866,26 +934,38 @@ def run_halftime(fixture_id: int, prematch_prediction: dict | None = None) -> No
         upstream_ids=[rec_th_pred["record_id"], rec_th_pm["record_id"]],
     )
 
+    if not profile.trade_halftime and strategy_data.get("should_trade"):
+        console.print(f"  [yellow]Profile {profile.name} does not trade HT — "
+                      f"prediction only.[/yellow]")
+        strategy_data["should_trade"] = False
+
     if strategy_data.get("should_trade") and pm_slug:
         team_code   = strategy_data.get("team_code") or strategy_data.get("outcome")
-        size_usdc   = float(strategy_data.get("size_usdc") or 0)
+        # Profile caps the LLM strategy's proposed size; arena rule ≤ $5 stands.
+        size_usdc   = round(min(float(strategy_data.get("size_usdc") or 0),
+                                profile.max_bet_usd, config.MAX_BET_USD), 2)
         limit_price = float(strategy_data.get("limit_price") or 0)
         if team_code and size_usdc > 0:
+            client = ArenaClient()
             try:
-                order_response = place_order(fixture_id, team_code, size_usdc, limit_price)
+                order_response = client.place_order(fixture_id, team_code, size_usdc, limit_price)
                 ok = "order_id" in order_response
             except Exception as e:
                 order_response = {"error": str(e)}
                 ok = False
-            order_payload = {"fixture_code": str(fixture_id), "team_code": team_code,
-                             "usd_size": str(size_usdc), "limit_price": limit_price}
+            outcome_poll = client.poll_order(order_response["order_id"]) if ok else {}
+            exec_status = ArenaClient.execution_status_for(
+                outcome_poll.get("final_status"), outcome_poll.get("tx_hash"), ok)
             session.acting_order(
                 direction=strategy_data.get("direction", "long"),
                 outcome=strategy_data.get("outcome", ""),
                 size_usdc=size_usdc,
                 limit_price=limit_price,
-                order_payload=order_payload,
-                execution_status="pending" if ok else "failed",
+                order_payload=(order_response.get("payload")
+                               if isinstance(order_response, dict) else {}) or
+                              {"fixture_id": str(fixture_id), "team_code": team_code,
+                               "usd_size": str(size_usdc), "limit_price": limit_price},
+                execution_status=exec_status,
                 execution_id=order_response.get("order_id") if ok else None,
                 upstream_ids=[rec_th_strat["record_id"]],
             )
@@ -902,8 +982,10 @@ def run_halftime(fixture_id: int, prematch_prediction: dict | None = None) -> No
 
 # ── Scanner ────────────────────────────────────────────────────────────────
 
-def scan_and_run(window: str = "prematch") -> None:
-    console.print("[bold]Scanning for upcoming WC2026 fixtures…[/bold]")
+def scan_and_run(window: str = "prematch", profile: AgentProfile | None = None) -> None:
+    profile = profile or get_profile()
+    console.print(f"[bold]Scanning for upcoming WC2026 fixtures…[/bold] "
+                  f"(profile={profile.name})")
     schedule = sportmonks.get_season_schedule()
     _print_schedule(schedule)
     fixtures = []
@@ -921,9 +1003,9 @@ def scan_and_run(window: str = "prematch") -> None:
             continue
         try:
             if window == "halftime":
-                run_halftime(fid)
+                run_halftime(fid, profile=profile)
             else:
-                run_prematch(fid)
+                run_prematch(fid, profile=profile)
         except Exception as e:
             console.print(f"[red]Error on fixture {fid}: {e}[/red]")
         time.sleep(3)
@@ -964,9 +1046,13 @@ def test_connection() -> None:
     console.print("[bold]Testing API connections…[/bold]")
     # Arena
     try:
-        resp = httpx.get(f"{config.ARENA_API}/v1/arena/agents/me", headers=_H, timeout=10)
-        console.print(f"  Arena agents/me: [green]HTTP {resp.status_code}[/green]  "
-                      f"wallet=${resp.json().get('wallet_balance_usd','?')}")
+        chk = ArenaClient().check()
+        if chk["ok"]:
+            console.print(f"  Arena agents/me: [green]OK[/green]  "
+                          f"agent={chk.get('display_name')}  phase={chk.get('phase')}  "
+                          f"wallet=${chk.get('available', 0):.2f} available")
+        else:
+            console.print(f"  Arena: [red]{chk.get('error')}[/red]")
     except Exception as e:
         console.print(f"  Arena: [red]{e}[/red]")
 
@@ -1044,18 +1130,27 @@ if __name__ == "__main__":
                         help="List every WC2026 fixture with its id, then exit")
     parser.add_argument("--test-connection", action="store_true",
                         help="Smoke-test all data sources")
+    parser.add_argument("--profile", choices=["monk", "anchor", "hunter", "blitz"],
+                        default=None,
+                        help="Trading profile (default: AGENT_PROFILE env, else 'anchor')")
     args = parser.parse_args()
+
+    profile = get_profile(args.profile)
 
     if args.list:
         list_fixtures()
     elif args.test_connection:
         test_connection()
+        console.print(f"  Active profile: [green]{profile.name}[/green] "
+                      f"(edge≥{profile.min_edge_vs_fair*100:.1f}pp vs fair, "
+                      f"kelly×{profile.kelly_fraction}, "
+                      f"max ${profile.max_bet_usd:.2f}/trade)")
     elif args.scan:
-        scan_and_run(window=args.window)
+        scan_and_run(window=args.window, profile=profile)
     elif args.fixture_id:
         if args.window == "halftime":
-            run_halftime(args.fixture_id)
+            run_halftime(args.fixture_id, profile=profile)
         else:
-            run_prematch(args.fixture_id)
+            run_prematch(args.fixture_id, profile=profile)
     else:
         parser.print_help()

@@ -22,9 +22,8 @@ import uuid
 from pathlib import Path
 
 from betting import decision as ev_decision
+from betting import policy as bet_policy
 from harness.profiles import AgentProfile
-
-SLOT_OF_CODE = {}  # filled per call
 
 
 def fetch_real_market(fx) -> dict | None:
@@ -118,13 +117,6 @@ def _already_traded(ledger: dict, agent: str, fixture_code: str, window: str) ->
                for t in ledger["agents"][agent]["trades"])
 
 
-def _high_flag_on(scout_flags, code: str) -> bool:
-    for f in scout_flags or []:
-        if str(f.get("severity", "")).lower() == "high" and str(f.get("team", "")).lower() == code.lower():
-            return True
-    return False
-
-
 # ── The decision: prediction + profile → paper trades ───────────────────────
 
 def decide_trades(profile: AgentProfile, prediction, moneyline: dict, ledger: dict) -> list[dict]:
@@ -134,57 +126,45 @@ def decide_trades(profile: AgentProfile, prediction, moneyline: dict, ledger: di
     fixture_code = prediction.fixture_code
     if _already_traded(ledger, agent, fixture_code, window):
         return []
-    if window == "PRE_MATCH" and not profile.trade_prematch:
-        return []
-    if window == "HT" and not profile.trade_halftime:
-        return []
-    if prediction.confidence_num < profile.min_confidence:
-        return []
 
+    is_synthetic = moneyline.get("market_source") == "synthetic_demo"
     bankroll = float(ledger["agents"][agent]["bankroll"])
+    skip_reasons: list[str] = []
+    picks = bet_policy.select_picks(
+        profile, prediction.probabilities, moneyline,
+        prediction.home_code, prediction.away_code, bankroll,
+        window=window, confidence_num=prediction.confidence_num,
+        scout_flags=prediction.scout_flags, skip_reasons=skip_reasons,
+    )
+    if not picks and skip_reasons:
+        print(f"    [{agent}] no trade: {skip_reasons[0]}")
+
+    # Overround is informational only; recompute once for the trade record.
     game = ev_decision.evaluate_game(
         prediction.probabilities, moneyline,
         prediction.home_code, prediction.away_code,
         bankroll, kelly_fraction=profile.kelly_fraction,
-    )
-
-    picks = []
-    for ev in game.ranked:
-        if ev.raw_mid is None or ev.ev_per_dollar <= 0:
-            continue
-        if ev.edge_vs_fair < profile.min_edge_vs_fair:
-            continue
-        if ev.ev_per_dollar < profile.min_ev_per_dollar:
-            continue
-        if profile.skip_on_high_scout_flag and _high_flag_on(prediction.scout_flags, ev.code):
-            continue
-        picks.append(ev)
-        if len(picks) >= profile.max_bets_per_window:
-            break
+        min_edge_vs_fair=profile.min_edge_vs_fair,
+    ) if picks else None
 
     trades = []
-    for ev in picks:
-        size = min(ev.kelly_usd, profile.max_bet_usd,
-                   bankroll * profile.stake_cap_fraction, bankroll)
-        size = round(size, 2)
-        if size < 1.0:                       # mirror the arena $1 minimum
-            continue
-        bankroll -= 0  # stake is at risk but bankroll is realized only at settlement
+    for pk in picks:
         trades.append({
             "trade_id": str(uuid.uuid4())[:8],
             "agent": agent,
             "fixture_code": fixture_code,
             "window": window,
-            "slot": ev.slot,
-            "outcome": ev.code,
-            "stake": size,
-            "entry_price": ev.raw_mid,
-            "our_prob": ev.our_prob,
-            "fair_prob": ev.fair_prob,
-            "edge_vs_fair": ev.edge_vs_fair,
-            "ev_per_dollar": ev.ev_per_dollar,
+            "slot": pk.slot,
+            "outcome": pk.code,
+            "stake": pk.stake_usd,
+            "entry_price": pk.entry_price,
+            "our_prob": pk.our_prob,
+            "fair_prob": pk.fair_prob,
+            "edge_vs_fair": pk.edge_vs_fair,
+            "ev_per_dollar": pk.ev_per_dollar,
             "market_source": moneyline.get("market_source", "unknown"),
-            "overround": game.overround,
+            "synthetic_warning": is_synthetic,
+            "overround": game.overround if game else None,
             "ts": datetime.now(timezone.utc).isoformat(),
             "status": "open",
             "pnl": 0.0,

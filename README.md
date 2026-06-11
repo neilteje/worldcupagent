@@ -43,12 +43,22 @@ DETERMINISTIC ENGINE
   data/
     supabase_data.py, market_memory.py, lineup_monitor.py, synthetic_fixtures.py
 
+LIVE TOURNAMENT RUNNER (docs/LIVE.md)
+  live/
+    runner.py               ← resumable forever-loop: schedule → windows → settle
+    cycle.py                ← shared council once, then 4 per-agent tails
+    arena_client.py         ← per-key arena API (2026-06-10 contract)
+    roster.py, state.py     ← 4 agents from env keys; kill-anytime state store
+    report.py, metrics.py   ← events.jsonl + retrospective evaluation
+  betting/policy.py         ← single profile→orders policy (harness + live)
+  harness/                  ← paper-trading rehearsal (no arena writes)
+
 SHARED
   data/polymarket.py        ← superset: get_moneyline() (council) +
                               get_three_way_market_probs() (deterministic)
   data/sportmonks.py        ← fixtures, ML predictions, odds, HT stats
   config.py, ledger/client.py
-  storage/                  ← deterministic-engine run artifacts (gitignored)
+  storage/                  ← run artifacts incl. live state/metrics (gitignored)
 ```
 
 ## Setup
@@ -74,6 +84,13 @@ python -m backtesting.runner    # 2022 World Cup backtest
 pytest tests/ -q                # unit tests (live-data tests need STAIR_API_KEY)
 ```
 
+### Live tournament (all 4 agents, one process — see docs/LIVE.md)
+```bash
+python -m live test             # check all 4 agent keys + endpoints
+python -m live run              # resumable loop until the final
+python -m live report           # retrospective evaluation
+```
+
 ## Scoring strategy
 
 - **PSL (Probabilistic Skill Loss)** — proper scoring on calibrated distributions.
@@ -89,6 +106,6 @@ pytest tests/ -q                # unit tests (live-data tests need STAIR_API_KEY
 | `MIN_EDGE` | 0.05 | Min raw edge to place a bet |
 | `MIN_EDGE_VS_FAIR` | 0.03 | Min edge vs the de-vigged fair price |
 | `MAX_KELLY_FRACTION` | 0.20 | Max % of wallet per bet |
-| `MAX_BET_USD` | 15.00 | Hard USD cap per order |
+| `MAX_BET_USD` | 5.00 | Hard USD cap per order (arena rule) |
 
 The deterministic engine has its own settings in `agent/config.py` (`Settings`).

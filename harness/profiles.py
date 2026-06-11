@@ -1,25 +1,44 @@
 """
-Agent aggressiveness profiles.
+Agent aggressiveness profiles — the SINGLE source of truth for trading policy.
 
-A profile is the *trading policy* layered on top of a shared prediction. The
-prediction (probabilities + confidence) is identical across agents; profiles only
-change risk appetite — how often to bet, how much, and under what guardrails. This
-makes the head-to-head a clean A/B on aggressiveness alone.
+A profile is the trading policy layered on top of a shared forecast. The
+forecast (council probabilities + confidence) is identical across agents;
+profiles only change risk appetite. Both the arena agent (`agent.py
+--profile` / `AGENT_PROFILE` env) and the harness load profiles from here, so
+there is no drift between rehearsal and production.
 
-Two profiles ship today (the user wants two agents tomorrow; the design scales to
-the four planned for the live arena):
+## The four agents (mandates per docs/STRATEGY.md §4)
 
-  conservative ("anchor")  — bets only on clear edges, small fractional Kelly,
-                             tight caps, high confidence floor. Capital first.
-  aggressive  ("blitz")    — acts on thin edges, larger fractional Kelly, looser
-                             caps, low confidence floor, trades both windows.
+  monk   → ORACLE  — pure forecast quality (Stair Score track). Predicts every
+           window; trades only enormous (≥10pp) edges. A handful of bets all
+           tournament is the *design*, not paralysis.
+  anchor → KEEL    — disciplined all-outcome EV accumulator. The control arm
+           and risk-adjusted P&L play. ~20–40% of games.
+  hunter → SAW     — skew harvester. Only buys outcomes priced ≤ 0.40 (draws
+           and underdogs); near-max size when it fires. Variance with positive
+           drift is the product.
+  blitz  → SURGE   — event-driven aggression: both windows, scout veto off,
+           thin-but-positive edges vs FAIR price. Endgame escalation vehicle.
 
-Tune freely: every knob below is a plain field, and `load_profiles` can read an
-override JSON so you can retune without touching code.
+## Which knob applies where (no double-gating)
+
+  min_edge_vs_fair, min_ev_per_dollar → betting/decision.py tradability
+                                        (edge measured vs de-vigged fair price)
+  min_confidence, max_bets_per_window,
+  trade_prematch/halftime              → policy filters before sizing
+  skip_on_high_scout_flag              → reasoning/gates.py scout veto
+  kelly_fraction, max_bet_usd,
+  stake_cap_fraction                   → sizing (gates may scale via consensus/
+                                        confidence multipliers, never re-gate edge)
+  trade_synthetic (+ multiplier)       → harness-only honesty policy: synthetic
+                                        demo markets are derived from our own
+                                        forecast + noise, so "edge" against them
+                                        is noise. Default: do not bet them.
 """
 from __future__ import annotations
-from dataclasses import dataclass, asdict, field
+from dataclasses import dataclass, asdict
 import json
+import os
 from pathlib import Path
 
 
@@ -35,75 +54,116 @@ def confidence_to_num(conf: str | float | None) -> float:
 
 @dataclass
 class AgentProfile:
-    name: str                              # machine id, e.g. "conservative"
-    label: str                             # human label, e.g. "anchor"
-    bankroll: float = 100.0                # starting paper bankroll (USD)
+    name: str                              # machine id, e.g. "anchor"
+    label: str                             # human label
+    bankroll: float = 100.0                # starting paper bankroll (harness)
 
-    # ── When to bet ──────────────────────────────────────────────────────
-    min_edge_vs_fair: float = 0.05         # edge vs de-vigged fair price to act
-    min_ev_per_dollar: float = 0.0         # require at least this EV/$ (0 = any +EV)
-    min_confidence: float = 0.55           # numeric confidence floor (see map above)
+    # ── When to bet (drives betting/decision.py tradability) ─────────────
+    min_edge_vs_fair: float = 0.045        # edge vs DE-VIGGED fair price
+    min_ev_per_dollar: float = 0.0         # EV/$ floor (0 = any +EV)
+    min_confidence: float = 0.40           # numeric confidence floor
+    max_entry_price: float | None = None   # only buy outcomes priced ≤ this (skew filter)
     trade_prematch: bool = True
     trade_halftime: bool = True
-    skip_on_high_scout_flag: bool = True   # veto if a high-severity flag hits our side
+    skip_on_high_scout_flag: bool = True   # gates scout veto on our side
 
     # ── How much to bet ──────────────────────────────────────────────────
     kelly_fraction: float = 0.40           # fraction of full Kelly
-    max_bet_usd: float = 5.0               # hard per-trade cap (arena rule = $5)
-    stake_cap_fraction: float = 0.10       # also cap each bet at this fraction of bankroll
-    max_bets_per_window: int = 1           # how many outcomes to back per window
+    max_bet_usd: float = 5.0               # hard per-trade cap (arena rule ≤ $5)
+    stake_cap_fraction: float = 0.10       # per-bet cap as fraction of bankroll
+    max_bets_per_window: int = 1           # outcomes backed per window
+
+    # ── Market honesty (harness) ─────────────────────────────────────────
+    trade_synthetic: bool = False          # bet synthetic_demo markets at all?
+    synthetic_size_multiplier: float = 0.25  # size-down when trading synthetic
 
     def to_dict(self) -> dict:
         return asdict(self)
 
 
-# ── The two tuned agents for tomorrow ───────────────────────────────────────
+# ── The four tuned agents ───────────────────────────────────────────────────
 
-CONSERVATIVE = AgentProfile(
-    name="conservative",
-    label="anchor",
-    bankroll=100.0,
-    min_edge_vs_fair=0.06,      # only genuine, sizable disagreement
-    min_ev_per_dollar=0.05,     # demand a real EV cushion
-    min_confidence=0.60,        # medium+ council confidence
-    trade_prematch=True,
-    trade_halftime=True,
-    skip_on_high_scout_flag=True,
-    kelly_fraction=0.25,        # quarter-Kelly → low variance
-    max_bet_usd=3.0,            # voluntarily stakes under the $5 arena cap
-    stake_cap_fraction=0.05,    # never risk >5% of bankroll on one bet
+MONK = AgentProfile(
+    name="monk", label="oracle — forecast specialist",
+    min_edge_vs_fair=0.10,      # trades only enormous, genuine disagreement
+    min_ev_per_dollar=0.08,     # and a real EV cushion
+    min_confidence=0.55,        # medium+ council confidence
+    kelly_fraction=0.20,
+    max_bet_usd=2.0,
+    stake_cap_fraction=0.04,
     max_bets_per_window=1,
+    skip_on_high_scout_flag=True,
 )
 
-AGGRESSIVE = AgentProfile(
-    name="aggressive",
-    label="blitz",
-    bankroll=100.0,
-    min_edge_vs_fair=0.025,     # acts on thin edges the anchor skips
-    min_ev_per_dollar=0.0,      # any positive EV is fair game
-    min_confidence=0.40,        # will fire on low-confidence reads
-    trade_prematch=True,
-    trade_halftime=True,
-    skip_on_high_scout_flag=False,  # tolerates flagged sides for more action
-    kelly_fraction=0.60,        # heavier sizing
-    max_bet_usd=5.0,            # uses the full arena cap
-    stake_cap_fraction=0.15,    # up to 15% of bankroll per bet
-    max_bets_per_window=2,      # may back two outcomes (e.g. underdog + draw)
+ANCHOR = AgentProfile(
+    name="anchor", label="keel — disciplined EV accumulator",
+    min_edge_vs_fair=0.045,
+    min_ev_per_dollar=0.02,
+    min_confidence=0.40,        # low-confidence allowed: the bars do the work
+    kelly_fraction=0.35,
+    max_bet_usd=4.0,
+    stake_cap_fraction=0.08,
+    max_bets_per_window=1,
+    skip_on_high_scout_flag=True,
+)
+
+HUNTER = AgentProfile(
+    name="hunter", label="saw — skew harvester (draws + dogs only)",
+    min_edge_vs_fair=0.03,
+    min_ev_per_dollar=0.01,
+    min_confidence=0.40,
+    max_entry_price=0.40,       # never buys favorites — payout asymmetry is the product
+    kelly_fraction=0.75,        # when it fires, fire near the cap
+    max_bet_usd=5.0,
+    stake_cap_fraction=0.10,
+    max_bets_per_window=2,
+    skip_on_high_scout_flag=True,
+)
+
+BLITZ = AgentProfile(
+    name="blitz", label="surge — event-driven aggression",
+    min_edge_vs_fair=0.02,      # thin edges — but still +EV vs FAIR price
+    min_ev_per_dollar=0.0,
+    min_confidence=0.35,        # fires even on low-confidence reads
+    kelly_fraction=0.65,
+    max_bet_usd=5.0,
+    stake_cap_fraction=0.15,
+    max_bets_per_window=2,
+    skip_on_high_scout_flag=False,
+    trade_synthetic=True,       # may trade demo markets, but ×0.25 sized
+    synthetic_size_multiplier=0.25,
 )
 
 DEFAULT_PROFILES: dict[str, AgentProfile] = {
-    CONSERVATIVE.name: CONSERVATIVE,
-    AGGRESSIVE.name: AGGRESSIVE,
+    p.name: p for p in (MONK, ANCHOR, HUNTER, BLITZ)
 }
+
+DEFAULT_PROFILE_NAME = "anchor"
+
+# Back-compat aliases for the two retired profile names.
+_ALIASES = {"conservative": "anchor", "aggressive": "blitz"}
+
+
+def get_profile(name: str | None = None) -> AgentProfile:
+    """
+    Resolve ONE profile for an agent process.
+
+    Priority: explicit `name` arg → AGENT_PROFILE env var → 'anchor'.
+    This is what `agent.py --profile` and the arena deployments use; four arena
+    identities = four processes, each with its own AGENT_PROFILE + API key.
+    """
+    raw = (name or os.getenv("AGENT_PROFILE") or DEFAULT_PROFILE_NAME).strip().lower()
+    raw = _ALIASES.get(raw, raw)
+    if raw not in DEFAULT_PROFILES:
+        valid = ", ".join(DEFAULT_PROFILES)
+        raise ValueError(f"Unknown AGENT_PROFILE '{raw}'. Valid: {valid}")
+    return DEFAULT_PROFILES[raw]
 
 
 def load_profiles(override_path: str | Path | None = None) -> dict[str, AgentProfile]:
     """
-    Return the agent profiles, optionally merged with an override JSON.
-
-    The override file is a map of {profile_name: {field: value, ...}} and only
-    needs to contain the fields you want to change. Unknown profile names create
-    new agents (must include at least `name` and `label`).
+    Return all profiles (harness runs every agent side by side), optionally
+    merged with an override JSON: {profile_name: {field: value, ...}}.
     """
     profiles = {k: AgentProfile(**v.to_dict()) for k, v in DEFAULT_PROFILES.items()}
     if not override_path:

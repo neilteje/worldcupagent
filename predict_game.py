@@ -122,7 +122,12 @@ def run(args: argparse.Namespace) -> None:
     moneyline = None
     if args.pm_slug:
         console.print("[dim]Fetching live Polymarket prices…[/dim]")
-        moneyline = pm.get_moneyline_by_slug(args.pm_slug)
+        try:
+            moneyline = pm.get_moneyline_by_slug(args.pm_slug)
+        except Exception as exc:
+            console.print(f"  [yellow]Polymarket fetch failed ({exc}) — "
+                          f"going market-blind.[/yellow]")
+            moneyline = None
         if moneyline:
             mids = _normalized_probs(_norm_mids(moneyline))
             console.print(f"  Market: " + "  ".join(
@@ -158,14 +163,24 @@ def run(args: argparse.Namespace) -> None:
     kalshi_ml = kalshi.get_moneyline(home, away)
     console.print(f"  Kalshi: {kalshi_ml['markets_found']} markets")
 
+    # ── Structured grounding (Sportmonks if a fixture id was given; Supabase
+    # priors resolve by team name, so they work for any international match) ─
+    console.print("[dim]Building structured context (Sportmonks + Supabase)…[/dim]")
+    from data import fixture_bundle
+    ctx = fixture_bundle.build_context(
+        home, away, home_code, away_code,
+        sportmonks_fixture_id=args.fixture_id, fixture_name=fixture_name)
+    sm_digest, sb_digest = ctx["sportmonks_digest"], ctx["supabase_digest"]
+    console.print(f"  Context: sportmonks={'yes' if sm_digest else 'no'}  "
+                  f"supabase={'yes' if sb_digest else 'no'}")
+
     # ── Council ────────────────────────────────────────────────────────────
     console.print("[dim]Convening reasoning council "
                   "(Grok → Scout → Analyst → Devil → Judge)…[/dim]")
     cr = council.run_council(
         fixture_name, home_code, away_code,
         home, away, date,
-        None,            # no Sportmonks digest in sandbox
-        None,            # no Supabase digest in sandbox
+        sm_digest, sb_digest,
         pm_digest, kalshi_ml,
         web, reddit,
     )
@@ -184,16 +199,31 @@ def run(args: argparse.Namespace) -> None:
     if cr.probabilities:
         vt.add_row("Full distribution",
                    "  ".join(f"{k}={float(v):.1%}" for k, v in cr.probabilities.items()))
+    g = cr.grounding or {}
+    if g:
+        anchor = g.get("anchor") or {}
+        vt.add_row("Anchor", anchor.get("source") or "none")
+        if g.get("shrink_lambda"):
+            vt.add_row("Shrink λ", f"{g['shrink_lambda']:.2f} toward anchor (low confidence)")
+        if g.get("sanity_flags"):
+            vt.add_row("Sanity flags", "; ".join(g["sanity_flags"]))
     console.print(vt)
     if cr.council_summary:
         console.print(Panel(cr.council_summary, title="Why", expand=False))
 
     # ── EV-ranked decision across ALL outcomes (only if we have a market) ──
     if moneyline:
+        from harness.profiles import get_profile
+        profile = get_profile(args.profile)
+        console.print(f"  [dim]profile: {profile.name} "
+                      f"(edge≥{profile.min_edge_vs_fair*100:.1f}pp vs fair, "
+                      f"kelly×{profile.kelly_fraction})[/dim]")
         # Evaluate home/draw/away (not just the council's pick): de-vig the
         # market, rank every outcome by EV, and pick the best tradable side.
         decision = ev_decision.evaluate_game(
             cr.probabilities, moneyline, home_code, away_code, args.bankroll,
+            kelly_fraction=profile.kelly_fraction,
+            min_edge_vs_fair=profile.min_edge_vs_fair,
         )
 
         et = Table(title="Per-outcome EV (de-vigged)")
@@ -226,10 +256,13 @@ def run(args: argparse.Namespace) -> None:
                 pm_mid=best.raw_mid, kalshi_mid=kalshi_mid,
                 scout_flags=cr.scout_flags, confidence=cr.confidence,
                 wallet_balance=args.bankroll,
+                min_edge=None,                       # edge bar lives in decision.py
+                scout_veto=profile.skip_on_high_scout_flag,
             )
             should_trade = decision.should_trade and gate.should_trade
             if should_trade and best.raw_mid:
                 size = round(min(best.kelly_usd * gate.bet_multiplier,
+                                 profile.max_bet_usd,
                                  config.MAX_BET_USD, args.bankroll), 2)
                 if size < 1.0:
                     should_trade = False
@@ -263,6 +296,7 @@ def run(args: argparse.Namespace) -> None:
             "confidence": cr.confidence,
             "probabilities": cr.probabilities,
             "market_alignment": cr.market_alignment,
+            "grounding": cr.grounding,
             "social_pulse": cr.social_pulse,
             "scout_flags": cr.scout_flags,
             "summary": cr.council_summary,
@@ -284,6 +318,12 @@ def main() -> None:
     p.add_argument("--away-code", help="Short code (defaults to first 3 letters)")
     p.add_argument("--date", help="Match date YYYY-MM-DD (defaults to today)")
     p.add_argument("--pm-slug", help="Polymarket event slug (any product line)")
+    p.add_argument("--fixture-id", type=int, default=None,
+                   help="Sportmonks fixture id (enables real ML/odds/xG digest)")
+    p.add_argument("--profile", choices=["monk", "anchor", "hunter", "blitz"],
+                   default=None,
+                   help="Trading profile for the hypothetical decision "
+                        "(default: AGENT_PROFILE env, else 'anchor')")
     p.add_argument("--bankroll", type=float, default=100.0,
                    help="Hypothetical bankroll for sizing (default 100)")
     p.add_argument("--prices-only", action="store_true",

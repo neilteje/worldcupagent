@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from typing import Any
 
 import config
-from reasoning import llm
+from reasoning import llm, grounding
 from reasoning.prompts import (
     SOCIAL_PULSE_SYS, social_pulse_input,
     SCOUT_SYS, scout_input,
@@ -41,6 +41,7 @@ class CouncilResult:
     scout_flags: list[dict] = field(default_factory=list)
     market_alignment: str = "unknown"
     social_pulse: dict = field(default_factory=dict)
+    grounding: dict = field(default_factory=dict)   # anchor / sanity / shrink audit
     # Per-role raw results (for the ledger trace)
     pulse: Any = None
     scout: Any = None
@@ -49,12 +50,21 @@ class CouncilResult:
     judge: Any = None
 
 
-def _safe_call(fn, *args, **kwargs):
-    """Run an LLM call; on hard failure return an empty LLMResult-like object."""
+def _safe_call(role: str, fn, *args, **kwargs):
+    """Run an LLM call; on hard failure return an empty LLMResult-like object.
+
+    Failures degrade gracefully but are logged LOUDLY with the role name so a
+    blind council step is never mistaken for a considered one.
+    """
     try:
-        return fn(*args, **kwargs)
+        result = fn(*args, **kwargs)
+        if result is not None and not (result.parsed or {}):
+            print(f"  [council:{role}] WARNING: returned EMPTY parse "
+                  f"(model={getattr(result, 'model', '?')}) — downstream roles "
+                  f"will see no {role} output")
+        return result
     except Exception as e:
-        print(f"  [council step failed: {e}]")
+        print(f"  [council:{role}] FAILED: {e!r} — continuing with empty output")
         return llm.LLMResult(parsed={}, raw_text="", thinking="",
                              model="", provider="error")
 
@@ -84,14 +94,20 @@ def run_council(
 ) -> CouncilResult:
     # 0 — Social pulse: Grok reads live X/Twitter + news for breaking signals.
     pulse = _safe_call(
+        "pulse",
         llm.call_grok,
         SOCIAL_PULSE_SYS,
         social_pulse_input(fixture_name, home_name, away_name, kickoff),
     )
     social_pulse = pulse.parsed if pulse else {}
 
+    # Structured anchor (bookmaker consensus → Sportmonks ML) for the Analyst to
+    # reconcile with and for the post-council sanity/shrink pass.
+    anchor = grounding.extract_anchor(sportmonks_digest, home_code, away_code)
+
     # 1 — Scout: consolidate web + reddit + Grok pulse into severity-tagged flags.
     scout = _safe_call(
+        "scout",
         llm.call_claude,
         SCOUT_SYS,
         scout_input(fixture_name, home_code, away_code,
@@ -101,18 +117,22 @@ def run_council(
     )
     scout_flags = (scout.parsed or {}).get("flags") or []
 
-    # 2 — Analyst: market-blind base probability.
+    # 2 — Analyst: market-blind base probability (sees the bookmaker anchor —
+    # it's a data signal, not a tradable market price).
     analyst = _safe_call(
+        "analyst",
         llm.call_claude,
         ANALYST_SYS,
         analyst_input(fixture_name, home_code, away_code,
-                      sportmonks_digest, supabase_digest, scout.parsed),
+                      sportmonks_digest, supabase_digest, scout.parsed,
+                      anchor=anchor),
         model=config.ANALYST_MODEL,
         thinking_budget=config.THINKING_BUDGET,
     )
 
     # 3 — Devil's advocate: strongest counter-case (raw CoT via DeepSeek).
     devil = _safe_call(
+        "devil",
         llm.call_deepseek,
         DEVIL_SYS,
         devil_input(fixture_name, home_code, away_code,
@@ -122,6 +142,7 @@ def run_council(
 
     # 4 — Judge: synthesize everything, now seeing the markets.
     judge = _safe_call(
+        "judge",
         llm.call_claude,
         JUDGE_SYS,
         judge_input(fixture_name, home_code, away_code,
@@ -136,20 +157,36 @@ def run_council(
     probs = j.get("probabilities") or a.get("probabilities") or {
         home_code: _BASE_RATE["home"], "draw": _BASE_RATE["draw"], away_code: _BASE_RATE["away"]
     }
-    outcome = j.get("outcome") or a.get("outcome")
-    probability = j.get("probability") or a.get("probability")
-    if not outcome or probability is None:
-        outcome, probability = _pick_outcome(probs, home_code, away_code)
+    confidence = j.get("confidence") or a.get("confidence") or "low"
+
+    # ── Grounding pass: sanity-check, cap confidence on thin data, and apply
+    # the documented low-confidence shrink toward the anchor. Nothing hidden —
+    # the full audit rides on CouncilResult.grounding and into the ledger.
+    g = grounding.ground_council_output(
+        probs, confidence, home_code, away_code,
+        sportmonks_digest=sportmonks_digest,
+        supabase_digest=supabase_digest,
+        devil_parsed=devil.parsed,
+    )
+    probs = g["probabilities"]
+    confidence = g["confidence"]
+    for flag in g["sanity_flags"]:
+        print(f"  [council:grounding] {flag}")
+
+    # Re-derive the headline pick from the FINAL (grounded) distribution so the
+    # outcome/probability always match the probabilities map.
+    outcome, probability = _pick_outcome(probs, home_code, away_code)
 
     return CouncilResult(
         outcome=outcome,
         probability=float(probability),
-        confidence=j.get("confidence") or a.get("confidence") or "low",
+        confidence=confidence,
         council_summary=j.get("council_summary") or a.get("rationale") or "",
         probabilities=probs,
         scout_flags=scout_flags,
         market_alignment=j.get("market_alignment", "unknown"),
         social_pulse=social_pulse,
+        grounding=g,
         pulse=pulse,
         scout=scout,
         analyst=analyst,

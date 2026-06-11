@@ -73,7 +73,8 @@ def _market_probs(moneyline: dict | None, home_code: str, away_code: str) -> dic
 def _predict_council(fx, window, moneyline) -> Prediction | None:
     try:
         from reasoning import council
-    except Exception:
+    except Exception as exc:
+        print(f"  [predictor] council import failed: {exc!r}")
         return None
 
     home, away = fx.home, fx.away
@@ -85,18 +86,35 @@ def _predict_council(fx, window, moneyline) -> Prediction | None:
     try:
         from data import web_search
         web = web_search.gather_research(home, away, date)
-    except Exception:
-        web = None
+    except Exception as exc:
+        print(f"  [predictor] web research failed: {exc!r}")
     try:
         from data import reddit_sentiment
         reddit = reddit_sentiment.get_sentiment_bundle(home, away)
-    except Exception:
-        reddit = None
+    except Exception as exc:
+        print(f"  [predictor] reddit sentiment failed: {exc!r}")
     try:
         from data import kalshi
         kalshi_ml = kalshi.get_moneyline(home, away)
-    except Exception:
-        kalshi_ml = None
+    except Exception as exc:
+        print(f"  [predictor] kalshi failed: {exc!r}")
+
+    # Structured grounding — the same Sportmonks + Supabase digests agent.py
+    # feeds the council. Supabase priors resolve by team NAME, so friendlies
+    # get real H2H/style data too; Sportmonks needs a fixture id.
+    sm_digest = sb_digest = None
+    try:
+        from data import fixture_bundle
+        ctx = fixture_bundle.build_context(
+            home, away, home_code, away_code,
+            sportmonks_fixture_id=getattr(fx, "sportmonks_fixture_id", None),
+            fixture_name=f"{home} vs {away}")
+        sm_digest = ctx["sportmonks_digest"]
+        sb_digest = ctx["supabase_digest"]
+        print(f"  [predictor] grounding: sportmonks={'yes' if sm_digest else 'NO'} "
+              f"supabase={'yes' if sb_digest else 'NO'}")
+    except Exception as exc:
+        print(f"  [predictor] fixture context failed: {exc!r}")
 
     pm_digest = None
     mkt = _market_probs(moneyline, home_code, away_code)
@@ -111,16 +129,18 @@ def _predict_council(fx, window, moneyline) -> Prediction | None:
         cr = council.run_council(
             f"{home} vs {away}", home_code, away_code, home, away,
             f"{date} ({window})",
-            None,              # no Sportmonks digest for friendlies
-            None,              # no Supabase priors for friendlies
+            sm_digest, sb_digest,
             pm_digest, kalshi_ml, web, reddit,
         )
-    except Exception:
+    except Exception as exc:
+        print(f"  [predictor] council run failed: {exc!r}")
         return None
 
     probs = _normalize(cr.probabilities, home_code, away_code)
     if not probs:
+        print("  [predictor] council returned unusable probabilities")
         return None
+    g = getattr(cr, "grounding", {}) or {}
     return Prediction(
         fixture_code=fx.fixture_code, window=window,
         home_code=home_code, away_code=away_code,
@@ -129,7 +149,10 @@ def _predict_council(fx, window, moneyline) -> Prediction | None:
         confidence_num=confidence_to_num(cr.confidence),
         engine="council",
         scout_flags=list(cr.scout_flags or []),
-        note=f"market_alignment={cr.market_alignment}",
+        note=(f"market_alignment={cr.market_alignment}; "
+              f"anchor={(g.get('anchor') or {}).get('source', 'none')}; "
+              f"shrink_lambda={g.get('shrink_lambda', 0)}; "
+              f"flags={g.get('sanity_flags', [])}"),
     )
 
 

@@ -110,18 +110,27 @@ def evaluate_game(
     away_code: str,
     wallet_balance: float,
     kelly_fraction: float = 0.5,
+    min_edge_vs_fair: float | None = None,
 ) -> GameDecision:
     """
     Rank all three outcomes by EV and return the game's decision.
 
+    This is the SINGLE edge gate in the stack: tradability requires EV > 0 at
+    the raw price AND edge ≥ `min_edge_vs_fair` against the de-vigged fair
+    price. `reasoning/gates.py` adds a risk overlay (wallet, scout veto,
+    consensus/confidence multipliers) but never re-applies an edge bar.
+
     Args:
-        probabilities: council distribution, e.g. {home_code: .., "draw": .., away_code: ..}
-        moneyline:     Polymarket moneyline dict (or None → no tradable market)
-        wallet_balance: current bankroll for Kelly sizing
-        kelly_fraction: fractional Kelly (0.5 = half-Kelly)
+        probabilities:     council distribution {home_code: .., "draw": .., away_code: ..}
+        moneyline:         Polymarket moneyline dict (or None → no tradable market)
+        wallet_balance:    current bankroll for Kelly sizing
+        kelly_fraction:    fractional Kelly (0.5 = half-Kelly)
+        min_edge_vs_fair:  edge bar vs fair price; None → config.MIN_EDGE_VS_FAIR.
+                           Agent profiles pass their own bar here.
     """
     from betting.kelly import kelly_usd  # local import avoids cycle
 
+    edge_bar = config.MIN_EDGE_VS_FAIR if min_edge_vs_fair is None else float(min_edge_vs_fair)
     mids = _norm_mids(moneyline)
     fair, overround = devig(mids)
 
@@ -141,7 +150,7 @@ def evaluate_game(
         edge_fair = our_p - fair_p if fair_p is not None else 0.0
         ev = _ev_per_dollar(our_p, raw)
         size = kelly_usd(our_p, raw, wallet_balance, fraction=kelly_fraction)
-        tradable = (ev > 0) and (edge_fair >= config.MIN_EDGE_VS_FAIR)
+        tradable = (ev > 0) and (edge_fair >= edge_bar)
         evals.append(OutcomeEval(slot, code, our_p, raw, fair_p,
                                  edge_vs_fair=round(edge_fair, 4),
                                  ev_per_dollar=round(ev, 4),
@@ -160,7 +169,7 @@ def evaluate_game(
     else:
         summary = (f"HOLD — best is {best.code} at edge "
                    f"{best.edge_vs_fair*100:+.1f}pp vs fair, "
-                   f"below {config.MIN_EDGE_VS_FAIR*100:.0f}pp bar")
+                   f"below {edge_bar*100:.1f}pp bar")
 
     return GameDecision(
         should_trade=bool(tradables),
