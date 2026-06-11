@@ -38,6 +38,7 @@ class Fixture:
     kickoff_local: str               # "HH:MM" 24h local time
     date: str = DEFAULT_DATE         # "YYYY-MM-DD"
     pm_slug: str = ""                # Polymarket event slug, if known
+    sportmonks_fixture_id: int | None = None   # enables real Sportmonks digest
     prematch_lead_min: int = PREMATCH_LEAD_MIN
     ht_offset_min: int = HT_OFFSET_MIN
 
@@ -59,6 +60,7 @@ class Fixture:
             "fixture_code": self.fixture_code, "home": self.home, "away": self.away,
             "home_code": self.home_code, "away_code": self.away_code,
             "kickoff_local": self.kickoff_local, "date": self.date, "pm_slug": self.pm_slug,
+            "sportmonks_fixture_id": self.sportmonks_fixture_id,
         }
 
 
@@ -96,8 +98,7 @@ def all_windows(fixtures: list[Fixture]) -> list[tuple[Fixture, str]]:
     """Flatten fixtures into (fixture, window) pairs sorted by trigger time."""
     pairs: list[tuple[Fixture, str]] = []
     for f in fixtures:
-        if True:
-            pairs.append((f, "PRE_MATCH"))
-            pairs.append((f, "HT"))
+        pairs.append((f, "PRE_MATCH"))
+        pairs.append((f, "HT"))
     pairs.sort(key=lambda p: p[0].window_trigger(p[1]))
     return pairs

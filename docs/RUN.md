@@ -2,6 +2,11 @@
 
 How to pick any World Cup game, run the agent on it, and understand what it does.
 
+> **Tournament mode:** for the real thing — all 4 agents, every match, one
+> resumable process on a VM — use the live runner instead:
+> `python -m live run`. Full runbook in **[docs/LIVE.md](LIVE.md)**.
+> This file covers single-fixture manual runs and the paper harness.
+
 ---
 
 ## 0. One-time setup
@@ -63,6 +68,28 @@ python agent.py --test-connection
 python agent.py --scan --window prematch
 ```
 
+### Trading profiles (4-agent deployment)
+
+The agent's trading policy comes from a profile: `monk` | `anchor` | `hunter` |
+`blitz` (see `harness/profiles.py` and `docs/HARNESS.md` for the exact knobs —
+edge bar vs fair price, EV floor, confidence floor, Kelly fraction, stake caps,
+scout veto, bets per window). Resolution order: `--profile` flag → the
+`AGENT_PROFILE` env var → `anchor`.
+
+```bash
+# Explicit flag
+python agent.py --fixture-id 19609143 --window prematch --profile hunter
+
+# Four arena identities = four processes, each with its own key + profile:
+STAIR_API_KEY=$KEY_1 AGENT_PROFILE=monk   python agent.py --scan &
+STAIR_API_KEY=$KEY_2 AGENT_PROFILE=anchor python agent.py --scan &
+STAIR_API_KEY=$KEY_3 AGENT_PROFILE=hunter python agent.py --scan &
+STAIR_API_KEY=$KEY_4 AGENT_PROFILE=blitz  python agent.py --scan &
+```
+
+The same profile objects drive the paper-trading harness, so harness results
+transfer 1:1 to arena behavior.
+
 ---
 
 ## 3. What happens during a pre-match run
@@ -76,7 +103,9 @@ python agent.py --scan --window prematch
 [6] Kalshi moneyline     → second market for cross-checking
 [7] Supabase priors      → H2H, set-piece, KO/stage records → Claude digest
 [8] Reasoning council    → Pulse → Scout → Analyst → Devil → Judge
-[9] Deterministic gates  → edge / consensus / scout-veto / confidence → Kelly size
+[8b] Grounding layer     → anchor sanity checks + low-confidence shrink (logged)
+[9] EV engine + gates    → de-vig, rank ALL outcomes, profile edge bar → risk
+                           overlay (consensus / scout-veto / confidence) → Kelly
     → prediction (PSL-scored) + optional order + full ledger trace
 ```
 
@@ -103,19 +132,42 @@ The Judge's output is the PSL-scored prediction. The records link into a DAG
 (Grok→Scout→Analyst→Devil→Judge→Prediction→Reflection) via `upstream_record_id`,
 which is what the reasoning-quality rubric rewards.
 
-### Deterministic gates (the risk layer)
+### The grounding layer (`reasoning/grounding.py`)
 
-Applied after the council, before Kelly sizing — can veto or scale a bet:
+A deterministic seatbelt around the council's final distribution:
+
+1. **Anchor** — bookmaker consensus (else Sportmonks ML) from the digest; the
+   Analyst must reconcile with it, and divergence is audited against it.
+2. **Sanity checks** — renormalize to sum 1; clamp evidence-free extremes to
+   [2%, 92%] (mass redistributed inside the simplex); flag >15pp divergence
+   from the anchor that the Devil didn't support.
+3. **Honest shrink** — when confidence is `low` and an anchor exists:
+   `p' = (1−λ)·p + λ·anchor` with λ = 0.50 low / 0.25 medium / 0 high.
+4. **Confidence with teeth** — if BOTH structured digests are missing, the
+   label is forced to `low` ("low" = thin data, never "guessing anyway").
+
+Everything (anchor, flags, λ, pre-shrink probs) is logged in the ledger
+planning payload — nothing is hidden.
+
+### Where edge is gated (no double-gating)
+
+`betting/decision.py` is the ONLY edge gate: it de-vigs the market, ranks all
+three outcomes, and requires EV > 0 at the raw price AND
+`edge ≥ profile.min_edge_vs_fair` against the **fair** (de-vigged) price.
+
+`reasoning/gates.py` is a pure **risk overlay** on the chosen side — it never
+re-applies an edge bar (the legacy raw-mid bar is opt-in via `min_edge=`):
 
 1. Wallet floor (no trade below $2)
 2. Market must exist (usable Polymarket mid)
-3. Minimum edge (skip if `model_prob − pm_mid < 5pp`)
-4. Cross-market consensus (Polymarket vs Kalshi agree within 3pp → ×1.25; diverge >8pp → ×0.50)
-5. Scout veto (high-severity flag on our pick kills the trade)
-6. Confidence scaling (low ×0.5, high ×1.2)
+3. Cross-market consensus (Polymarket vs Kalshi agree within 3pp → ×1.25; diverge >8pp → ×0.50)
+4. Scout veto (high-severity flag on our pick kills the trade; blitz disables this)
+5. Confidence scaling (low ×0.5, high ×1.2)
 
-Final size = `kelly_usd(prob, pm_mid, wallet) × multiplier`, capped by
-`MAX_BET_USD` and wallet, $1 minimum.
+Then the profile policy filters (EV floor, confidence floor) and sizing:
+`size = kelly_usd(prob, pm_mid, wallet, profile.kelly_fraction) × multiplier`,
+capped by `profile.max_bet_usd`, `wallet × profile.stake_cap_fraction`, and the
+arena's $5 rule; $1 minimum.
 
 ---
 
@@ -166,7 +218,31 @@ python agent.py --test-connection   # shows "Country-id resolver (Mexico): 147"
 
 ---
 
-## 6. Verified live (this session)
+## 6. Validation checklist (run before deploying)
+
+```bash
+# a) Connectivity + active profile (writes nothing)
+python agent.py --test-connection
+
+# b) Harness prediction sanity on one window (council engine, fresh forecast)
+python -m harness now --fixture FRD-POR-NGA --window PRE_MATCH --engine council --refresh
+
+# c) Sandbox council on a real WC fixture with a live Polymarket slug —
+#    verify the distribution is plausible vs the bookmaker, not flat
+python predict_game.py --home Mexico --away "South Africa" \
+  --pm-slug fifwc-mex-rsa-2026-06-11 --fixture-id 19609127 --profile anchor
+
+# d) Profile differentiation smoke on a real market —
+#    expect monk to HOLD most windows while blitz is the most active
+python -m harness now --fixture <code> --window PRE_MATCH --market real
+
+# e) Offline tests
+python -m pytest tests/ -q --ignore=tests/test_live_data.py
+```
+
+---
+
+## 7. Verified live (this session)
 
 - Polymarket: slug `fifwc-mex-rsa-2026-06-11`, mids home 0.685 / draw 0.205 / away 0.105.
 - Supabase: catalog (14 tables), priors fetch returns exactly country_ids 147 & 211.

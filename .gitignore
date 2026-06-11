@@ -19,3 +19,7 @@ storage/**
 !storage/
 !storage/**/
 !storage/**/.gitkeep
+
+ui/.next/
+ui/node_modules/
+ui/dist/

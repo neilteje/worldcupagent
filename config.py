@@ -12,8 +12,24 @@ load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=True)
 
 
 # ── Arena ──────────────────────────────────────────────────────────────────
-# Env var is STAIR_API_KEY (matches the .env file from the arena team)
-ARENA_KEY: str = os.environ.get("STAIR_API_KEY") or os.environ.get("ARENA_KEY", "")
+# Explicit STAIR_API_KEY / ARENA_KEY, else any AGENT_KEY_* (all work for data
+# proxies + arena endpoints — you only need STAIR_API_KEY when running a single
+# agent without the per-key roster).
+_AGENT_KEY_FALLBACK_ORDER = ("ANCHOR", "MONK", "HUNTER", "BLITZ")
+
+
+def _resolve_arena_key() -> str:
+    explicit = (os.environ.get("STAIR_API_KEY") or os.environ.get("ARENA_KEY") or "").strip()
+    if explicit:
+        return explicit
+    for name in _AGENT_KEY_FALLBACK_ORDER:
+        k = (os.environ.get(f"AGENT_KEY_{name}") or "").strip()
+        if k:
+            return k
+    return ""
+
+
+ARENA_KEY: str = _resolve_arena_key()
 ARENA_BASE: str = "https://stair-ai.com"
 ARENA_API: str = f"{ARENA_BASE}/api"
 
@@ -62,15 +78,18 @@ KALSHI_API_KEY: str = os.environ.get("KALSHI_API_KEY", "")   # reads work withou
 RESEARCH_TIMEOUT_SECONDS: int = 12
 
 # ── Betting parameters ─────────────────────────────────────────────────────
+# WHERE EDGE IS GATED (single source of truth — no double-gating):
+#   betting/decision.py is the ONLY edge gate: tradability requires EV > 0 at
+#   the raw price AND edge ≥ min_edge_vs_fair against the DE-VIGGED fair price.
+#   The per-agent bar comes from the profile (harness/profiles.py); the value
+#   below is only the fallback when no profile is supplied.
+#   reasoning/gates.py is a risk overlay (wallet floor, market existence,
+#   consensus/confidence multipliers, scout veto). Its legacy raw-mid edge bar
+#   is OPT-IN via the min_edge= parameter and is NOT used by the agent/harness.
 MAX_KELLY_FRACTION: float = 0.20   # cap any single bet at 20% of wallet
-MIN_EDGE: float = 0.05             # only bet when |model_p - market_p| > 5%
-# Edge bar for the EV-ranked, all-outcomes decision engine (betting/decision.py).
-# Measured against the DE-VIGGED (fair) market price, so it's a cleaner read of
-# genuine disagreement than MIN_EDGE (which compares to the vig-inflated raw mid).
-# Lower than MIN_EDGE because de-vigging removes the overround that used to mask
-# real edges — tune up for fewer/stronger bets, down for more action.
-MIN_EDGE_VS_FAIR: float = 0.03
-MAX_BET_USD: float = 15.00         # hard USD cap per order
+MIN_EDGE: float = 0.05             # legacy raw-mid bar (kelly.should_bet + opt-in gate)
+MIN_EDGE_VS_FAIR: float = 0.03     # fallback edge-vs-fair bar (profiles override)
+MAX_BET_USD: float = 5.00          # hard USD cap per order (arena rule: ≤ $5)
 DEFAULT_TIF_SECONDS: int = 30      # time-in-force for limit orders
 MIN_WALLET_USD: float = 2.00       # never trade below this balance
 
