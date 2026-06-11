@@ -123,8 +123,20 @@ def select_picks(
             size *= profile.synthetic_size_multiplier
         size = round(size, 2)
         if size < MIN_ORDER_USD:
-            reasons.append(f"{ev.slot}: sized ${size:.2f} < ${MIN_ORDER_USD:.2f} CLOB minimum")
-            continue
+            # A +EV bet we've decided to make shouldn't die to the venue's $1
+            # minimum — bump it up to $1 if the profile allows and the wallet
+            # (and cap) can cover it. Otherwise skip with a logged reason.
+            # Floor-up is limited only by the hard caps (per-trade + wallet),
+            # not the soft Kelly stake_cap_fraction.
+            headroom = min(profile.max_bet_usd, bankroll)
+            if profile.floor_to_min_order and headroom >= MIN_ORDER_USD:
+                reasons.append(f"{ev.slot}: sized ${size:.2f} floored up to "
+                               f"${MIN_ORDER_USD:.2f} (CLOB minimum)")
+                size = MIN_ORDER_USD
+            else:
+                reasons.append(f"{ev.slot}: sized ${size:.2f} < ${MIN_ORDER_USD:.2f} "
+                               f"CLOB minimum (cannot floor up within cap)")
+                continue
 
         picks.append(SizedPick(
             slot=ev.slot, code=ev.code, stake_usd=size,

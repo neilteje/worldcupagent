@@ -72,6 +72,15 @@ class AgentProfile:
     max_bet_usd: float = 5.0               # hard per-trade cap (arena rule ≤ $5)
     stake_cap_fraction: float = 0.10       # per-bet cap as fraction of bankroll
     max_bets_per_window: int = 1           # outcomes backed per window
+    floor_to_min_order: bool = True        # a +EV pick whose size rounds below the
+                                           # $1 CLOB minimum is bumped UP to $1
+                                           # (≤ cap) instead of dropped — the $1
+                                           # floor is a venue mechanic, not a reason
+                                           # to skip a bet you've decided to make
+    apply_confidence_multiplier: bool = True   # let gates shrink size on low
+                                               # council confidence (KEEL/ORACLE);
+                                               # P&L-tail agents turn this OFF —
+                                               # their edge is skew, not conviction
 
     # ── Market honesty (harness) ─────────────────────────────────────────
     trade_synthetic: bool = False          # bet synthetic_demo markets at all?
@@ -118,6 +127,7 @@ HUNTER = AgentProfile(
     stake_cap_fraction=0.10,
     max_bets_per_window=2,
     skip_on_high_scout_flag=True,
+    apply_confidence_multiplier=False,   # skew is the edge, not conviction (STRATEGY §5)
 )
 
 BLITZ = AgentProfile(
@@ -130,6 +140,7 @@ BLITZ = AgentProfile(
     stake_cap_fraction=0.15,
     max_bets_per_window=2,
     skip_on_high_scout_flag=False,
+    apply_confidence_multiplier=False,   # fires at the cap on +EV skew (STRATEGY §5)
     trade_synthetic=True,       # may trade demo markets, but ×0.25 sized
     synthetic_size_multiplier=0.25,
 )

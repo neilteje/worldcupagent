@@ -290,10 +290,14 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             kalshi_mid = _kalshi_mid_for(fx.kalshi_ml, top.code, fx.home_code, fx.away_code)
         except Exception:
             pass
+        # P&L-tail agents (SAW/SURGE) opt out of confidence-based shrink: their
+        # edge is skew, not conviction (STRATEGY §5). Neutralize the low/high
+        # confidence multiplier for them by passing a neutral confidence label.
+        gate_conf = fx.confidence if profile.apply_confidence_multiplier else "medium"
         g = gates.evaluate_gates(
             outcome=top.code, model_prob=top.our_prob, pm_mid=top.entry_price,
             kalshi_mid=kalshi_mid, scout_flags=fx.scout_flags,
-            confidence=fx.confidence, wallet_balance=max(available, 0.0),
+            confidence=gate_conf, wallet_balance=max(available, 0.0),
             min_edge=None, scout_veto=profile.skip_on_high_scout_flag,
         )
         gate_info = {"bet_multiplier": g.bet_multiplier,
@@ -302,10 +306,27 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         if not g.should_trade:
             skip_reasons.append(f"gates veto: {g.veto_reason or g.reasons}")
             picks = []
-        elif g.bet_multiplier < 1.0:
+        elif g.bet_multiplier != 1.0:
+            cap = min(profile.max_bet_usd, max(0.0, available))
+            survivors = []
             for p in picks:
-                p.stake_usd = round(p.stake_usd * g.bet_multiplier, 2)
-            picks = [p for p in picks if p.stake_usd >= bet_policy.MIN_ORDER_USD]
+                scaled = round(p.stake_usd * g.bet_multiplier, 2)
+                if scaled < bet_policy.MIN_ORDER_USD:
+                    # Don't let the multiplier silently kill a +EV pick under
+                    # the $1 floor — bump to $1 if allowed and affordable.
+                    if profile.floor_to_min_order and cap >= bet_policy.MIN_ORDER_USD:
+                        skip_reasons.append(
+                            f"{p.slot}: gate ×{g.bet_multiplier} → ${scaled:.2f} "
+                            f"floored up to ${bet_policy.MIN_ORDER_USD:.2f}")
+                        scaled = bet_policy.MIN_ORDER_USD
+                    else:
+                        skip_reasons.append(
+                            f"{p.slot}: gate ×{g.bet_multiplier} → ${scaled:.2f} "
+                            f"< ${bet_policy.MIN_ORDER_USD:.2f} (dropped)")
+                        continue
+                p.stake_usd = min(scaled, cap)
+                survivors.append(p)
+            picks = survivors
 
     # Per-cycle wallet cap: min($5, available − 5¢) across ALL orders.
     cycle_cap = min(config.MAX_BET_USD, max(0.0, available - WALLET_BUFFER_USD))

@@ -92,6 +92,42 @@ def test_policy_synthetic_market_blocked_by_default():
     assert any("synthetic" in r for r in reasons)
 
 
+def test_policy_floors_sub_dollar_pick_up_to_minimum():
+    # A genuine +EV skew bet that Kelly-sizes below $1 must be floored to $1,
+    # not silently dropped (the $1 CLOB minimum is a venue mechanic).
+    saw = get_profile("hunter")
+    assert saw.floor_to_min_order
+    # Tiny bankroll so stake_cap_fraction (0.10) drives size under $1.
+    probs = {"AAA": 0.30, "draw": 0.50, "BBB": 0.20}
+    ml = _ml(home=0.55, draw=0.30, away=0.25)
+    reasons: list[str] = []
+    picks = select_picks(saw, probs, ml, "AAA", "BBB", 8.0,
+                         confidence_num=0.6, skip_reasons=reasons)
+    assert picks, "expected a floored +EV draw pick"
+    assert picks[0].stake_usd == pytest.approx(1.0)
+    assert any("floored up" in r for r in reasons)
+
+
+def test_policy_skips_when_floor_up_exceeds_cap():
+    saw = get_profile("hunter")
+    probs = {"AAA": 0.30, "draw": 0.50, "BBB": 0.20}
+    ml = _ml(home=0.55, draw=0.30, away=0.25)
+    # Wallet below the $1 minimum → cannot floor up; must skip with a reason.
+    reasons: list[str] = []
+    picks = select_picks(saw, probs, ml, "AAA", "BBB", 0.5,
+                         confidence_num=0.6, skip_reasons=reasons)
+    assert picks == []
+    assert any("cannot floor up" in r for r in reasons)
+
+
+def test_pnl_tail_profiles_opt_out_of_confidence_multiplier():
+    assert get_profile("hunter").apply_confidence_multiplier is False
+    assert get_profile("blitz").apply_confidence_multiplier is False
+    # The disciplined/score agents keep it on.
+    assert get_profile("anchor").apply_confidence_multiplier is True
+    assert get_profile("monk").apply_confidence_multiplier is True
+
+
 def test_policy_confidence_floor():
     monk = get_profile("monk")
     probs = {"AAA": 0.80, "draw": 0.12, "BBB": 0.08}
