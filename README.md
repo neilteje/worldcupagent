@@ -1,63 +1,62 @@
 # World Cup Arena Agent
 
-Our AI agent competing in the 2026 Stair AI hackathon.
+Our AI agent competing in the 2026 Stair AI World Cup Agent Arena.
 
-This repo hosts **two complementary forecasting engines** that share the same data
-layer. They live side by side today and are designed to be combined into a single
-agent that feeds deterministic signals **and** web/LLM research into one decision.
+We deploy a **4-agent portfolio** (`monk`, `anchor`, `hunter`, `blitz`) that shares
+**one brain** and differs only in trading aggressiveness. The brain fuses a
+deterministic quantitative ensemble with web/LLM research and lets an LLM council
+reconcile everything into the final, calibrated forecast and trade.
 
-| Engine | Entry point | What it is |
-|--------|-------------|------------|
-| **LLM Council** | `agent.py`, `predict_game.py` | Web search + Reddit + Grok social pulse → Scout → Analyst → Devil → Judge council, then EV-ranked trade decision. Reasoning-trace heavy (PSL + ledger). |
-| **Deterministic** | `agent/main.py` | Quantitative pipeline: probability models, calibration, edge engine, meta-arbiter, backtester. Reproducible, fast, no LLM required for its core. |
+```
+data → deterministic_v2 ensemble ─┐
+       web + Reddit + Grok pulse ──┼─► LLM council (Scout→Analyst→Devil→Judge)
+       bookmaker/market anchors ───┘        → calibrated 1X2 distribution
+                                            → EV-ranked decision + risk gates
+                                            → order (≤ $5, long only)
+                                            → reasoning-ledger DAG
+```
 
-> **The endgame:** a unified agent where the deterministic engine produces grounded
-> signals, the web/LLM research layer adds context, and the LLM council reconciles
-> both into the final World Cup trade. This merge puts both engines in one place so
-> that integration can begin.
+The deterministic ensemble (`models/deterministic_v2.py`: Elo + Poisson/Dixon-Coles
++ de-vigged market prior, calibrated) is injected into **every** council role as
+`deterministic_context` — a quantitative cross-check the LLMs must reconcile with,
+not blindly copy. It is logged as its own node in the ledger trace.
 
 ## Layout
 
 ```
-LLM-COUNCIL ENGINE
-  agent.py                  ← council orchestration (pre-match + half-time)
-  predict_game.py           ← sandbox predictor for any fixture (no arena writes)
-  reasoning/
-    council.py              ← Grok → Scout → Analyst → Devil → Judge
-    gates.py                ← deterministic trade gates
-    llm.py, prompts.py      ← multi-model calls + structured prompts
-  betting/
-    decision.py             ← EV-ranked, all-outcomes, de-vigged decision engine
-    kelly.py                ← Kelly criterion sizing
-  data/
-    web_search.py, reddit_sentiment.py, kalshi.py, supabase_client.py
-
-DETERMINISTIC ENGINE
-  agent/
-    main.py, run_cycle.py, scheduler.py, config.py
-  models/                   ← probability, calibration, edge_engine, meta_arbiter,
-                              consensus, draw_model, blender, archetype, halftime, …
-  backtesting/              ← runner + 2022 World Cup historical harness
-  reasoning/                ← schemas, central_llm, anthropic_review, claim_extraction,
-                              ledger_builder, trace_quality, counterfactuals, …
-  data/
-    supabase_data.py, market_memory.py, lineup_monitor.py, synthetic_fixtures.py
-
-LIVE TOURNAMENT RUNNER (docs/LIVE.md)
-  live/
-    runner.py               ← resumable forever-loop: schedule → windows → settle
-    cycle.py                ← shared council once, then 4 per-agent tails
+ENTRY POINTS
+  live/                     ← the deployment (4 agents, one resumable process)
+    runner.py               ← forever-loop: schedule → windows → settle
+    cycle.py                ← run the shared brain once, then 4 per-agent tails
     arena_client.py         ← per-key arena API (2026-06-10 contract)
     roster.py, state.py     ← 4 agents from env keys; kill-anytime state store
     report.py, metrics.py   ← events.jsonl + retrospective evaluation
-  betting/policy.py         ← single profile→orders policy (harness + live)
-  harness/                  ← paper-trading rehearsal (no arena writes)
+  agent.py                  ← single-agent council cycle (pre-match + half-time)
+  predict_game.py           ← sandbox predictor for any fixture (no arena writes)
+  harness/                  ← paper-trading rehearsal of the live policy
+
+BRAIN
+  reasoning/
+    council.py              ← Grok pulse → Scout → Analyst → Devil → Judge
+    grounding.py            ← bookmaker/ML anchors + sanity checks
+    gates.py                ← deterministic trade gates (risk overlay)
+    llm.py, prompts.py      ← multi-model calls + structured prompts
+  models/
+    deterministic_v2.py     ← calibrated Elo + Poisson + market ensemble
+    team_strength.py, poisson_model.py, calibration.py
+  betting/
+    decision.py             ← EV-ranked, all-outcomes, de-vigged decision engine
+    policy.py               ← single profile→orders policy (harness + live)
+    kelly.py                ← Kelly criterion sizing
+  harness/profiles.py       ← the 4 agent profiles (shared by harness + live)
+
+DATA
+  data/sportmonks.py        ← fixtures, ML predictions, odds, HT stats
+  data/polymarket.py        ← tradable market mids
+  data/kalshi.py, web_search.py, reddit_sentiment.py, supabase_client.py
 
 SHARED
-  data/polymarket.py        ← superset: get_moneyline() (council) +
-                              get_three_way_market_probs() (deterministic)
-  data/sportmonks.py        ← fixtures, ML predictions, odds, HT stats
-  config.py, ledger/client.py
+  config.py, ledger/client.py, agent/config.py (Settings)
   storage/                  ← run artifacts incl. live state/metrics (gitignored)
 ```
 
@@ -65,39 +64,35 @@ SHARED
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env   # fill in STAIR_API_KEY, ANTHROPIC_API_KEY, etc.
+cp .env.example .env   # AGENT_KEY_MONK/ANCHOR/HUNTER/BLITZ, ANTHROPIC_API_KEY, etc.
 ```
 
 ## Running
 
-### LLM Council engine
 ```bash
-python agent.py --list                                   # list fixtures
-python agent.py --fixture-id 19609127 --window prematch  # full council + trade
-python predict_game.py --home Brazil --away Morocco --home-code BRA --away-code MAR
-```
-
-### Deterministic engine
-```bash
-python -m agent.main            # run one decision cycle
-python -m backtesting.runner    # 2022 World Cup backtest
-pytest tests/ -q                # unit tests (live-data tests need STAIR_API_KEY)
-```
-
-### Live tournament (all 4 agents, one process — see docs/LIVE.md)
-```bash
+# Live tournament — all 4 agents in one resumable process (see docs/LIVE.md)
 python -m live test             # check all 4 agent keys + endpoints
 python -m live run              # resumable loop until the final
 python -m live report           # retrospective evaluation
+
+# Single forecast / ad-hoc cycle
+python predict_game.py --home Brazil --away Morocco --home-code BRA --away-code MAR
+python agent.py --fixture-id 19609127 --window prematch
+
+# Paper-trading rehearsal of the live policy
+python -m harness now --fixture FRD-POR-NGA --window PRE_MATCH
+
+pytest tests/ -q                # unit tests
 ```
 
 ## Scoring strategy
 
-- **PSL (Probabilistic Skill Loss)** — proper scoring on calibrated distributions.
-  Emitted on every game regardless of whether a trade fires.
-- **Reasoning quality** — the full ledger trace (DAG of records) is scored.
-- **P&L ($1,000 track)** — EV-ranked, all-outcomes decision engine with de-vigged
-  edges and Kelly sizing; trades only the highest-EV side that clears the bar.
+- **PSL (Probabilistic Skill Loss)** — proper scoring on the calibrated distribution,
+  emitted every game whether or not a trade fires.
+- **Reasoning quality** — the full ledger DAG (deterministic node + Scout→Analyst→
+  Devil→Judge) is scored.
+- **P&L** — EV-ranked, all-outcomes engine with de-vigged edges and Kelly sizing;
+  trades only the highest-EV side that clears each agent's bar.
 
 ## Tuning (`config.py`)
 
@@ -108,4 +103,5 @@ python -m live report           # retrospective evaluation
 | `MAX_KELLY_FRACTION` | 0.20 | Max % of wallet per bet |
 | `MAX_BET_USD` | 5.00 | Hard USD cap per order (arena rule) |
 
-The deterministic engine has its own settings in `agent/config.py` (`Settings`).
+Per-agent aggressiveness (edge bars, Kelly fraction, stake caps, confidence floors,
+scout-veto) lives in `harness/profiles.py` and is shared by the harness and live runner.

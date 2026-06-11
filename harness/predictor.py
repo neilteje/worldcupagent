@@ -7,9 +7,10 @@ never hard-fails:
 
   council        — the real World Cup brain: Grok pulse → Scout → Analyst → Devil
                    → Judge (reasoning/council.py), fed best-effort web/Reddit/Kalshi
-                   research. This is what we run during the tournament.
-  deterministic  — the quantitative engine (models/), useful when LLM keys/budget
-                   are unavailable.
+                   research AND the deterministic_v2 ensemble as grounding. This is
+                   what we run during the tournament.
+  deterministic  — the deterministic_v2 ensemble alone (Elo + Poisson + market
+                   prior), useful when LLM keys/budget are unavailable.
   market         — de-vigged market mids as the forecast (last resort / baseline).
 
 Predictions are cached to the session dir so re-runs and both agents reuse the
@@ -158,25 +159,29 @@ def _predict_council(fx, window, moneyline) -> Prediction | None:
 
 # ── Engine: deterministic ───────────────────────────────────────────────────
 
+def _state_from_prior(prior: dict | None, side: str) -> dict:
+    p = prior or {"home": 0.40, "draw": 0.28, "away": 0.32}
+    diff = float(p.get("home", 0.40) or 0.40) - float(p.get("away", 0.32) or 0.32)
+    return {
+        "live_rating": diff if side == "home" else -diff,
+        "matches": 0, "xg_for": 0.0, "xg_against": 0.0,
+        "goals_for": 0.0, "goals_against": 0.0,
+    }
+
+
 def _predict_deterministic(fx, window, moneyline) -> Prediction | None:
     try:
-        from models.probability import pre_match_model
-        from models.draw_model import apply_draw_model
+        from models.deterministic_v2 import EnsembleConfig, predict_v2
     except Exception:
         return None
     mkt = _market_probs(moneyline, fx.home_code, fx.away_code)
-    # Map the code-keyed market into the engine's home/draw/away schema.
-    base = None
+    prior = None
     if mkt:
-        base = {"home": mkt[fx.home_code], "draw": mkt["draw"], "away": mkt[fx.away_code]}
-    neutral = {"home": 0.40, "draw": 0.28, "away": 0.32}
-    sm = base or neutral
+        prior = {"home": mkt[fx.home_code], "draw": mkt["draw"], "away": mkt[fx.away_code]}
     try:
-        model = pre_match_model(sm, base, base, neutral, None, 0.6)
-        drawn = apply_draw_model(model["probabilities"],
-                                 market_draw=(base or {}).get("draw"),
-                                 bookmaker_draw=(base or {}).get("draw"))
-        hda = drawn["probabilities"]
+        out = predict_v2(_state_from_prior(prior, "home"), _state_from_prior(prior, "away"),
+                         market_probs=prior, cfg=EnsembleConfig())
+        hda = out["probabilities"]
     except Exception:
         return None
     probs = _normalize({fx.home_code: hda["home"], "draw": hda["draw"], fx.away_code: hda["away"]},
@@ -187,9 +192,9 @@ def _predict_deterministic(fx, window, moneyline) -> Prediction | None:
         fixture_code=fx.fixture_code, window=window,
         home_code=fx.home_code, away_code=fx.away_code,
         probabilities=probs,
-        confidence_label="medium", confidence_num=float(model.get("confidence", 0.55)),
-        engine="deterministic",
-        note="deterministic pre_match_model (no friendly priors; market/neutral base)",
+        confidence_label="medium", confidence_num=float(out.get("confidence", 0.55)),
+        engine="deterministic_v2",
+        note=f"deterministic_v2 ensemble (prior={'market' if prior else 'neutral'})",
     )
 
 

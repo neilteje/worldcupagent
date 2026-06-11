@@ -1,42 +1,34 @@
-# World Cup Agent Docs
+# World Cup Agent — Docs
 
-This folder documents the current package-based agent implementation in this repo.
+This repo runs a **4-agent portfolio** in the Stair AI World Cup Arena. Every
+agent shares one brain — data ingestion → LLM council (grounded by a
+deterministic ensemble) → EV decision engine → risk gates → order — and differs
+only in its trading *profile* (`monk`, `anchor`, `hunter`, `blitz`).
 
-The active entrypoint is `python -m agent.main`.
+## Entry points
 
-The older top-level files `agent.py` and `config.py` still exist, but they describe an earlier notebook-style flow and should be treated as legacy unless you are intentionally maintaining that path.
-
-## Quick start
-
-From the `worldcupagent/` directory:
-
-```bash
-pip install -r requirements.txt
-python -m agent.main --once --dry-run
-```
-
-If you want deterministic offline-ish coverage without relying on live arena data:
-
-```bash
-python -m agent.main --once --dry-run --use-synthetic-fixtures --verbose
-```
-
-## What this agent does
-
-The current agent:
-
-- discovers fixtures from Sportmonks or synthetic fixtures
-- fetches market, bookmaker, prior, lineup, and optional halftime data
-- blends probabilities with deterministic models
-- classifies match/market archetypes and adjusts source reliability
-- accepts future web/LLM council output through a bounded meta-arbiter contract
-- detects trading edges versus Polymarket
-- applies hard risk gates before any order is allowed
-- writes a reasoning-ledger DAG, counterfactual flip conditions, and local review artifacts for each run
-- optionally uses Anthropic for bounded claim extraction, signal analysis, and critique
+| Command | Purpose |
+|---|---|
+| `python -m live run` | Run the full 4-agent portfolio end-to-end, resumable, until the tournament ends. **This is the deployment.** |
+| `python -m live once --fixture <id> --window PRE_MATCH` | Run one fixture/window for all agents. |
+| `python -m live report` | Retrospective: P&L per agent, Brier vs market, fire rates, skip reasons. |
+| `python predict_game.py` | Inspect a single forecast (no trading). |
+| `python -m harness ...` | Paper-trading rehearsal of the live policy. |
 
 ## Doc map
 
-- [RUNNING.md](./RUNNING.md): setup, commands, environment variables, outputs
-- [ARCHITECTURE.md](./ARCHITECTURE.md): execution flow, modules, and data path
-- [REPO_STATE.md](./REPO_STATE.md): current repo status, tests, legacy paths, caveats
+- [LIVE.md](./LIVE.md) — running the 4-agent portfolio on a VM (setup, systemd, restart, monitoring).
+- [STRATEGY.md](./STRATEGY.md) — how we win the arena: roster mandates and sizing ladder.
+- [RUN.md](./RUN.md) — single-agent / ad-hoc cycle reference.
+- [HARNESS.md](./HARNESS.md) — paper-trading harness and profile table.
+- [DATA_SOURCES.md](./DATA_SOURCES.md) — Sportmonks / Polymarket / Kalshi feed reference.
+- [GUIDE.md](./GUIDE.md) / [CHALLENGE.md](./CHALLENGE.md) — the Stair AI Arena rules and scoring.
+
+## Forecast brain
+
+The council (`reasoning/council.py`) runs Scout → Analyst → Devil → Judge. All
+four roles now receive a `deterministic_context` from the calibrated ensemble
+(`models/deterministic_v2.py`: Elo + Poisson/Dixon-Coles + de-vigged market
+prior) and must reconcile their view against it, alongside web search, Reddit,
+Grok social pulse, bookmaker anchors, and the tradable markets. The deterministic
+signal is logged as its own node in the reasoning ledger DAG.

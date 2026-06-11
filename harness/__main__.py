@@ -10,14 +10,13 @@ Typical flow for tomorrow:
 Useful extras:
   python -m harness now --fixture FRD-POR-NGA --window PRE_MATCH   # run one window
   python -m harness run --start-now              # ignore wait times (smoke test)
-  python -m harness run --engine deterministic   # skip LLM calls
+  python -m harness run --engine deterministic   # skip LLM calls (deterministic_v2)
   python -m harness report                       # regenerate plots/CSV
 """
 from __future__ import annotations
 import argparse
 
 from harness import runner
-from harness.backtest import run_harness_backtest, run_harness_backtest_comparison
 from harness.fixtures import DEFAULT_DATE
 
 
@@ -57,13 +56,6 @@ def main() -> None:
     p_report = sub.add_parser("report", help="Regenerate performance CSV/summary/plots.")
     _common(p_report)
 
-    p_backtest = sub.add_parser("backtest", help="Replay historical rows through harness profiles and paper ledger.")
-    p_backtest.add_argument("--dataset", choices=["synthetic", "wc2022"], default="wc2022")
-    p_backtest.add_argument("--sample", type=int, default=20)
-    p_backtest.add_argument("--session", default=None)
-    p_backtest.add_argument("--profiles", default=None)
-    p_backtest.add_argument("--engine", choices=["deterministic", "deterministic_v2", "council", "market", "compare"], default="deterministic")
-
     args = ap.parse_args()
     {
         "init": runner.cmd_init,
@@ -71,18 +63,6 @@ def main() -> None:
         "run": runner.cmd_run,
         "settle": runner.cmd_settle,
         "report": runner.cmd_report,
-        "backtest": lambda a: print(run_harness_backtest_comparison(
-            dataset=a.dataset,
-            sample_size=a.sample,
-            session=a.session,
-            profiles_path=a.profiles,
-        ) if a.engine == "compare" else run_harness_backtest(
-            dataset=a.dataset,
-            sample_size=a.sample,
-            session=a.session,
-            profiles_path=a.profiles,
-            engine=a.engine,
-        )),
     }[args.cmd](args)
 
 

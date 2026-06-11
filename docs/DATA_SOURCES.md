@@ -101,7 +101,7 @@ POST /v1/arena/ledger/records/batch
 ```
 
 Submits the reasoning trace (9+ records per session). Scored for the leaderboard.  
-**Code:** `reasoning/ledger_builder.py` → `LedgerAdapter.submit()`
+**Code:** `ledger/client.py` → `LedgerSession.submit()`
 
 ---
 

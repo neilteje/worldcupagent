@@ -2,7 +2,6 @@ import math
 from dataclasses import replace
 
 from models.deterministic_v2 import EnsembleConfig, ablation_configs, predict_v2
-from models.elo import EloConfig, build_timeline, expected_home, update_pair
 from models.poisson_model import DEFAULT_RHO, poisson_1x2, score_matrix
 from models.team_strength import StrengthConfig, effective_rating, elo_1x2, expected_goals
 
@@ -116,36 +115,7 @@ def test_ablation_configs_isolate_components():
     assert cfgs["no_calibration"].temperature == 1.0 and cfgs["no_calibration"].base_rate_shrink == 0.0
 
 
-# ── Elo ───────────────────────────────────────────────────────────────────────
-
-def test_elo_expected_symmetry():
-    assert abs(expected_home(1500, 1500) - 0.5) < 1e-9
-    assert expected_home(1700, 1500) > 0.5
-
-
-def test_elo_winner_gains_loser_loses_and_conserves():
-    nh, na = update_pair(1500, 1500, 2, 0, cfg=EloConfig())
-    assert nh > 1500 and na < 1500
-    assert abs((nh - 1500) + (na - 1500)) < 1e-9  # zero-sum
-
-
-def test_elo_bigger_win_moves_rating_more():
-    small = update_pair(1500, 1500, 1, 0, cfg=EloConfig())[0]
-    big = update_pair(1500, 1500, 4, 0, cfg=EloConfig())[0]
-    assert big > small
-
-
-def test_build_timeline_pre_match_ratings_no_leakage():
-    rows = [
-        {"match_id": 1, "home_key": "a", "away_key": "b", "home_score": 3, "away_score": 0},
-        {"match_id": 2, "home_key": "a", "away_key": "c", "home_score": 1, "away_score": 1},
-    ]
-    tl = build_timeline(rows, cfg=EloConfig())
-    # first match: both teams unseen -> base rating
-    assert tl[1]["home"] == EloConfig().base
-    # second match: 'a' has already won, so its pre-match rating is now above base
-    assert tl[2]["home"] > EloConfig().base
-
+# ── team-strength Elo blend ─────────────────────────────────────────────────
 
 def test_effective_rating_blends_elo_and_form():
     cfg = StrengthConfig(elo_blend=0.5)

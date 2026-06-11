@@ -1,8 +1,7 @@
 """
 Historical team-strength layer for the deterministic engine.
 
-Turns the per-team pre-match state collected by
-``backtesting/worldcup_2022.py`` (Elo-like ``live_rating`` + 2018 ``base_rating``
+Turns a per-team pre-match state (Elo-like ``live_rating`` + ``base_rating``
 + accumulated xG / goals for & against) into a pair of expected goals
 (lambda_home, lambda_away) for the Poisson model.
 

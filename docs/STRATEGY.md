@@ -357,10 +357,10 @@ What I'd use instead — a **three-rung ladder, selection-gated**:
 | Trading synthetic/no-liquidity markets | Killed already | Friendlies lesson; `trade_synthetic=false` is default policy |
 | All four agents on one bet ("the syndicate") | Kill (mostly) | Correlated copies waste the order statistic (§S6). Exception: a true 5-σ opportunity may justify 2–3 agents converging — cap it there |
 
-## 8. Two experiments worth a harness backtest (design only)
+## 8. Two experiments worth a backtest (design only)
 
-**E-1. Draw-skew viability (for SAW), WC2022 replay.** Use
-`backtesting/worldcup_2022.py` + Sportmonks 2022 odds via the proxy. Policy
+**E-1. Draw-skew viability (for SAW), WC2022 replay.** Replay 2022 fixtures and
+Sportmonks 2022 odds via the proxy through the live policy. Policy
 under test: long draw when blended p(draw) − fair(draw) ≥ 3pp, $5 flat.
 Output: ROI, max drawdown, terminal P&L distribution vs the KEEL policy on
 the same fixtures. ~64 matches, decided in an afternoon once keys work.
