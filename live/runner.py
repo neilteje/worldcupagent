@@ -209,10 +209,24 @@ class LiveRunner:
                 result = run_window_cycle(fid, window, self.agents,
                                           prematch_note=prematch_note,
                                           dry_run=self.dry_run)
-                self.state.mark_window(fid, window, "done",
-                                       fixture_name=result.get("fixture_name", name),
-                                       agents=result.get("agents"))
-                ran += 1
+                agent_results = result.get("agents") or {}
+                # If EVERY agent tail errored, the window didn't really run —
+                # mark it failed so it's retried while the window is still open
+                # (rather than silently marked done forever).
+                all_failed = bool(agent_results) and all(
+                    isinstance(r, dict) and r.get("error") for r in agent_results.values())
+                if all_failed:
+                    print(f"[runner] all {len(agent_results)} agents errored for "
+                          f"{name} {window} — marking failed (will retry)")
+                    metrics.log_event("error", fixture_id=fid, window=window,
+                                      scope="all_agents_failed")
+                    self.state.mark_window(fid, window, "failed", fixture_name=name,
+                                           agents=agent_results)
+                else:
+                    self.state.mark_window(fid, window, "done",
+                                           fixture_name=result.get("fixture_name", name),
+                                           agents=agent_results)
+                    ran += 1
             except Exception as exc:
                 print(f"[runner] cycle FAILED for {name} {window}: {exc!r}")
                 metrics.log_event("error", fixture_id=fid, window=window,

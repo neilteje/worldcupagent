@@ -78,13 +78,19 @@ def _build_mi(
     tokens_in: int | None = None,
     tokens_out: int | None = None,
 ) -> dict:
-    """Build a ModelInvocation dict."""
+    """
+    Build a ModelInvocation dict. tokens_in/tokens_out are OPTIONAL in the
+    schema but, when present, must be numbers — null is rejected. So we only
+    emit them when the provider actually returned a count.
+    """
     mi: dict[str, Any] = {
         "provider":   provider,
         "model_name": model_name,
-        "tokens_in":  tokens_in,
-        "tokens_out": tokens_out,
     }
+    if isinstance(tokens_in, (int, float)):
+        mi["tokens_in"] = tokens_in
+    if isinstance(tokens_out, (int, float)):
+        mi["tokens_out"] = tokens_out
     if internal_reasoning:
         mi["internal_reasoning"] = internal_reasoning
     return mi
@@ -165,8 +171,8 @@ class LedgerSession:
         prompt_system: str,
         inputs: list[dict],
         output_payload: Any,
-        provider: str,
-        model_name: str,
+        provider: str = "",
+        model_name: str = "",
         internal_reasoning: str = "",
         tokens_in: int | None = None,
         tokens_out: int | None = None,
