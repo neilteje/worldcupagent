@@ -18,7 +18,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 ARENA_KEY = os.getenv("ARENA_KEY") or os.getenv("STAIR_API_KEY", "")
-ARENA_BASE = os.getenv("ARENA_BASE", "https://staging.stair-ai.com")
+ARENA_BASE = os.getenv("ARENA_BASE", "https://stair-ai.com")
 ARENA_API = f"{ARENA_BASE}/api"
 SUPABASE_URL = os.getenv("SUPABASE_URL", "https://ezvbmtvrvzageqixvdak.supabase.co/rest/v1")
 SUPABASE_KEY = (

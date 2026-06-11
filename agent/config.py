@@ -24,7 +24,7 @@ def _float(name: str, default: float) -> float:
 @dataclass(frozen=True)
 class Settings:
     arena_key: str = os.getenv("ARENA_KEY") or os.getenv("STAIR_API_KEY", "")
-    arena_base: str = os.getenv("ARENA_BASE", "https://staging.stair-ai.com")
+    arena_base: str = os.getenv("ARENA_BASE", "https://stair-ai.com")
     supabase_url: str = os.getenv("SUPABASE_URL", "https://ezvbmtvrvzageqixvdak.supabase.co/rest/v1")
     supabase_publishable_key: str = os.getenv("SUPABASE_PUBLISHABLE_KEY") or os.getenv("SUPABASE_KEY", "sb_publishable__m8bOkD05ToFwATpaWST5w_2-3fGS7V")
     agent_name: str = os.getenv("AGENT_NAME", "worldcupagent")

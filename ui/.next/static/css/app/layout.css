@@ -270,6 +270,9 @@
   .max-w-5xl {
     max-width: var(--container-5xl);
   }
+  .max-w-\[24rem\] {
+    max-width: 24rem;
+  }
   .max-w-\[92rem\] {
     max-width: 92rem;
   }
@@ -312,6 +315,9 @@
   .gap-0 {
     gap: calc(var(--spacing) * 0);
   }
+  .gap-1 {
+    gap: calc(var(--spacing) * 1);
+  }
   .gap-2 {
     gap: calc(var(--spacing) * 2);
   }
@@ -323,6 +329,13 @@
   }
   .gap-5 {
     gap: calc(var(--spacing) * 5);
+  }
+  .space-y-1 {
+    :where(& > :not(:last-child)) {
+      --tw-space-y-reverse: 0;
+      margin-block-start: calc(calc(var(--spacing) * 1) * var(--tw-space-y-reverse));
+      margin-block-end: calc(calc(var(--spacing) * 1) * calc(1 - var(--tw-space-y-reverse)));
+    }
   }
   .space-y-2 {
     :where(& > :not(:last-child)) {
@@ -532,6 +545,9 @@
   .text-xs {
     font-size: var(--text-xs);
     line-height: var(--tw-leading, var(--text-xs--line-height));
+  }
+  .text-\[0\.68rem\] {
+    font-size: 0.68rem;
   }
   .leading-5 {
     --tw-leading: calc(var(--spacing) * 5);

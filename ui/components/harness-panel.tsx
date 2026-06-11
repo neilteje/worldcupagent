@@ -18,6 +18,7 @@ export function HarnessPanel({ sessions }: { sessions: HarnessSession[] }) {
   const settled = trades.filter((trade) => trade.status === "won" || trade.status === "lost").length;
   const backtest = session.summary?.backtest as Record<string, unknown> | undefined;
   const council = backtest?.council as Record<string, unknown> | undefined;
+  const componentReport = session.summary?.component_report as Record<string, unknown> | undefined;
 
   return (
     <section className="panel rounded-[1.35rem] p-5">
@@ -113,6 +114,8 @@ export function HarnessPanel({ sessions }: { sessions: HarnessSession[] }) {
         </div>
       </div>
 
+      {componentReport ? <ComponentReport report={componentReport} /> : null}
+
       {session.matches.length ? (
         <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--paper)]/72">
           <div className="border-b border-[var(--line)] p-4">
@@ -181,6 +184,11 @@ function MatchRow({ match }: { match: Record<string, unknown> }) {
   const flags = inputs?.odds_quality?.flags ?? [];
   const modelDetail = match.model_detail as { council?: Record<string, unknown> } | undefined;
   const council = modelDetail?.council;
+  const profileReports = (modelDetail as { profile_reports?: Record<string, Record<string, unknown>> } | undefined)?.profile_reports ?? {};
+  const modelSignals = (match.model_signals as Array<Record<string, unknown>> | undefined) ?? [];
+  const skipSummary = Object.entries(profileReports)
+    .map(([profile, report]) => `${profile}: ${Array.isArray(report.picked_codes) && report.picked_codes.length ? `picked ${report.picked_codes.join("/")}` : (report.skip_reasons as string[] | undefined)?.join(", ") || "no action"}`)
+    .join(" · ");
 
   return (
     <tr className="border-t border-[var(--line)] align-top">
@@ -206,7 +214,79 @@ function MatchRow({ match }: { match: Record<string, unknown> }) {
             council {council.ok ? "ok" : "fallback"}{council.market_alignment ? ` · ${String(council.market_alignment)}` : ""}
           </p>
         ) : null}
+        {skipSummary ? <p className="mt-1">{skipSummary}</p> : null}
+        {modelSignals.length ? (
+          <div className="mt-2 flex max-w-[24rem] flex-wrap gap-1">
+            {modelSignals.slice(0, 7).map((signal) => (
+              <span
+                key={String(signal.model)}
+                className={signal.hit ? "rounded-full bg-emerald-100 px-2 py-0.5 text-[0.68rem] font-semibold text-emerald-950" : "rounded-full bg-red-100 px-2 py-0.5 text-[0.68rem] font-semibold text-red-950"}
+                title={`${String(signal.model)} picked ${String(signal.pick_slot)} at ${pct(Number(signal.pick_probability), 1)}`}
+              >
+                {String(signal.model).replace("step:", "")}: {String(signal.pick_slot)}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </td>
     </tr>
+  );
+}
+
+function ComponentReport({ report }: { report: Record<string, unknown> }) {
+  const accuracyByArchetype = report.accuracy_by_archetype as Record<string, { n?: number; accuracy?: number }> | undefined;
+  const accuracyByPickSlot = report.accuracy_by_pick_slot as Record<string, { n?: number; accuracy?: number }> | undefined;
+  const avgSourceWeights = report.avg_source_weights as Record<string, number> | undefined;
+  const stepMovement = report.probability_step_movement as Record<string, number> | undefined;
+  const drawModel = report.draw_model as { avg_abs_delta?: number; reasons?: Record<string, number> } | undefined;
+  const consensusCases = report.consensus_cases as Record<string, number> | undefined;
+  const profileGateSummary = report.profile_gate_summary as Record<string, Record<string, number>> | undefined;
+  const modelWinnerAccuracy = report.model_winner_accuracy as Record<string, { n?: number; wins?: number; accuracy?: number }> | undefined;
+
+  return (
+    <div className="mt-5 grid gap-4 xl:grid-cols-2">
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)]/72 p-4">
+        <h3 className="font-semibold">Deterministic component report</h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <MiniTable title="Accuracy by archetype" rows={Object.entries(accuracyByArchetype ?? {}).map(([k, v]) => [k, `${pct(v.accuracy, 1)} (${v.n})`])} />
+          <MiniTable title="Accuracy by pick" rows={Object.entries(accuracyByPickSlot ?? {}).map(([k, v]) => [k, `${pct(v.accuracy, 1)} (${v.n})`])} />
+          <MiniTable title="Model winner %" rows={Object.entries(modelWinnerAccuracy ?? {}).map(([k, v]) => [k, `${pct(v.accuracy, 1)} (${v.wins}/${v.n})`])} />
+          <MiniTable title="Avg source weights" rows={Object.entries(avgSourceWeights ?? {}).map(([k, v]) => [k, pct(v, 1)])} />
+          <MiniTable title="Step movement" rows={Object.entries(stepMovement ?? {}).map(([k, v]) => [k, signed(v)])} />
+        </div>
+      </div>
+      <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)]/72 p-4">
+        <h3 className="font-semibold">Trading gates</h3>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <MiniTable title="Consensus cases" rows={Object.entries(consensusCases ?? {}).map(([k, v]) => [k, String(v)])} />
+          <MiniTable
+            title="Draw model"
+            rows={[
+              ["avg abs delta", signed(drawModel?.avg_abs_delta)] as [string, string],
+              ...Object.entries(drawModel?.reasons ?? {}).map(([k, v]) => [k, String(v)] as [string, string]),
+            ]}
+          />
+          {Object.entries(profileGateSummary ?? {}).map(([profile, values]) => (
+            <MiniTable key={profile} title={`${profile} gates`} rows={Object.entries(values).map(([k, v]) => [k.replaceAll("_", " "), String(v)])} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniTable({ title, rows }: { title: string; rows: Array<[string, string]> }) {
+  return (
+    <div className="rounded-xl bg-[var(--panel)] p-3">
+      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{title}</p>
+      <div className="mt-2 space-y-1 text-sm">
+        {rows.length ? rows.slice(0, 8).map(([label, value]) => (
+          <div key={`${title}-${label}`} className="flex justify-between gap-3">
+            <span className="truncate text-[var(--muted)]">{label}</span>
+            <span className="mono font-semibold">{value}</span>
+          </div>
+        )) : <span className="text-[var(--muted)]">No data</span>}
+      </div>
+    </div>
   );
 }

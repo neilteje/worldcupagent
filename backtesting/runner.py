@@ -146,9 +146,9 @@ def _claude_compare_report(settings: Settings, summary: dict) -> dict:
         return {"used": False, "reason": repr(exc)}
 
 
-def run_backtest(settings: Settings, sample_size: int = 50, use_claude: bool = False, dataset: str = "synthetic") -> dict:
+def run_backtest(settings: Settings, sample_size: int = 50, use_claude: bool = False, dataset: str = "synthetic", mode: str = "deterministic") -> dict:
     rows = load_backtest_rows(settings, dataset=dataset, sample_size=sample_size)
-    result = _simulate_strategy(settings, rows, mode="deterministic")
+    result = _simulate_strategy(settings, rows, mode=mode)
     summary = {
         "timestamp": datetime.now(timezone.utc).isoformat(),
         "dataset": dataset,
@@ -209,15 +209,35 @@ def _simulate_strategy(settings: Settings, rows: list[BacktestMatch], *, mode: s
             data_completeness={"score": completeness},
         )
         reliability = dynamic_source_weights(DEFAULT_PREMATCH_WEIGHTS, archetype=archetype, data_completeness={"score": completeness})
-        deterministic_model = pre_match_model(
-            row.sportmonks,
-            row.bookmaker,
-            row.market,
-            row.priors,
-            (row.lineup or {}).get("probability_delta"),
-            completeness,
-            weights=reliability["weights"],
-        )
+        if mode == "deterministic_v2" and row.pre_state:
+            from models.deterministic_v2 import predict_v2, EnsembleConfig
+            cfg = EnsembleConfig()
+            is_knockout = "group" not in (row.stage or "").lower()
+            out = predict_v2(
+                row.pre_state["home"], 
+                row.pre_state["away"], 
+                market_probs=row.market, 
+                cfg=cfg,
+                is_knockout=is_knockout,
+                match_week=row.match_week,
+                host_continent="AFC" if "wc2022" in getattr(settings, "dataset", "wc2022").lower() else None
+            )
+            deterministic_model = {
+                "probabilities": out["probabilities"],
+                "confidence": out["confidence"],
+                "uncertainty": max(0.18, 1.0 - out["confidence"]),
+                "expected_goals": out["expected_goals"],
+            }
+        else:
+            deterministic_model = pre_match_model(
+                row.sportmonks,
+                row.bookmaker,
+                row.market,
+                row.priors,
+                (row.lineup or {}).get("probability_delta"),
+                completeness,
+                weights=reliability["weights"],
+            )
         draw = apply_draw_model(
             deterministic_model["probabilities"],
             strength_gap=abs(deterministic_model["probabilities"]["home"] - deterministic_model["probabilities"]["away"]),

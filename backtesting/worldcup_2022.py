@@ -10,6 +10,7 @@ import re
 import urllib.request
 
 from models.calibration import OUTCOMES, normalize_probs
+from models.elo import EloConfig, build_timeline
 from models.lineup_delta import evaluate_lineup_delta
 
 
@@ -30,6 +31,26 @@ TEAM_ALIASES = {
     "korea": "korea republic",
     "saudi arabia": "saudi arabia",
     "saudi": "saudi arabia",
+}
+
+CONTINENT_MAP = {
+    "qatar": "AFC", "ecuador": "CONMEBOL", "senegal": "CAF", "netherlands": "UEFA",
+    "england": "UEFA", "iran": "AFC", "united states": "CONCACAF", "wales": "UEFA",
+    "argentina": "CONMEBOL", "saudi arabia": "AFC", "mexico": "CONCACAF", "poland": "UEFA",
+    "france": "UEFA", "australia": "AFC", "denmark": "UEFA", "tunisia": "CAF",
+    "spain": "UEFA", "costa rica": "CONCACAF", "germany": "UEFA", "japan": "AFC",
+    "belgium": "UEFA", "canada": "CONCACAF", "morocco": "CAF", "croatia": "UEFA",
+    "brazil": "CONMEBOL", "serbia": "UEFA", "switzerland": "UEFA", "cameroon": "CAF",
+    "portugal": "UEFA", "ghana": "CAF", "uruguay": "CONMEBOL", "korea republic": "AFC"
+}
+
+TALENT_SCORE_MAP = {
+    # 5: elite depth, 4: very good, 3: solid, 2: weak depth, 1: domestic only
+    "brazil": 5, "france": 5, "england": 5, "portugal": 5, "spain": 5, "germany": 5, "argentina": 5,
+    "netherlands": 4, "belgium": 4, "croatia": 4, "uruguay": 4, "senegal": 3, "denmark": 3, "switzerland": 3,
+    "serbia": 3, "morocco": 3, "united states": 3, "mexico": 3, "poland": 3, "wales": 2, "japan": 3,
+    "korea republic": 3, "ecuador": 2, "cameroon": 2, "ghana": 2, "canada": 2, "costa rica": 1,
+    "tunisia": 2, "saudi arabia": 1, "iran": 2, "australia": 2, "qatar": 1
 }
 
 
@@ -68,6 +89,7 @@ class TeamState:
     shots_for: float = 0.0
     shots_against: float = 0.0
     last_starters: list[dict] = field(default_factory=list)
+    last_match_time: str | None = None
 
     @property
     def live_rating(self) -> float:
@@ -93,6 +115,7 @@ def build_worldcup_2022_history(cache_dir: Path, *, limit: int | None = None) ->
     matches = sorted(_load_statsbomb_matches(cache_dir, WC2022_SEASON_ID), key=_match_sort_key)
     odds_by_key = _load_checkbestodds(cache_dir)
     base_ratings = _load_prior_ratings_2018(cache_dir)
+    elo_timeline = _build_elo_timeline(cache_dir, matches)
     states: dict[str, TeamState] = {}
     fixtures: list[HistoricalFixture] = []
 
@@ -115,11 +138,33 @@ def build_worldcup_2022_history(cache_dir: Path, *, limit: int | None = None) ->
         post = _event_summary(events, home, away)
         result = _result_from_scores(int(match["home_score"]), int(match["away_score"]))
 
+        match_time = _kickoff_iso(match)
+        match_dt = datetime.fromisoformat(match_time)
+        home_rest = 72.0
+        if home_state.last_match_time:
+            home_rest = (match_dt - datetime.fromisoformat(home_state.last_match_time)).total_seconds() / 3600.0
+        away_rest = 72.0
+        if away_state.last_match_time:
+            away_rest = (match_dt - datetime.fromisoformat(away_state.last_match_time)).total_seconds() / 3600.0
+
+        home_pre = _with_elo(_state_payload(home_state), elo_timeline, int(match["match_id"]), "home")
+        home_pre.update({
+            "continent": CONTINENT_MAP.get(home_key),
+            "talent_score": TALENT_SCORE_MAP.get(home_key, 2.5),
+            "rest_hours": home_rest,
+        })
+        away_pre = _with_elo(_state_payload(away_state), elo_timeline, int(match["match_id"]), "away")
+        away_pre.update({
+            "continent": CONTINENT_MAP.get(away_key),
+            "talent_score": TALENT_SCORE_MAP.get(away_key, 2.5),
+            "rest_hours": away_rest,
+        })
+
         fixtures.append(
             HistoricalFixture(
                 fixture_code=f"WC2022-{match['match_id']}",
                 match_id=int(match["match_id"]),
-                kickoff_utc=_kickoff_iso(match),
+                kickoff_utc=match_time,
                 home_team=home,
                 away_team=away,
                 stage=match.get("competition_stage", {}).get("name", ""),
@@ -135,8 +180,8 @@ def build_worldcup_2022_history(cache_dir: Path, *, limit: int | None = None) ->
                 lineup_payload=lineup_payload,
                 lineup=lineup,
                 pre_state={
-                    "home": _state_payload(home_state),
-                    "away": _state_payload(away_state),
+                    "home": home_pre,
+                    "away": away_pre,
                     "odds_source": "checkbestodds_archive" if odds else "rating_fallback_no_odds",
                     "odds_quality": odds_quality,
                 },
@@ -148,6 +193,8 @@ def build_worldcup_2022_history(cache_dir: Path, *, limit: int | None = None) ->
         _update_state(away_state, post["away"])
         home_state.last_starters = lineup_payload["confirmed_home"]
         away_state.last_starters = lineup_payload["confirmed_away"]
+        home_state.last_match_time = match_time
+        away_state.last_match_time = match_time
 
         if limit and len(fixtures) >= limit:
             break
@@ -244,6 +291,38 @@ def _load_checkbestodds(cache_dir: Path) -> dict[tuple[str, str], dict[str, floa
         }
         for row in rows
     }
+
+
+def _elo_rows(matches: list[dict]) -> list[dict]:
+    """Minimal date-sorted match rows for the Elo timeline."""
+    rows = []
+    for m in sorted(matches, key=_match_sort_key):
+        rows.append({
+            "match_id": int(m["match_id"]),
+            "home_key": team_key(m["home_team"]["home_team_name"]),
+            "away_key": team_key(m["away_team"]["away_team_name"]),
+            "home_score": int(m["home_score"]),
+            "away_score": int(m["away_score"]),
+        })
+    return rows
+
+
+def _build_elo_timeline(cache_dir: Path, matches_2022: list[dict]) -> dict:
+    """Pre-match Elo (scaled to model rating units) for each 2022 fixture.
+
+    Seeded by the full 2018 World Cup played in date order, then continued
+    through 2022. Ratings are read before each match and updated only after, so
+    there is no future leakage.
+    """
+    rows = _elo_rows(_load_statsbomb_matches(cache_dir, WC2018_SEASON_ID)) + _elo_rows(matches_2022)
+    return build_timeline(rows, cfg=EloConfig())
+
+
+def _with_elo(payload: dict, timeline: dict, match_id: int, side: str) -> dict:
+    entry = timeline.get(match_id) or {}
+    payload["elo"] = entry.get(side, 1500.0)
+    payload["elo_scaled"] = entry.get(f"{side}_scaled", 0.0)
+    return payload
 
 
 def _load_prior_ratings_2018(cache_dir: Path) -> dict[str, float]:

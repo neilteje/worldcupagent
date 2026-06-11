@@ -46,6 +46,9 @@ def dynamic_source_weights(
     elif match_archetype == "ht_scoreline_luck":
         _mul(weights, {"halftime": 1.16, "prematch": 1.05, "polymarket": 0.88})
         reasons.append("HT scoreline luck: trust performance update over raw market reaction.")
+    elif match_archetype == "strong_favorite" and market_regime == "market_consensus":
+        _mul(weights, {"bookmaker": 1.16, "polymarket": 1.12, "sportmonks": 0.86, "supabase": 0.82, "draw_model": 0.90})
+        reasons.append("Strong favorite with market/bookmaker consensus: reduce neutral-prior longshot inflation.")
     elif match_archetype == "balanced_match":
         _mul(weights, {"draw_model": 1.15, "supabase": 1.04})
         reasons.append("Balanced match: draw model and priors matter more.")

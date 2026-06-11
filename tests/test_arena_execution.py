@@ -63,8 +63,8 @@ def test_safe_order_uses_arena_orders_route_and_polls(monkeypatch):
     assert result["tx_hash"] == "0xabc"
     assert result["clob_order_id"] == "clob-1"
     assert calls == [
-        ("POST", "https://staging.stair-ai.com/api/v1/arena/orders"),
-        ("GET", "https://staging.stair-ai.com/api/v1/arena/orders/ord_123"),
+        ("POST", "https://stair-ai.com/api/v1/arena/orders"),
+        ("GET", "https://stair-ai.com/api/v1/arena/orders/ord_123"),
     ]
 
 

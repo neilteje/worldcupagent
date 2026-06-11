@@ -62,7 +62,7 @@ def main() -> None:
     p_backtest.add_argument("--sample", type=int, default=20)
     p_backtest.add_argument("--session", default=None)
     p_backtest.add_argument("--profiles", default=None)
-    p_backtest.add_argument("--engine", choices=["deterministic", "council", "market", "compare"], default="deterministic")
+    p_backtest.add_argument("--engine", choices=["deterministic", "deterministic_v2", "council", "market", "compare"], default="deterministic")
 
     args = ap.parse_args()
     {

@@ -23,7 +23,7 @@ def main() -> None:
     p.add_argument("--use-anthropic-critic", action="store_true", help="Ask Anthropic to critique dry-run decisions. The critic cannot authorize orders.")
     p.add_argument("--use-llm-claims", action="store_true", help="Use Anthropic to extract typed claims from text sources before deterministic blending.")
     p.add_argument("--use-llm-analyst", action="store_true", help="Use Anthropic Sonnet as a required second analyst for each decision.")
-    p.add_argument("--decision-mode", choices=["deterministic", "llm_central"], default=None, help="Select deterministic-first forecasting or an LLM-central forecast mode that synthesizes all features.")
+    p.add_argument("--decision-mode", choices=["deterministic", "deterministic_v2", "llm_central"], default=None, help="Select deterministic-first forecasting or an LLM-central forecast mode that synthesizes all features.")
     p.add_argument("--backtest", action="store_true")
     p.add_argument("--compare-modes", action="store_true", help="Run a deterministic vs llm_central comparison backtest on the same synthetic sample.")
     p.add_argument("--backtest-dataset", choices=["synthetic", "wc2022"], default="synthetic", help="Backtest dataset: synthetic smoke data or real 2022 World Cup historical data.")
@@ -42,7 +42,7 @@ def main() -> None:
     exit_status = 0
     try:
         if args.backtest:
-            run_backtest(settings, sample_size=args.backtest_sample, use_claude=args.use_claude, dataset=args.backtest_dataset)
+            run_backtest(settings, sample_size=args.backtest_sample, use_claude=args.use_claude, dataset=args.backtest_dataset, mode=settings.decision_mode or "deterministic")
         elif args.compare_modes:
             run_mode_comparison_backtest(settings, sample_size=args.backtest_sample, include_claude_report=True, dataset=args.backtest_dataset)
         elif args.daemon:
