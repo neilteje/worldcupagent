@@ -13,6 +13,7 @@ release notes 20260610: HT is not enabled yet).
 from __future__ import annotations
 import json
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from typing import Any
 
 import config
@@ -24,6 +25,7 @@ from reasoning.prompts import ht_predict_input
 from ledger.client import LedgerSession
 from betting import policy as bet_policy
 from harness.profiles import confidence_to_num
+from models.forecast_contracts import MatchForecast, stable_hash
 from live.arena_client import ArenaClient
 from live.roster import LiveAgent
 from live import metrics
@@ -77,6 +79,10 @@ class Forecast:
     summary: str = ""
     engine: str = "unknown"
     deterministic_model: dict = field(default_factory=dict)
+    independent_forecast: dict = field(default_factory=dict)
+    forecast_snapshot_id: str = ""
+    market_probabilities: dict = field(default_factory=dict)
+    market_adjusted_probabilities: dict = field(default_factory=dict)
 
 
 def _fetch_market(fixture_id: int) -> tuple[str | None, dict | None, dict]:
@@ -125,6 +131,14 @@ def _hda_to_code(probs: dict, home_code: str, away_code: str) -> dict:
         home_code: round(float(hda["home"]), 4),
         "draw": round(float(hda["draw"]), 4),
         away_code: round(float(hda["away"]), 4),
+    }
+
+
+def _hda_values_to_code(values: dict, home_code: str, away_code: str) -> dict:
+    return {
+        home_code: round(float(values.get("home", 0.0) or 0.0), 4),
+        "draw": round(float(values.get("draw", 0.0) or 0.0), 4),
+        away_code: round(float(values.get("away", 0.0) or 0.0), 4),
     }
 
 
@@ -202,6 +216,154 @@ def _deterministic_v2_model(fx: Forecast, fixture: dict) -> dict:
         "blended_raw": out["blended_raw"],
         "config": out["config"],
     }
+
+
+def _coverage_score(fx: Forecast) -> float:
+    parts = [
+        bool(fx.sm_digest),
+        bool(fx.sb_digest),
+        bool((fx.web_research or {}).get("total_results")),
+        bool((fx.reddit_bundle or {}).get("threads_found")),
+    ]
+    return round(sum(1 for p in parts if p) / len(parts), 4)
+
+
+def _evidence_ids(fx: Forecast) -> list[str]:
+    ids: list[str] = []
+    if fx.sm_digest:
+        ids.append("sportmonks_digest")
+    if fx.sb_digest:
+        ids.append("supabase_digest")
+    for source in (fx.web_research or {}).get("sources") or []:
+        ids.append(f"web:{source}")
+    if (fx.reddit_bundle or {}).get("threads_found"):
+        ids.append("reddit_sentiment")
+    return ids
+
+
+def _state_from_independent_context(fx: Forecast, side: str) -> dict:
+    code = fx.home_code if side == "home" else fx.away_code
+    other = fx.away_code if side == "home" else fx.home_code
+    state = {
+        "live_rating": 0.0,
+        "matches": 0,
+        "xg_for": 0.0,
+        "xg_against": 0.0,
+        "goals_for": 0.0,
+        "goals_against": 0.0,
+    }
+
+    xg = (fx.sm_digest or {}).get("expected_goals") or {}
+    own_xg = xg.get(code)
+    opp_xg = xg.get(other)
+    if isinstance(own_xg, (int, float)) and isinstance(opp_xg, (int, float)):
+        state.update({
+            "matches": 1,
+            "xg_for": max(0.0, float(own_xg)),
+            "xg_against": max(0.0, float(opp_xg)),
+            "goals_for": max(0.0, float(own_xg)),
+            "goals_against": max(0.0, float(opp_xg)),
+        })
+
+    teams = (fx.sb_digest or {}).get("teams") or {}
+    team = teams.get(code) or {}
+    h2h_wins = team.get("h2h_wins")
+    h2h_losses = team.get("h2h_losses")
+    try:
+        total = float(h2h_wins or 0) + float(h2h_losses or 0)
+        if total > 0:
+            state["live_rating"] += 0.35 * (float(h2h_wins or 0) - float(h2h_losses or 0)) / total
+    except (TypeError, ValueError):
+        pass
+    try:
+        ko_rate = team.get("ko_advancement_rate")
+        if ko_rate is not None:
+            state["talent_score"] = max(0.0, min(5.0, float(ko_rate) * 5.0))
+    except (TypeError, ValueError):
+        pass
+    return state
+
+
+def _bounds_for_probability(probability: float, confidence: float, coverage: float) -> tuple[float, float]:
+    width = max(0.04, min(0.34, 0.08 + (1.0 - confidence) * 0.12 + (1.0 - coverage) * 0.14))
+    return max(0.0, probability - width / 2.0), min(1.0, probability + width / 2.0)
+
+
+def _market_probabilities_by_code(fx: Forecast) -> dict:
+    hda = _normalize_hda(fx.mids)
+    if not hda:
+        return {}
+    return _hda_to_code(hda, fx.home_code, fx.away_code)
+
+
+def _build_independent_forecast_snapshot(fx: Forecast, fixture: dict) -> dict:
+    from models.deterministic_v2 import EnsembleConfig, predict_v2
+
+    cfg = EnsembleConfig(
+        w_elo=0.50,
+        w_poisson=0.50,
+        w_market=0.0,
+        use_market=False,
+    )
+    stage = str((fixture.get("stage") or {}).get("name") or fixture.get("stage") or "").lower()
+    is_knockout = bool(stage) and "group" not in stage
+    home_state = _state_from_independent_context(fx, "home")
+    away_state = _state_from_independent_context(fx, "away")
+    out = predict_v2(home_state, away_state, market_probs=None, cfg=cfg, is_knockout=is_knockout)
+    probabilities = out["probabilities"]
+    confidence = max(0.0, min(1.0, float(out.get("confidence", 0.5) or 0.5)))
+    coverage = _coverage_score(fx)
+    bounds = {slot: _bounds_for_probability(probabilities[slot], confidence, coverage)
+              for slot in ("home", "draw", "away")}
+    warnings = ["market_inputs_excluded"]
+    if coverage < 0.5:
+        warnings.append("low_data_coverage_widened_uncertainty")
+
+    feature_payload = {
+        "fixture_id": fx.fixture_id,
+        "fixture_name": fx.fixture_name,
+        "kickoff": fx.kickoff,
+        "home_code": fx.home_code,
+        "away_code": fx.away_code,
+        "sm_digest": fx.sm_digest,
+        "sb_digest": fx.sb_digest,
+        "web_sources": (fx.web_research or {}).get("sources") or [],
+        "reddit_threads": (fx.reddit_bundle or {}).get("threads_found", 0),
+        "home_state": home_state,
+        "away_state": away_state,
+    }
+    forecast = MatchForecast(
+        fixture_id=str(fx.fixture_id),
+        as_of_timestamp=datetime.now(timezone.utc),
+        home_probability=probabilities["home"],
+        draw_probability=probabilities["draw"],
+        away_probability=probabilities["away"],
+        home_lower_bound=bounds["home"][0],
+        draw_lower_bound=bounds["draw"][0],
+        away_lower_bound=bounds["away"][0],
+        home_upper_bound=bounds["home"][1],
+        draw_upper_bound=bounds["draw"][1],
+        away_upper_bound=bounds["away"][1],
+        confidence=confidence,
+        data_coverage_score=coverage,
+        model_version="deterministic_v2_market_blind.1",
+        feature_snapshot_hash=stable_hash(feature_payload),
+        evidence_ids=_evidence_ids(fx),
+        warnings=warnings,
+    )
+    snapshot = forecast.to_dict()
+    snapshot.update({
+        "probabilities_by_code": _hda_to_code(probabilities, fx.home_code, fx.away_code),
+        "lower_bounds_by_code": _hda_values_to_code(forecast.lower_bounds, fx.home_code, fx.away_code),
+        "upper_bounds_by_code": _hda_values_to_code(forecast.upper_bounds, fx.home_code, fx.away_code),
+        "active_components": out.get("active_components", []),
+        "component_weights": out.get("weights", {}),
+        "home_state": home_state,
+        "away_state": away_state,
+        "expected_goals": out.get("expected_goals"),
+        "config": out.get("config"),
+    })
+    return snapshot
 
 
 def _deterministic_context_for_council(fx: Forecast, fixture: dict) -> dict:
@@ -285,6 +447,21 @@ def gather_prematch(fixture_id: int) -> Forecast:
     fx.sm_digest = ctx.get("sportmonks_digest")
     fx.sb_digest = ctx.get("supabase_digest")
 
+    fx.independent_forecast = _build_independent_forecast_snapshot(fx, fixture)
+    fx.forecast_snapshot_id = fx.independent_forecast["forecast_id"]
+    fx.market_probabilities = _market_probabilities_by_code(fx)
+    metrics.log_event(
+        "forecast_snapshot",
+        fixture_id=fixture_id, window=fx.window, fixture_name=fx.fixture_name,
+        forecast_id=fx.forecast_snapshot_id,
+        independent_probabilities=fx.independent_forecast.get("probabilities_by_code"),
+        market_probabilities=fx.market_probabilities,
+        model_version=fx.independent_forecast.get("model_version"),
+        feature_snapshot_hash=fx.independent_forecast.get("feature_snapshot_hash"),
+        data_coverage_score=fx.independent_forecast.get("data_coverage_score"),
+        warnings=fx.independent_forecast.get("warnings"),
+    )
+
     if fx.moneyline:
         try:
             fx.pm_digest_result = llm.digest_polymarket(json.dumps(fx.moneyline))
@@ -310,7 +487,11 @@ def gather_prematch(fixture_id: int) -> Forecast:
     fx.probability = float(cr.probability)
     fx.confidence = cr.confidence
     fx.scout_flags = cr.scout_flags
-    fx.grounding = {"council": cr.grounding, "deterministic_context": deterministic_context}
+    fx.market_adjusted_probabilities = dict(fx.probabilities)
+    fx.grounding = {"council": cr.grounding, "deterministic_context": deterministic_context,
+                    "independent_forecast": fx.independent_forecast,
+                    "market_probabilities": fx.market_probabilities,
+                    "market_adjusted_probabilities": fx.market_adjusted_probabilities}
     fx.summary = cr.council_summary
     fx.engine = "council_with_deterministic_v2"
     print(f"  [live] council+deterministic_v2: {fx.outcome} @ {fx.probability:.1%} "
@@ -453,6 +634,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         scout_flags=fx.scout_flags,
         skip_reasons=skip_reasons,
     )
+    picks = bet_policy.suppress_blitz_draw_picks(profile, picks, skip_reasons)
 
     # Risk overlay (consensus / scout multipliers) on the top pick only.
     gate_info = {}
@@ -495,8 +677,9 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
                         scaled = bet_policy.MIN_ORDER_USD
                     else:
                         skip_reasons.append(
-                            f"{p.slot}: gate ×{g.bet_multiplier} → ${scaled:.2f} "
-                            f"< ${bet_policy.MIN_ORDER_USD:.2f} (dropped)")
+                            f"{p.slot}: {bet_policy.KELLY_BELOW_MINIMUM_ORDER_SIZE} "
+                            f"after gate x{g.bet_multiplier} -> ${scaled:.2f} "
+                            f"< ${bet_policy.MIN_ORDER_USD:.2f}")
                         continue
                 p.stake_usd = min(scaled, cap)
                 survivors.append(p)
@@ -656,6 +839,10 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
                 "scout_veto": profile.skip_on_high_scout_flag,
             },
             "market_source": fx.market_source,
+            "forecast_snapshot_id": fx.forecast_snapshot_id,
+            "independent_probabilities": fx.independent_forecast.get("probabilities_by_code"),
+            "market_probabilities": fx.market_probabilities,
+            "market_adjusted_probabilities": fx.market_adjusted_probabilities or fx.probabilities,
             "wallet_available": available,
             "cycle_cap_usd": cycle_cap,
             "picks": [p.to_dict() for p in picks],
@@ -683,13 +870,15 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             upstream_ids=[rec_decision["record_id"]])
     for p in picks:
         if dry_run:
-            order_results.append({"pick": p.to_dict(), "status": "dry_run"})
+            order_results.append({"pick": p.to_dict(), "status": "dry_run",
+                                  "execution": {"partial_fill_state": "simulated"}})
             session.acting_order(
                 direction="long", outcome=p.code, size_usdc=p.stake_usd,
                 limit_price=p.limit_price,
                 order_payload={"fixture_id": str(fx.fixture_id), "team_code": p.code,
                                "usd_size": f"{p.stake_usd:.2f}",
-                               "limit_price": p.limit_price, "dry_run": True},
+                               "limit_price": p.limit_price, "dry_run": True,
+                               "skip_reasons": skip_reasons},
                 execution_status="simulated",
                 upstream_ids=[rec_decision["record_id"]])
             continue
@@ -705,11 +894,13 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
                               "reject_reason": poll.get("reject_reason"),
                               "tx_hash": poll.get("tx_hash"),
                               "filled_usdc": poll.get("filled_usdc"),
+                              "execution": poll.get("fill_report") or {},
                               "exec_status": exec_status})
         session.acting_order(
             direction="long", outcome=p.code, size_usdc=p.stake_usd,
             limit_price=p.limit_price,
-            order_payload=resp.get("payload") or {},
+            order_payload={**(resp.get("payload") or {}),
+                           "execution": poll.get("fill_report") or {}},
             execution_status=exec_status,
             execution_id=resp.get("order_id") if submitted_ok else None,
             upstream_ids=[rec_decision["record_id"]])
@@ -778,6 +969,10 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         agent=agent.name, profile=profile.name,
         engine=fx.engine,
         probabilities=fx.probabilities, confidence=fx.confidence,
+        forecast_snapshot_id=fx.forecast_snapshot_id,
+        independent_probabilities=fx.independent_forecast.get("probabilities_by_code"),
+        market_probabilities=fx.market_probabilities,
+        market_adjusted_probabilities=fx.market_adjusted_probabilities or fx.probabilities,
         market_source=fx.market_source, mids=fx.mids,
         grounding=fx.grounding, **{k: summary[k] for k in
                                    ("prediction", "wallet_available", "orders",
@@ -803,6 +998,10 @@ def run_window_cycle(fixture_id: int, window: str, agents: list[LiveAgent],
         engine=fx.engine,
         probabilities=fx.probabilities, outcome=fx.outcome,
         probability=fx.probability, confidence=fx.confidence,
+        forecast_snapshot_id=fx.forecast_snapshot_id,
+        independent_probabilities=fx.independent_forecast.get("probabilities_by_code"),
+        market_probabilities=fx.market_probabilities,
+        market_adjusted_probabilities=fx.market_adjusted_probabilities or fx.probabilities,
         market_source=fx.market_source, mids=fx.mids, grounding=fx.grounding,
         scout_flags=fx.scout_flags, summary=fx.summary)
 
@@ -819,5 +1018,10 @@ def run_window_cycle(fixture_id: int, window: str, agents: list[LiveAgent],
             "forecast": {"outcome": fx.outcome, "probability": fx.probability,
                          "probabilities": fx.probabilities,
                          "confidence": fx.confidence,
-                         "engine": fx.engine},
+                         "engine": fx.engine,
+                         "forecast_snapshot_id": fx.forecast_snapshot_id,
+                         "independent_probabilities": fx.independent_forecast.get("probabilities_by_code"),
+                         "market_probabilities": fx.market_probabilities,
+                         "market_adjusted_probabilities": (
+                             fx.market_adjusted_probabilities or fx.probabilities)},
             "agents": results}

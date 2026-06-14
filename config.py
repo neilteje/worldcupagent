@@ -10,6 +10,20 @@ from dotenv import load_dotenv
 load_dotenv(dotenv_path=Path(__file__).resolve().parent / ".env", override=True)
 
 
+def _env_float(name: str, default: float) -> float:
+    try:
+        return float(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
+def _env_int(name: str, default: int) -> int:
+    try:
+        return int(os.environ.get(name, default))
+    except (TypeError, ValueError):
+        return default
+
+
 
 # ── Arena ──────────────────────────────────────────────────────────────────
 # Explicit STAIR_API_KEY / ARENA_KEY, else any AGENT_KEY_* (all work for data
@@ -92,6 +106,40 @@ MIN_EDGE_VS_FAIR: float = 0.03     # fallback edge-vs-fair bar (profiles overrid
 MAX_BET_USD: float = 5.00          # hard USD cap per order (arena rule: ≤ $5)
 DEFAULT_TIF_SECONDS: int = 30      # time-in-force for limit orders
 MIN_WALLET_USD: float = 2.00       # never trade below this balance
+
+# Coordinated MONK/ANCHOR/HUNTER redesign defaults. These are not applied to
+# BLITZ and should be tuned by backtesting before being used for live gating.
+FEE_BUFFER: float = _env_float("FEE_BUFFER", 0.01)
+SLIPPAGE_BUFFER: float = _env_float("SLIPPAGE_BUFFER", 0.01)
+MODEL_RISK_BUFFER: float = _env_float("MODEL_RISK_BUFFER", 0.02)
+
+MONK_MIN_CONSERVATIVE_EDGE: float = _env_float("MONK_MIN_CONSERVATIVE_EDGE", 0.08)
+MONK_MIN_CONFIDENCE: float = _env_float("MONK_MIN_CONFIDENCE", 0.65)
+MONK_KELLY_FRACTION: float = _env_float("MONK_KELLY_FRACTION", 0.10)
+MONK_MAX_BANKROLL_FRACTION: float = _env_float("MONK_MAX_BANKROLL_FRACTION", 0.015)
+MONK_MAX_BETS_PER_FIXTURE: int = _env_int("MONK_MAX_BETS_PER_FIXTURE", 1)
+
+ANCHOR_MIN_CONSERVATIVE_EDGE: float = _env_float("ANCHOR_MIN_CONSERVATIVE_EDGE", 0.05)
+ANCHOR_MIN_EV_AFTER_COSTS: float = _env_float("ANCHOR_MIN_EV_AFTER_COSTS", 0.03)
+ANCHOR_MIN_ENTRY_PRICE: float = _env_float("ANCHOR_MIN_ENTRY_PRICE", 0.10)
+ANCHOR_MAX_ENTRY_PRICE: float = _env_float("ANCHOR_MAX_ENTRY_PRICE", 0.80)
+ANCHOR_KELLY_FRACTION: float = _env_float("ANCHOR_KELLY_FRACTION", 0.20)
+ANCHOR_MAX_BANKROLL_FRACTION: float = _env_float("ANCHOR_MAX_BANKROLL_FRACTION", 0.025)
+ANCHOR_MAX_BETS_PER_FIXTURE: int = _env_int("ANCHOR_MAX_BETS_PER_FIXTURE", 1)
+
+HUNTER_MIN_ENTRY_PRICE: float = _env_float("HUNTER_MIN_ENTRY_PRICE", 0.05)
+HUNTER_MAX_ENTRY_PRICE: float = _env_float("HUNTER_MAX_ENTRY_PRICE", 0.35)
+HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", 0.08)
+HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.12)
+HUNTER_MIN_INDEPENDENT_SIGNALS: int = _env_int("HUNTER_MIN_INDEPENDENT_SIGNALS", 2)
+HUNTER_KELLY_FRACTION: float = _env_float("HUNTER_KELLY_FRACTION", 0.10)
+HUNTER_MAX_BANKROLL_FRACTION: float = _env_float("HUNTER_MAX_BANKROLL_FRACTION", 0.015)
+HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE: int = _env_int("HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE", 1)
+
+MAX_FIXTURE_EXPOSURE: float = _env_float("MAX_FIXTURE_EXPOSURE", 0.04)
+MAX_OUTCOME_EXPOSURE: float = _env_float("MAX_OUTCOME_EXPOSURE", 0.03)
+MAX_ULTRA_TAIL_EXPOSURE: float = _env_float("MAX_ULTRA_TAIL_EXPOSURE", 0.01)
+MAX_DAILY_DRAWDOWN: float = _env_float("MAX_DAILY_DRAWDOWN", 0.05)
 
 # ── Cross-market (Polymarket vs Kalshi) gate thresholds ─────────────────────
 MARKET_CONSENSUS_SPREAD: float = 0.03   # both markets agree within 3pp → boost

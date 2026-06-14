@@ -54,6 +54,7 @@ from reasoning.prompts import (
 )
 from ledger.client import LedgerSession
 from betting import decision as ev_decision
+from betting import policy as bet_policy
 from harness.profiles import AgentProfile, get_profile, confidence_to_num
 from live.arena_client import ArenaClient
 
@@ -606,6 +607,9 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
     # plus the profile's policy filters.
     should_trade = bool(decision.should_trade and gate.should_trade)
     policy_reasons: list[str] = []
+    if should_trade and profile.name == "blitz" and bet_policy.is_draw_outcome(code=trade_outcome):
+        should_trade = False
+        policy_reasons.append(bet_policy.BLITZ_DRAW_DISABLED_REASON)
     if should_trade and not profile.trade_prematch:
         should_trade = False
         policy_reasons.append(f"profile {profile.name} does not trade PRE_MATCH")
@@ -718,7 +722,10 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
             outcome=trade_outcome,
             size_usdc=size_usdc,
             limit_price=limit_price,
-            order_payload=order_response.get("payload") if isinstance(order_response, dict) else {},
+            order_payload={
+                **((order_response.get("payload") if isinstance(order_response, dict) else {}) or {}),
+                "execution": outcome_poll.get("fill_report") or {},
+            },
             execution_status=exec_status,
             execution_id=order_response.get("order_id") if submitted_ok else None,
             upstream_ids=[rec_gate["record_id"]],
@@ -918,6 +925,14 @@ def run_halftime(fixture_id: int, prematch_prediction: dict | None = None,
     strat_content = strategy_input(prediction, pm_digest_result.parsed)
     strat_result  = llm.strategy(strat_content)
     strategy_data = strat_result.parsed
+    strategy_team_code = strategy_data.get("team_code") or strategy_data.get("outcome")
+    if (
+        profile.name == "blitz"
+        and strategy_data.get("should_trade")
+        and bet_policy.is_draw_outcome(code=strategy_team_code)
+    ):
+        strategy_data["should_trade"] = False
+        strategy_data["skip_reason"] = bet_policy.BLITZ_DRAW_DISABLED_REASON
 
     rec_th_strat = session.thinking(
         prompt_system="[STRATEGY_SYS]",
@@ -961,10 +976,15 @@ def run_halftime(fixture_id: int, prematch_prediction: dict | None = None,
                 outcome=strategy_data.get("outcome", ""),
                 size_usdc=size_usdc,
                 limit_price=limit_price,
-                order_payload=(order_response.get("payload")
-                               if isinstance(order_response, dict) else {}) or
-                              {"fixture_id": str(fixture_id), "team_code": team_code,
-                               "usd_size": str(size_usdc), "limit_price": limit_price},
+                order_payload={
+                    **(
+                        (order_response.get("payload")
+                         if isinstance(order_response, dict) else {}) or
+                        {"fixture_id": str(fixture_id), "team_code": team_code,
+                         "usd_size": str(size_usdc), "limit_price": limit_price}
+                    ),
+                    "execution": outcome_poll.get("fill_report") or {},
+                },
                 execution_status=exec_status,
                 execution_id=order_response.get("order_id") if ok else None,
                 upstream_ids=[rec_th_strat["record_id"]],

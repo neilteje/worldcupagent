@@ -105,3 +105,29 @@ pytest tests/ -q                # unit tests
 
 Per-agent aggressiveness (edge bars, Kelly fraction, stake caps, confidence floors,
 scout-veto) lives in `harness/profiles.py` and is shared by the harness and live runner.
+
+## 2026-06 personality architecture update
+
+The live runner now logs a market-blind `MatchForecast` snapshot before agent
+execution decisions. The snapshot includes uncertainty bounds, data coverage,
+model version, evidence ids, a feature hash, and a `forecast_snapshot_id`.
+Reports keep these fields separate:
+
+- `independent_probabilities`: football-only snapshot, excluding tradable prices.
+- `market_probabilities`: market/reference probabilities when available.
+- `market_adjusted_probabilities`: final council distribution after market-aware synthesis.
+
+`betting.conservative` provides lower-bound, fee/slippage/model-risk adjusted
+edge calculations for MONK, ANCHOR, and HUNTER. `betting.portfolio` provides a
+central dedupe/allocation layer for MONK, ANCHOR, and HUNTER recommendations and
+observes BLITZ exposure without vetoing BLITZ.
+
+BLITZ retains its existing strategy, sizing, thresholds, execution flow, and
+independent ability to place trades. The only modification is that BLITZ draw
+candidates are filtered before order submission and are recorded with the skip
+reason `blitz_draw_disabled`.
+
+Order polling records actual filled notional, average fill price, unfilled
+amount, fees, order id, market id, and partial-fill state when the arena API
+provides them. Reports use `return_on_staked_capital` instead of an ambiguous
+`ROI` label; legacy serialized fields are retained where practical.

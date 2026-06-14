@@ -55,6 +55,33 @@ def _winner_key(probs: dict, slot: str | None, code: str | None,
     return None
 
 
+def _execution(order: dict) -> dict:
+    return order.get("execution") or {}
+
+
+def _actual_stake(order: dict) -> float:
+    execution = _execution(order)
+    filled = execution.get("filled_notional_usdc")
+    if isinstance(filled, (int, float)) and filled > 0:
+        return float(filled)
+    pick = order.get("pick") or {}
+    return float(pick.get("stake_usd") or 0.0)
+
+
+def _actual_entry_price(order: dict) -> float:
+    execution = _execution(order)
+    avg = execution.get("actual_average_fill_price")
+    if isinstance(avg, (int, float)) and 0 < avg < 1:
+        return float(avg)
+    pick = order.get("pick") or {}
+    return float(pick.get("entry_price") or 0.0)
+
+
+def _fees(order: dict) -> float:
+    value = _execution(order).get("fees_usdc")
+    return float(value) if isinstance(value, (int, float)) else 0.0
+
+
 def build_report() -> str:
     events = read_events()
     state = LiveState()
@@ -117,7 +144,7 @@ def build_report() -> str:
         for o in e.get("orders") or []:
             pick = o.get("pick") or {}
             a["orders"] += 1
-            stake = float(pick.get("stake_usd") or 0)
+            stake = _actual_stake(o)
             a["stake"] += stake
             if o.get("exec_status") == "confirmed":
                 a["confirmed"] += 1
@@ -126,13 +153,13 @@ def build_report() -> str:
             if s is None:
                 a["open"] += 1
                 continue
-            price = float(pick.get("entry_price") or 0)
+            price = _actual_entry_price(o)
             won = (str(pick.get("code")) == str(winner)) or (pick.get("slot") == wslot)
             if won and 0 < price < 1:
-                a["pnl"] += stake * (1.0 / price - 1.0)
+                a["pnl"] += stake * (1.0 / price - 1.0) - _fees(o)
                 a["wins"] += 1
             else:
-                a["pnl"] -= stake
+                a["pnl"] -= stake + _fees(o)
                 a["losses"] += 1
     for e in agent_settle:
         if e.get("wallet"):
@@ -147,13 +174,14 @@ def build_report() -> str:
 
     L.append("## Per-agent scorecard\n")
     L.append("| agent | windows | predictions | orders | confirmed | stake $ | "
-             "realized P&L $ | W–L | open | wallet $ |")
-    L.append("|---|---|---|---|---|---|---|---|---|---|")
+             "realized P&L $ | return_on_staked_capital | W-L | open | wallet $ |")
+    L.append("|---|---|---|---|---|---|---|---|---|---|---|")
     for name, a in sorted(agents.items()):
         wallet = f"{a['wallet_last']:.2f}" if a["wallet_last"] is not None else "—"
+        rosc = f"{(a['pnl'] / a['stake'] * 100):+.1f}%" if a["stake"] else "—"
         L.append(f"| {name} | {a['windows']} | {a['predictions']} | {a['orders']} | "
                  f"{a['confirmed']} | {a['stake']:.2f} | {a['pnl']:+.2f} | "
-                 f"{a['wins']}–{a['losses']} | {a['open']} | {wallet} |")
+                 f"{rosc} | {a['wins']}-{a['losses']} | {a['open']} | {wallet} |")
     L.append("")
 
     L.append("## Forecast quality (Brier, lower is better)\n")

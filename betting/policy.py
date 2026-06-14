@@ -25,6 +25,8 @@ from harness.profiles import AgentProfile
 # Polymarket CLOB enforces a $1.00 minimum per order; anything smaller is
 # rejected at submission, so we don't emit it.
 MIN_ORDER_USD = 1.00
+BLITZ_DRAW_DISABLED_REASON = "blitz_draw_disabled"
+KELLY_BELOW_MINIMUM_ORDER_SIZE = "kelly_below_minimum_order_size"
 
 
 @dataclass
@@ -56,6 +58,38 @@ def _high_flag_on(scout_flags, code: str) -> bool:
                 and str(f.get("team", "")).lower() == str(code).lower()):
             return True
     return False
+
+
+def is_draw_outcome(slot: str | None = None, code: str | None = None) -> bool:
+    """Return True for every draw representation used by supported order paths."""
+    values = {str(v or "").strip().lower() for v in (slot, code)}
+    return bool(values & {"draw", "tie", "x"})
+
+
+def suppress_blitz_draw_picks(
+    profile: AgentProfile,
+    picks: list[SizedPick],
+    skip_reasons: list[str] | None = None,
+) -> list[SizedPick]:
+    """
+    Remove draw candidates for BLITZ immediately before order creation.
+
+    This deliberately runs after BLITZ's existing selection logic.  It preserves
+    every non-draw pick already selected and never promotes a second-best outcome
+    that BLITZ did not independently select.
+    """
+    if profile.name != "blitz":
+        return picks
+    kept: list[SizedPick] = []
+    removed = 0
+    for pick in picks:
+        if is_draw_outcome(pick.slot, pick.code):
+            removed += 1
+            continue
+        kept.append(pick)
+    if removed and skip_reasons is not None:
+        skip_reasons.extend([BLITZ_DRAW_DISABLED_REASON] * removed)
+    return kept
 
 
 def select_picks(
@@ -134,8 +168,11 @@ def select_picks(
                                f"${MIN_ORDER_USD:.2f} (CLOB minimum)")
                 size = MIN_ORDER_USD
             else:
-                reasons.append(f"{ev.slot}: sized ${size:.2f} < ${MIN_ORDER_USD:.2f} "
-                               f"CLOB minimum (cannot floor up within cap)")
+                reason = KELLY_BELOW_MINIMUM_ORDER_SIZE if not profile.floor_to_min_order else (
+                    "minimum_order_floor_unavailable"
+                )
+                reasons.append(f"{ev.slot}: {reason} sized ${size:.2f} < "
+                               f"${MIN_ORDER_USD:.2f} CLOB minimum")
                 continue
 
         picks.append(SizedPick(
@@ -152,3 +189,14 @@ def select_picks(
     if not picks and not reasons:
         reasons.append("no outcome cleared the EV/edge bars")
     return picks
+
+
+__all__ = [
+    "BLITZ_DRAW_DISABLED_REASON",
+    "KELLY_BELOW_MINIMUM_ORDER_SIZE",
+    "MIN_ORDER_USD",
+    "SizedPick",
+    "is_draw_outcome",
+    "select_picks",
+    "suppress_blitz_draw_picks",
+]

@@ -136,6 +136,7 @@ def decide_trades(profile: AgentProfile, prediction, moneyline: dict, ledger: di
         window=window, confidence_num=prediction.confidence_num,
         scout_flags=prediction.scout_flags, skip_reasons=skip_reasons,
     )
+    picks = bet_policy.suppress_blitz_draw_picks(profile, picks, skip_reasons)
     if not picks and skip_reasons:
         print(f"    [{agent}] no trade: {skip_reasons[0]}")
 

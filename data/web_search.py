@@ -13,6 +13,8 @@ Every public function fails soft: on any error it returns [] / {} so the agent
 run never aborts because the web was unreachable.
 """
 from __future__ import annotations
+from datetime import datetime, timezone
+import hashlib
 import httpx
 import config
 
@@ -44,9 +46,44 @@ _PREVIEW_TEMPLATES = (
 )
 
 
+def _now_iso() -> str:
+    return datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+
+def _duplicate_group_id(url: str, title: str, snippet: str) -> str:
+    key = (url or f"{title}|{snippet}").strip().lower()
+    return hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+
+
+def _source(url: str) -> str:
+    return _domain(url)
+
+
+def _enrich_result(raw: dict, query: str, retrieved_at: str) -> dict:
+    url = raw.get("link") or raw.get("url") or raw.get("FirstURL") or ""
+    title = raw.get("title") or raw.get("Heading") or raw.get("Text") or ""
+    snippet = raw.get("snippet") or raw.get("AbstractText") or raw.get("Text") or ""
+    published_at = raw.get("date") or raw.get("published_at")
+    return {
+        "title": title,
+        "snippet": snippet,
+        "url": url,
+        "query": query,
+        "source": _source(url),
+        "published_at": published_at,
+        "retrieved_at": retrieved_at,
+        "full_extracted_claim": snippet,
+        "fixture": None,
+        "team": None,
+        "player": None,
+        "duplicate_group_id": _duplicate_group_id(url, title, snippet),
+    }
+
+
 def _serper_search(query: str, num: int = 5) -> list[dict]:
     if not config.SERPER_API_KEY:
         return []
+    retrieved_at = _now_iso()
     resp = httpx.post(
         _SERPER_URL,
         headers={"X-API-KEY": config.SERPER_API_KEY, "Content-Type": "application/json"},
@@ -56,19 +93,12 @@ def _serper_search(query: str, num: int = 5) -> list[dict]:
     if not resp.is_success:
         return []
     organic = resp.json().get("organic") or []
-    return [
-        {
-            "title": r.get("title", ""),
-            "snippet": r.get("snippet", ""),
-            "url": r.get("link", ""),
-            "query": query,
-        }
-        for r in organic[:num]
-    ]
+    return [_enrich_result(r, query, retrieved_at) for r in organic[:num]]
 
 
 def _ddg_search(query: str, num: int = 5) -> list[dict]:
     """DuckDuckGo Instant Answer fallback. Shallow but keyless."""
+    retrieved_at = _now_iso()
     resp = httpx.get(
         _DDG_URL,
         params={"q": query, "format": "json", "no_html": 1, "skip_disambig": 1},
@@ -80,23 +110,21 @@ def _ddg_search(query: str, num: int = 5) -> list[dict]:
     out: list[dict] = []
     abstract = data.get("AbstractText")
     if abstract:
-        out.append({
+        out.append(_enrich_result({
             "title": data.get("Heading", query),
             "snippet": abstract,
             "url": data.get("AbstractURL", ""),
-            "query": query,
-        })
+        }, query, retrieved_at))
     for topic in (data.get("RelatedTopics") or []):
         if len(out) >= num:
             break
         text = topic.get("Text")
         if text:
-            out.append({
+            out.append(_enrich_result({
                 "title": text[:80],
                 "snippet": text,
                 "url": topic.get("FirstURL", ""),
-                "query": query,
-            })
+            }, query, retrieved_at))
     return out
 
 
@@ -171,6 +199,14 @@ def gather_research(
     lineups = [] if have_confirmed_lineups else fetch_lineup_news(home, away, match_date, per_query)
     previews = fetch_previews(home, away, match_date, per_query)
     all_results = injuries + lineups + previews
+    fixture = f"{home} vs {away}"
+    for result in all_results:
+        result["fixture"] = fixture
+        query = str(result.get("query") or "").lower()
+        if home.lower() in query and away.lower() not in query:
+            result["team"] = home
+        elif away.lower() in query and home.lower() not in query:
+            result["team"] = away
     sources = sorted({_domain(r.get("url", "")) for r in all_results if r.get("url")})
     return {
         "backend": backend if all_results else "none",

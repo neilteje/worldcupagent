@@ -101,6 +101,7 @@ MONK = AgentProfile(
     max_bet_usd=2.0,
     stake_cap_fraction=0.04,
     max_bets_per_window=1,
+    floor_to_min_order=False,
     skip_on_high_scout_flag=True,
 )
 
@@ -113,6 +114,7 @@ ANCHOR = AgentProfile(
     max_bet_usd=4.0,
     stake_cap_fraction=0.08,
     max_bets_per_window=1,
+    floor_to_min_order=False,
     skip_on_high_scout_flag=True,
 )
 
@@ -126,6 +128,7 @@ HUNTER = AgentProfile(
     max_bet_usd=5.0,
     stake_cap_fraction=0.10,
     max_bets_per_window=2,
+    floor_to_min_order=False,
     skip_on_high_scout_flag=True,
     apply_confidence_multiplier=False,   # skew is the edge, not conviction (STRATEGY §5)
 )
@@ -139,6 +142,7 @@ BLITZ = AgentProfile(
     max_bet_usd=5.0,
     stake_cap_fraction=0.15,
     max_bets_per_window=2,
+    floor_to_min_order=True,
     skip_on_high_scout_flag=False,
     apply_confidence_multiplier=False,   # fires at the cap on +EV skew (STRATEGY §5)
     trade_synthetic=True,       # may trade demo markets, but ×0.25 sized

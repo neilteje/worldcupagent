@@ -81,6 +81,8 @@ def collect(session_dir: str | Path) -> dict:
             "win_rate": round(len(won) / len(settled), 4) if settled else None,
             "staked_total": round(staked, 4),
             "pnl_total": pnl,
+            "return_on_staked_capital": round(pnl / staked, 4) if staked else None,
+            "return_on_starting_bankroll": round(pnl / start, 4) if start else None,
             "roi": round(pnl / start, 4) if start else None,
             "avg_edge_vs_fair": round(sum(t["edge_vs_fair"] for t in trades) / len(trades), 4) if trades else None,
             "avg_ev_per_dollar": round(sum(t["ev_per_dollar"] for t in trades) / len(trades), 4) if trades else None,
@@ -157,13 +159,16 @@ def _markdown(summary: dict) -> str:
              f"- Generated: {summary['generated_at']}",
              f"- Results known: {summary['results_known']} fixtures", "",
              "## Agents", "",
-             "| Agent | Label | Bets | Won | Win% | Staked | P&L | ROI | End $ |",
-             "|---|---|---|---|---|---|---|---|---|"]
+             "| Agent | Label | Bets | Won | Win% | Staked | P&L | return_on_staked_capital | return_on_starting_bankroll | End $ |",
+             "|---|---|---|---|---|---|---|---|---|---|"]
     for name, a in summary["agents"].items():
         wr = f"{a['win_rate']*100:.0f}%" if a["win_rate"] is not None else "—"
-        roi = f"{a['roi']*100:+.1f}%" if a["roi"] is not None else "—"
+        rosc = (f"{a['return_on_staked_capital']*100:+.1f}%"
+                if a["return_on_staked_capital"] is not None else "—")
+        rosb = (f"{a['return_on_starting_bankroll']*100:+.1f}%"
+                if a["return_on_starting_bankroll"] is not None else "—")
         lines.append(f"| {name} | {a['label']} | {a['n_bets']} | {a['n_won']} | {wr} "
-                     f"| ${a['staked_total']:.2f} | ${a['pnl_total']:+.2f} | {roi} "
+                     f"| ${a['staked_total']:.2f} | ${a['pnl_total']:+.2f} | {rosc} | {rosb} "
                      f"| ${a['ending_bankroll']:.2f} |")
     pm = summary["predictions"]
     if pm.get("overall"):
