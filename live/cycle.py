@@ -400,6 +400,41 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
     profile = agent.profile
     client = ArenaClient(agent.api_key, agent.name)
 
+    # ── Ledger session (this agent's own trace, own key) ─────────────────
+    session = LedgerSession(fx.fixture_id, fx.fixture_name, fx.window,
+                            api_key=agent.api_key, agent_tag=agent.name)
+    rec_trigger = session.trigger("live-runner")
+    session.planning(
+        goal=f"[{profile.name}] {fx.window} cycle for {fx.fixture_name}: calibrated "
+             f"prediction + at most {profile.max_bets_per_window} +EV buy-YES order(s)",
+        steps=[
+            "Ingest shared data bundle (Sportmonks, Polymarket, Kalshi, web, Reddit, Supabase)",
+            "Run council forecast and ground it against the bookmaker anchor"
+            if fx.window == "PRE_MATCH" else
+            "Run Bayesian HT update from live score + xG",
+            "Submit the scored prediction",
+            "At HT, close existing fixture exposure before opening fresh halftime risk"
+            if fx.window == "HT" else
+            "Carry existing exposure until settlement unless a later window closes it",
+            f"Apply the {profile.name} trading policy ({profile.label})",
+            "Place and poll any orders; reflect; submit this trace",
+        ],
+        contingencies=["Degrade to predict-only when market or wallet is unavailable"],
+        upstream_ids=[rec_trigger["record_id"]],
+    )
+
+    close_results: list[dict] = []
+    if fx.window == "HT":
+        if dry_run:
+            close_results.append({"status": "dry_run", "fixture_id": fx.fixture_id})
+        else:
+            try:
+                close_results = client.close_fixture_orders(fx.fixture_id)
+            except Exception as exc:
+                close_results = [{"status": "close_error", "error": repr(exc)}]
+        if close_results:
+            print(f"  [{agent.name}] HT close sweep → {len(close_results)} result(s)")
+
     # Wallet (a dead wallet ⇒ predict-only, never crash the cycle)
     try:
         wallet = client.wallet()
@@ -480,26 +515,6 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         spent += p.stake_usd
         capped.append(p)
     picks = capped
-
-    # ── Ledger session (this agent's own trace, own key) ─────────────────
-    session = LedgerSession(fx.fixture_id, fx.fixture_name, fx.window,
-                            api_key=agent.api_key, agent_tag=agent.name)
-    rec_trigger = session.trigger("live-runner")
-    session.planning(
-        goal=f"[{profile.name}] {fx.window} cycle for {fx.fixture_name}: calibrated "
-             f"prediction + at most {profile.max_bets_per_window} +EV buy-YES order(s)",
-        steps=[
-            "Ingest shared data bundle (Sportmonks, Polymarket, Kalshi, web, Reddit, Supabase)",
-            "Run council forecast and ground it against the bookmaker anchor"
-            if fx.window == "PRE_MATCH" else
-            "Run Bayesian HT update from live score + xG",
-            "Submit the scored prediction",
-            f"Apply the {profile.name} trading policy ({profile.label})",
-            "Place and poll any orders; reflect; submit this trace",
-        ],
-        contingencies=["Degrade to predict-only when market or wallet is unavailable"],
-        upstream_ids=[rec_trigger["record_id"]],
-    )
 
     # Tool-call records for the shared bundle (the calls genuinely happened
     # for this cycle; each agent reports them in its own trace).
@@ -644,6 +659,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             "wallet_available": available,
             "cycle_cap_usd": cycle_cap,
             "picks": [p.to_dict() for p in picks],
+            "halftime_close_results": close_results,
             "skip_reasons": skip_reasons,
             "gates": gate_info,
             "grounding": fx.grounding,
@@ -652,6 +668,19 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
 
     # ── Orders ────────────────────────────────────────────────────────────
     order_results: list[dict] = []
+    for close in close_results:
+        status = close.get("status") or close.get("final_status") or "pending"
+        exec_status = "confirmed" if str(status).lower() in ("closed", "filled", "success", "ok") else (
+            "simulated" if status == "dry_run" else "pending"
+        )
+        session.acting_order(
+            direction="close", outcome=str(close.get("team_code") or close.get("outcome") or "fixture"),
+            size_usdc=0.0, limit_price=0.0,
+            order_payload={"fixture_id": str(fx.fixture_id), **close},
+            execution_status=exec_status,
+            execution_id=close.get("order_id"),
+            action_type="close_order",
+            upstream_ids=[rec_decision["record_id"]])
     for p in picks:
         if dry_run:
             order_results.append({"pick": p.to_dict(), "status": "dry_run"})
@@ -697,6 +726,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             "prediction": {"outcome": fx.outcome, "probability": fx.probability,
                            "confidence": fx.confidence},
             "traded": bool(order_results),
+            "halftime_closed": close_results,
             "orders": [{k: o.get(k) for k in ("order_id", "status", "exec_status")}
                        for o in order_results],
             "grounding_flags": (fx.grounding or {}).get("sanity_flags"),
@@ -736,6 +766,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
                        "engine": fx.engine},
         "wallet_available": available,
         "n_picks": len(picks),
+        "halftime_close_results": close_results,
         "orders": order_results,
         "skip_reasons": skip_reasons,
         "ledger": ledger_result,

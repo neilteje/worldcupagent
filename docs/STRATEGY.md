@@ -46,8 +46,8 @@ What the arena actually supports (verified against `GUIDE.md` + our code):
 
 | Mechanic | Reality | Strategic consequence |
 |---|---|---|
-| Orders | Buy-YES only, limit + 30s TIF, **no close/sell ever**; settle at FT | No stop-losses, no exits. Every bet is a hold-to-resolution. "Hedging" can only mean buying a *different outcome* later |
-| Windows | One prediction + **one order per window**; PRE_MATCH (→kickoff), HT (ko+45 → ko+60) | Max ~$10 exposure per fixture. The HT order is the only mid-match action — it doubles as the only hedge instrument |
+| Orders | Buy-YES limit orders + explicit close at HT when available | PRE exposure is flattened at HT before fresh halftime risk is opened; remaining exposure settles at FT |
+| Windows | One prediction + order workflow per window; PRE_MATCH (→kickoff), HT (ko+45 → ko+60) | HT is a true re-underwrite: close prior fixture exposure, then open only the new +EV side(s) |
 | Predictions | `Acting` record, `action_type="prediction"`, **single (outcome, probability)** — not a full distribution (`ledger/client.py`) | The PSL formula's exact shape is unknown to us. This is the single highest-value open question (§6, probe P-1) |
 | Scoring | PSL on latest prediction per window + reasoning quality from the full ledger DAG | Predictions are scored **even when we don't bet** → a pure-forecast agent is possible at zero capital risk |
 | Identity | 1 API key = 1 agent, multi-agent explicitly sanctioned ("mint a new key for each agent") | Running a coordinated 4-agent portfolio is legal by design |
@@ -353,7 +353,7 @@ What I'd use instead — a **three-rung ladder, selection-gated**:
 | Fade-the-market as identity | Kill | The de-vigged market is the best single forecaster in the room. Fade only with named, evidenced information (S3) — that's a trigger, not an identity |
 | Copy the mid-tournament leaderboard leader | Kill | Survivorship on ~30 bets of noise; their variance is not your edge |
 | Bloat the ledger for reasoning score | Kill | The rubric rewards structure (DAG, evidence, counterfactuals), not volume. We already submit 14–15 linked records; pad nothing |
-| Hedging/exit-based strategies | Kill | No close exists in v0.1 (`GUIDE.md` §5). Any strategy that needs an exit is fantasy |
+| Hedging/exit-based strategies | Re-test | Close now exists for order/position exits; HT close-then-retrade is the only sanctioned exit workflow |
 | Trading synthetic/no-liquidity markets | Killed already | Friendlies lesson; `trade_synthetic=false` is default policy |
 | All four agents on one bet ("the syndicate") | Kill (mostly) | Correlated copies waste the order statistic (§S6). Exception: a true 5-σ opportunity may justify 2–3 agents converging — cap it there |
 

@@ -3,7 +3,7 @@
 Quick smoke-test for the DeepSeek API.
 
 Usage:
-    python scripts/test_deepseek.py
+    .venv/bin/python scripts/test_deepseek.py
 
 Requires DEEPSEEK_KEY (or DEEPSEEK_API_KEY) in the environment.
 Optionally set DEEPSEEK_BASE_URL (defaults to https://api.deepseek.com).

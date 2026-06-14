@@ -8,6 +8,7 @@ ARENA_RELEASE_NOTES_20260610.md):
   - GET  /v1/arena/agents/me                   — wallet: available/locked USDC
   - POST /v1/arena/orders  (fixture_id field!) — buy-YES limit order, 30s TIF
   - GET  /v1/arena/orders[/{order_id}]         — order list / polling
+  - POST /v1/arena/orders/{order_id}/close     — close an open order/position
   - GET  /v1/arena/exposure                    — live token holdings
   - GET  /v1/arena/polymarket/markets/{fid}/settlement — resolved prices
   - POST /v1/arena/ledger/... handled by ledger/client.py (per-key sessions)
@@ -27,6 +28,9 @@ _BASE = f"{config.ARENA_BASE}/api/v1/arena"
 
 # Order terminal states (polling stops on these).
 TERMINAL_ORDER_STATES = {"filled", "closed", "rejected", "cancelled", "expired"}
+ORDERS_CLOSEABLE_AT_HALFTIME = {
+    "open", "pending", "accepted", "submitted", "partially_filled", "filled"
+}
 
 
 class ArenaClient:
@@ -149,6 +153,50 @@ class ArenaClient:
             if out["final_status"] in TERMINAL_ORDER_STATES:
                 break
         return out
+
+    def close_order(self, order_id: str) -> dict:
+        """
+        Ask the arena to close an order/position.
+
+        The close endpoint is intentionally separate from settlement; callers
+        use it for explicit exits such as the halftime flatten-before-retrade
+        workflow. Returns a normalized failure dict instead of raising on
+        non-2xx so the live loop can keep moving.
+        """
+        resp = httpx.post(f"{_BASE}/orders/{order_id}/close", headers=self._h, timeout=60)
+        if not resp.is_success:
+            return {
+                "status": "close_rejected_http",
+                "order_id": order_id,
+                "http_status": resp.status_code,
+                "body": resp.text[:400],
+            }
+        out = resp.json()
+        out.setdefault("order_id", order_id)
+        return out
+
+    def close_fixture_orders(self, fixture_id: int | str) -> list[dict]:
+        """
+        Close all orders for this fixture whose status may still represent
+        active exposure. Best-effort: one failed close does not block the rest.
+        """
+        results: list[dict] = []
+        for order in self.orders():
+            if str(order.get("fixture_id") or order.get("fixture_code")) != str(fixture_id):
+                continue
+            status = str(order.get("status") or "").lower()
+            if status not in ORDERS_CLOSEABLE_AT_HALFTIME:
+                continue
+            order_id = order.get("order_id") or order.get("id")
+            if not order_id:
+                continue
+            try:
+                result = self.close_order(str(order_id))
+            except Exception as exc:
+                result = {"status": "close_error", "order_id": order_id, "error": repr(exc)}
+            result.setdefault("previous_status", status)
+            results.append(result)
+        return results
 
     @staticmethod
     def execution_status_for(final_status: str | None, tx_hash: str | None,

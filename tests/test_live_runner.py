@@ -230,6 +230,64 @@ def test_winner_from_settlement_parsing():
     assert parse({"markets": [{"outcome": "ENG", "price": 0.5}]}) == (None, None)
 
 
+def test_window_open_infers_ht_from_server_timestamps(monkeypatch):
+    runner = LiveRunner.__new__(LiveRunner)
+
+    class Reader:
+        def match(self, fixture_id):
+            return {
+                "fixture_id": str(fixture_id),
+                "current_window": None,
+                "server_ts_utc": 1_000,
+                "ht_open_utc": 900,
+                "ht_lock_utc": 1_200,
+            }
+
+    runner.reader = Reader()
+    assert runner.window_open(123, "HT") is True
+
+
+def test_window_open_infers_prematch_from_server_timestamps(monkeypatch):
+    runner = LiveRunner.__new__(LiveRunner)
+
+    class Reader:
+        def match(self, fixture_id):
+            return {
+                "fixture_id": str(fixture_id),
+                "current_window": None,
+                "server_ts_utc": 1_000,
+                "pre_match_lock_utc": 1_200,
+            }
+
+    runner.reader = Reader()
+    assert runner.window_open(123, "PRE_MATCH") is True
+
+
+def test_arena_client_close_fixture_orders_filters_fixture_and_status(monkeypatch):
+    from live.arena_client import ArenaClient
+
+    client = ArenaClient(api_key="k")
+    closed: list[str] = []
+
+    def fake_orders(status=None):
+        return [
+            {"order_id": "keep-1", "fixture_id": "123", "status": "filled"},
+            {"order_id": "skip-terminal", "fixture_id": "123", "status": "closed"},
+            {"order_id": "skip-other", "fixture_id": "999", "status": "filled"},
+        ]
+
+    def fake_close(order_id):
+        closed.append(order_id)
+        return {"order_id": order_id, "status": "closed"}
+
+    monkeypatch.setattr(client, "orders", fake_orders)
+    monkeypatch.setattr(client, "close_order", fake_close)
+
+    results = client.close_fixture_orders(123)
+    assert closed == ["keep-1"]
+    assert results == [{"order_id": "keep-1", "status": "closed", "previous_status": "filled"}]
+
+
 # ── Report math ──────────────────────────────────────────────────────────────
 
 def test_report_brier_and_devig():

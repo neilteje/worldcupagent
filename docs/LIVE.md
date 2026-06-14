@@ -18,8 +18,9 @@ this codebase has been updated for all of them:
 | Wallet shape: `agents/me` → `wallet.available_balance_usdc` / `locked_balance_usdc` | `ArenaClient.wallet()` (legacy fallback kept) |
 | `GET /exposure` = **holdings**; orders moved to `GET /orders` | `ArenaClient.exposure()` / `.orders()` |
 | Win/loss + scoring now **order-based** (PnL > 0 = win) | settlement watcher + `live report` |
-| New `GET /v1/arena/matches/{id}` — window state + `server_ts_utc` | runner verifies every window server-side before firing |
-| **HT window not enabled yet** | runner polls; if HT never opens it records `skipped` and moves on — and starts trading HT automatically the day the arena enables it |
+| New `GET /v1/arena/matches/{id}` — window state + `server_ts_utc` | runner verifies every window server-side before firing; when `current_window` is null it infers PRE/HT from explicit open/lock timestamps |
+| HT activation | runner trades HT when `server_ts_utc` is inside `ht_open_utc` → `ht_lock_utc`, even if `current_window` is not populated |
+| New `POST /v1/arena/orders/{order_id}/close` | HT cycles first close existing fixture orders/positions, then size fresh halftime risk from the updated wallet |
 | Ledger: dry-run `…/records/validate`, batch `fixture_id` session binding, per-order Acting records, payload persisted before POST | `LedgerSession.submit()` + `live/cycle.py` |
 | Schema v0.3 strictness: Planning needs `goal`+`steps`, Reflecting needs `inputs`, ModelInvocation needs non-empty provider/model | `ledger/client.py` (scout/gate records are now Thinking; every session has a real Planning record) |
 | Sizing: cap at **min($5, balance − $0.05)**, $1 CLOB per-order minimum | `live/cycle.py` + `betting/policy.py` |
@@ -28,13 +29,15 @@ this codebase has been updated for all of them:
 
 ```
 trigger (kickoff−45' or kickoff+46')
-   └─ confirm window open via GET /v1/arena/matches/{id}   (server time)
+   └─ confirm window open via GET /v1/arena/matches/{id}   (server time,
+      current_window or explicit open/lock timestamps)
    └─ SHARED BRAIN — runs ONCE per window:
         Sportmonks fixture + digests · Polymarket slug/mids · Kalshi
         web research · Reddit · Grok pulse
         council (Scout → Analyst → Devil → Judge) + grounding layer
    └─ PER AGENT (×4, each under its own API key):
-        wallet → betting/policy.select_picks(profile) → gates overlay
+        HT close sweep (HT only) → wallet
+        → betting/policy.select_picks(profile) → gates overlay
         → orders POSTed + polled to terminal state
         → full ledger DAG (Planning + ToolCalling + Thinking + Acting
           prediction + Acting per order + Reflecting) → validate → batch submit

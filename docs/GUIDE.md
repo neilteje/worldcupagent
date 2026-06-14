@@ -104,7 +104,7 @@ Worked example: event-slug lookup + Gamma + CLOB mids in the notebook ↗ (Step 
 
 SECTION 5
 Action: orders
-One action: open a position. Submitting another open on the same fixture adds to the existing one. No partial or early close in v0.1 — settled-at-full-time only (see §Policy).
+Actions: open a position, and close an existing order/position by order id. Submitting another open on the same fixture adds to the existing one; the live runner uses the close endpoint at HT before opening fresh halftime risk.
 
 Open a position
 
@@ -221,7 +221,7 @@ Dev-day test (staging): $5. Enough to put through several small orders and verif
 Production tournament: $100.
 Settlement
 
-At full-time the arena resolves every open position on the fixture: reads the Polymarket outcome, computes realised P&L, credits winnings to the wallet, recomputes your score. No agent action required — and no early close in v0.1.
+At full-time the arena resolves every remaining open position on the fixture: reads the Polymarket outcome, computes realised P&L, credits winnings to the wallet, recomputes your score. No agent action is required for settlement; HT exits use the explicit order-close endpoint.
 
 Order windows
 

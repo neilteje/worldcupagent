@@ -8,8 +8,9 @@ Behaviour:
   - For every fixture, schedules a PRE_MATCH cycle (default: 45 min before
     kickoff, after lineups usually drop) and an HT cycle (kickoff + 46').
   - Before running a cycle it confirms with GET /v1/arena/matches/{id} that
-    the window is actually open (server time, not local clock). HT cycles are
-    skipped cleanly while the arena has HT disabled.
+    the window is actually open (server time, not local clock). If
+    `current_window` is missing, it infers the window from the API's explicit
+    open/lock timestamps.
   - Every completed (fixture, window) is recorded in storage/live/state.json —
     kill the process anytime; on restart it continues where it left off.
   - A settlement watcher resolves finished fixtures and logs realized results
@@ -50,6 +51,15 @@ def _parse_kickoff(s: str) -> datetime | None:
     try:
         return datetime.fromisoformat(str(s).replace("Z", "")).replace(tzinfo=timezone.utc)
     except ValueError:
+        return None
+
+
+def _millis(value) -> int | None:
+    if value is None:
+        return None
+    try:
+        return int(float(value))
+    except (TypeError, ValueError):
         return None
 
 
@@ -101,6 +111,10 @@ class LiveRunner:
         """
         True/False from the matches endpoint; None when the endpoint is
         unavailable (caller falls back to the local-clock heuristic).
+
+        The arena may return `current_window: null` even though explicit
+        pre-match/HT open and lock timestamps are present. In that case, infer
+        from `server_ts_utc` and the relevant timestamp pair.
         """
         try:
             m = self.reader.match(fixture_id)
@@ -109,11 +123,23 @@ class LiveRunner:
         if not m:
             return None
         cur = (m.get("current_window") or "").upper().replace("-", "_")
-        if not cur:
-            return False
         if window == "PRE_MATCH":
-            return cur in ("PRE_MATCH", "PREMATCH")
-        return cur in ("HT", "HALF_TIME", "HALFTIME")
+            if cur:
+                return cur in ("PRE_MATCH", "PREMATCH")
+            server_ts = _millis(m.get("server_ts_utc"))
+            lock_ts = _millis(m.get("pre_match_lock_utc") or m.get("prematch_lock_utc"))
+            if server_ts is not None and lock_ts is not None:
+                return server_ts < lock_ts
+            return False
+
+        if cur:
+            return cur in ("HT", "HALF_TIME", "HALFTIME")
+        server_ts = _millis(m.get("server_ts_utc"))
+        open_ts = _millis(m.get("ht_open_utc") or m.get("half_time_open_utc"))
+        lock_ts = _millis(m.get("ht_lock_utc") or m.get("half_time_lock_utc"))
+        if server_ts is not None and open_ts is not None and lock_ts is not None:
+            return open_ts <= server_ts < lock_ts
+        return False
 
     # ── one pass over due work ────────────────────────────────────────────
 
@@ -168,7 +194,7 @@ class LiveRunner:
             is_open = self.window_open(fid, window)
             if is_open is False:
                 if window == "HT":
-                    # HT not enabled yet (release notes 20260610) or closed.
+                    # HT not open yet or already closed per server timestamps.
                     if _utcnow() > it["expiry"] - timedelta(minutes=2):
                         self.state.mark_window(fid, window, "skipped", fixture_name=name)
                         metrics.log_event("skipped_window", fixture_id=fid,

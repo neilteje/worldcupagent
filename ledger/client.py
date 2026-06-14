@@ -312,17 +312,20 @@ class LedgerSession:
         order_payload: dict,
         execution_status: str = "pending",
         execution_id: str | None = None,
+        action_type: str = "open_order",
         upstream_ids: list[str] | None = None,
     ) -> dict:
         """Record placing a bet order."""
+        if action_type == "close_order":
+            summary = f"Close {outcome} order/position for fixture {self.fixture_id}"
+        else:
+            summary = f"Open {direction} ${size_usdc:.2f} on {outcome} @ ≤{limit_price}"
         return self._add(_new_record(
             self.session_id, "Acting",
             upstream_record_id=upstream_ids or ([self.last_id()] if self.last_id() else []),
-            action_type="open_order",
+            action_type=action_type,
             target_system="arena",
-            action_summary=(
-                f"Open {direction} ${size_usdc:.2f} on {outcome} @ ≤{limit_price}"
-            ),
+            action_summary=summary,
             parameters=order_payload,
             dry_run=False,
             execution_status=execution_status,

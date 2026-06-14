@@ -143,6 +143,25 @@ def _parse_json(text: str) -> dict:
         return {}
 
 
+def _chat_message_text_and_thinking(message) -> tuple[str, str]:
+    """
+    OpenAI-compatible providers differ on where reasoning models put their
+    final answer and private reasoning. DeepSeek exposes `reasoning_content`;
+    other providers may expose only `content`.
+    """
+    content = getattr(message, "content", "") or ""
+    if isinstance(content, list):
+        text_parts = []
+        for part in content:
+            if isinstance(part, dict):
+                text_parts.append(str(part.get("text") or part.get("content") or ""))
+            else:
+                text_parts.append(str(getattr(part, "text", "") or ""))
+        content = "\n".join(p for p in text_parts if p)
+    thinking = getattr(message, "reasoning_content", "") or ""
+    return str(content or ""), str(thinking or "")
+
+
 # ── Result dataclass ───────────────────────────────────────────────────────
 
 @dataclass
@@ -239,11 +258,11 @@ def _call_openai_compatible_result(
             {"role": "user",   "content": user_content},
         ],
     )
-    text = resp.choices[0].message.content or ""
+    text, thinking = _chat_message_text_and_thinking(resp.choices[0].message)
     return LLMResult(
         parsed=_parse_json(text),
         raw_text=text,
-        thinking="",   # OpenAI-compatible chat APIs usually do not expose reasoning.
+        thinking=thinking,
         model=model,
         provider=provider,
         tokens_in=getattr(resp.usage, "prompt_tokens", 0) if resp.usage else 0,
@@ -276,8 +295,7 @@ def call_deepseek(
                 timeout=config.DEVIL_TIMEOUT_SECONDS,
             )
             msg = resp.choices[0].message
-            text = msg.content or ""
-            thinking = getattr(msg, "reasoning_content", "") or ""
+            text, thinking = _chat_message_text_and_thinking(msg)
             usage = getattr(resp, "usage", None)
             return LLMResult(
                 parsed=_parse_json(text),
@@ -319,8 +337,7 @@ def call_grok(
             timeout=config.GROK_TIMEOUT_SECONDS,
         )
         msg = resp.choices[0].message
-        text = msg.content or ""
-        thinking = getattr(msg, "reasoning_content", "") or ""
+        text, thinking = _chat_message_text_and_thinking(msg)
         usage = getattr(resp, "usage", None)
         return LLMResult(
             parsed=_parse_json(text),
