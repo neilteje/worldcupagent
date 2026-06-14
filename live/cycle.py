@@ -20,10 +20,13 @@ import config
 from data import sportmonks, supabase_client, polymarket as pm
 from data import web_search, reddit_sentiment, kalshi
 from data import fixture_bundle
+from data.team_codes import fifa_code, normalize_probabilities
 from reasoning import llm, council, gates
 from reasoning.prompts import ht_predict_input
 from ledger.client import LedgerSession
 from betting import policy as bet_policy
+from betting import recommendation as bet_reco
+from betting.portfolio import PortfolioCoordinator, PortfolioLimits
 from harness.profiles import confidence_to_num
 from models.forecast_contracts import MatchForecast, stable_hash
 from live.arena_client import ArenaClient
@@ -404,8 +407,8 @@ def gather_prematch(fixture_id: int) -> Forecast:
     participants = fixture.get("participants") or []
     home = next((p for p in participants if p.get("meta", {}).get("location") == "home"), {})
     away = next((p for p in participants if p.get("meta", {}).get("location") == "away"), {})
-    fx.home_code = home.get("short_code") or "HOME"
-    fx.away_code = away.get("short_code") or "AWAY"
+    fx.home_code = fifa_code(home.get("short_code"), "HOME")
+    fx.away_code = fifa_code(away.get("short_code"), "AWAY")
     fx.home_name = home.get("name", fx.home_code)
     fx.away_name = away.get("name", fx.away_code)
     fx.fixture_name = fixture.get("name", f"{fx.home_name} vs {fx.away_name}")
@@ -508,8 +511,8 @@ def gather_halftime(fixture_id: int, prematch_note: dict | None = None) -> Forec
     participants = fixture.get("participants") or []
     home = next((p for p in participants if p.get("meta", {}).get("location") == "home"), {})
     away = next((p for p in participants if p.get("meta", {}).get("location") == "away"), {})
-    fx.home_code = home.get("short_code") or "HOME"
-    fx.away_code = away.get("short_code") or "AWAY"
+    fx.home_code = fifa_code(home.get("short_code"), "HOME")
+    fx.away_code = fifa_code(away.get("short_code"), "AWAY")
     fx.home_name = home.get("name", fx.home_code)
     fx.away_name = away.get("name", fx.away_code)
     fx.fixture_name = fixture.get("name", f"{fx.home_name} vs {fx.away_name}")
@@ -549,7 +552,7 @@ def gather_halftime(fixture_id: int, prematch_note: dict | None = None) -> Forec
         prematch_note, ht_snapshot, ht_score, ht_stats_sm))
     fx.ht_pred_result = result
     parsed = result.parsed or {}
-    fx.outcome = parsed.get("outcome") or fx.home_code
+    fx.outcome = fifa_code(parsed.get("outcome"), fx.home_code)
     fx.probability = float(parsed.get("probability") or 0.34)
     fx.confidence = parsed.get("confidence_level", "low")
     fx.summary = parsed.get("rationale", "")
@@ -557,7 +560,7 @@ def gather_halftime(fixture_id: int, prematch_note: dict | None = None) -> Forec
     # HT predictor emits a single (outcome, p); rebuild a 3-way distribution by
     # giving the residual mass to the other outcomes proportional to the
     # pre-match forecast (uniform if we have none).
-    pre_probs = (prematch_note or {}).get("probabilities") or {}
+    pre_probs = normalize_probabilities((prematch_note or {}).get("probabilities") or {})
     keys = [fx.home_code, "draw", fx.away_code]
     rest = [k for k in keys if k != fx.outcome]
     rest_pre = [max(float(pre_probs.get(k, 1.0)), 1e-6) for k in rest]
@@ -573,10 +576,15 @@ def gather_halftime(fixture_id: int, prematch_note: dict | None = None) -> Forec
 
 # ── Per-agent tail: policy → orders → ledger ───────────────────────────────
 
-def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> dict:
+def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
+                  coordinator: PortfolioCoordinator | None = None) -> dict:
     """
     Run one agent's decision + execution + ledger for a shared forecast.
     Returns a summary dict for state/metrics. Never raises (logs + degrades).
+
+    MONK/ANCHOR/HUNTER route their picks through the structured recommendation +
+    central portfolio allocator (``coordinator``); BLITZ keeps its existing
+    direct order path and is never gated by the allocator.
     """
     profile = agent.profile
     client = ArenaClient(agent.api_key, agent.name)
@@ -634,7 +642,69 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         scout_flags=fx.scout_flags,
         skip_reasons=skip_reasons,
     )
+    blitz_draw_removed_before = sum(
+        1 for r in skip_reasons if r == bet_policy.BLITZ_DRAW_DISABLED_REASON)
     picks = bet_policy.suppress_blitz_draw_picks(profile, picks, skip_reasons)
+    blitz_draw_candidates_removed = sum(
+        1 for r in skip_reasons if r == bet_policy.BLITZ_DRAW_DISABLED_REASON
+    ) - blitz_draw_removed_before
+
+    # ── Coordinated path (MONK/ANCHOR/HUNTER): structured recommendations →
+    # central allocator. BLITZ skips this entirely and stays on the direct path.
+    reco_stats = {"recommendations": 0, "abstentions": 0,
+                  "duplicate_recommendations": 0, "rejected": 0,
+                  "blitz_draw_candidates_removed": blitz_draw_candidates_removed}
+    recommendations_payload: list[dict] = []
+    rejected_payload: list[dict] = []
+    if profile.name in bet_reco.COORDINATED_AGENTS and picks:
+        snap = fx.independent_forecast or {}
+        evidence_ids = list(snap.get("evidence_ids") or _evidence_ids(fx))
+        coverage = float(snap.get("data_coverage_score", _coverage_score(fx)) or 0.0)
+        conf_num = float(snap.get("confidence", confidence_to_num(fx.confidence)) or 0.0)
+        thresholds = bet_reco.thresholds_for(profile.name)
+        paired: list[tuple] = []
+        recs = []
+        for p in picks:
+            rec = bet_reco.build_recommendation(
+                profile.name, p,
+                fixture_id=str(fx.fixture_id),
+                bankroll=max(available, 0.0),
+                forecast_snapshot=snap,
+                forecast_id=fx.forecast_snapshot_id or None,
+                evidence_ids=evidence_ids,
+                data_coverage_score=coverage,
+                confidence=conf_num,
+                thresholds=thresholds,
+            )
+            paired.append((rec, p))
+            recs.append(rec)
+
+        if coordinator is not None:
+            alloc = coordinator.allocate(recs)
+        else:
+            from betting.portfolio import allocate_recommendations
+            alloc = allocate_recommendations(recs)
+
+        accepted_keys = {r.correlation_key for r in alloc.accepted}
+        kept = [p for (rec, p) in paired
+                if rec.should_trade and rec.correlation_key in accepted_keys]
+        for rec in recs:
+            recommendations_payload.append(rec.to_dict())
+            if not rec.should_trade:
+                skip_reasons.append(f"{rec.outcome}: abstain {rec.abstain_reason}")
+        for rej in alloc.rejected:
+            rejected_payload.append(rej)
+            if rej.get("reason") in ("duplicate_signal", "fixture_exposure_limit",
+                                     "outcome_exposure_limit", "ultra_tail_exposure_limit"):
+                outcome = (rej.get("recommendation") or {}).get("outcome")
+                skip_reasons.append(f"{outcome}: portfolio {rej['reason']}")
+        reco_stats.update({
+            "recommendations": len(recs),
+            "abstentions": sum(1 for r in recs if not r.should_trade),
+            "duplicate_recommendations": alloc.duplicate_recommendations,
+            "rejected": len(alloc.rejected),
+        })
+        picks = kept
 
     # Risk overlay (consensus / scout multipliers) on the top pick only.
     gate_info = {}
@@ -721,7 +791,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         description="Kalshi cross-market moneyline",
         input_payload={"home": fx.home_name, "away": fx.away_name},
         output_payload=fx.kalshi_ml, via="external.kalshi",
-        success=(fx.kalshi_ml or {}).get("markets_found", 0) > 0,
+        success=(fx.kalshi_ml or {}).get("status") != "api_unavailable",
         upstream_ids=[rec_trigger["record_id"]])
     upstream_data = [rec_sm["record_id"], rec_pm["record_id"], rec_kalshi["record_id"]]
 
@@ -744,7 +814,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             description="Crowd sentiment bundle",
             input_payload={"query": f"{fx.home_name} {fx.away_name}"},
             output_payload=fx.reddit_bundle, via="external.reddit",
-            success=(fx.reddit_bundle or {}).get("threads_found", 0) > 0,
+            success=bool((fx.reddit_bundle or {}).get("top_comments")),
             upstream_ids=[rec_trigger["record_id"]])
         upstream_data += [rec_web["record_id"], rec_reddit["record_id"]]
 
@@ -846,6 +916,9 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             "wallet_available": available,
             "cycle_cap_usd": cycle_cap,
             "picks": [p.to_dict() for p in picks],
+            "recommendations": recommendations_payload,
+            "rejected_recommendations": rejected_payload,
+            "recommendation_stats": reco_stats,
             "halftime_close_results": close_results,
             "skip_reasons": skip_reasons,
             "gates": gate_info,
@@ -873,9 +946,9 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
             order_results.append({"pick": p.to_dict(), "status": "dry_run",
                                   "execution": {"partial_fill_state": "simulated"}})
             session.acting_order(
-                direction="long", outcome=p.code, size_usdc=p.stake_usd,
+                direction="long", outcome=fifa_code(p.code), size_usdc=p.stake_usd,
                 limit_price=p.limit_price,
-                order_payload={"fixture_id": str(fx.fixture_id), "team_code": p.code,
+                order_payload={"fixture_id": str(fx.fixture_id), "team_code": fifa_code(p.code),
                                "usd_size": f"{p.stake_usd:.2f}",
                                "limit_price": p.limit_price, "dry_run": True,
                                "skip_reasons": skip_reasons},
@@ -887,7 +960,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         poll = client.poll_order(resp["order_id"]) if submitted_ok else {}
         exec_status = ArenaClient.execution_status_for(
             poll.get("final_status"), poll.get("tx_hash"), submitted_ok)
-        print(f"  [{agent.name}] order {p.code} ${p.stake_usd:.2f} @ ≤{p.limit_price:.2f} "
+        print(f"  [{agent.name}] order {fifa_code(p.code)} ${p.stake_usd:.2f} @ ≤{p.limit_price:.2f} "
               f"→ {poll.get('final_status') or resp.get('status')}")
         order_results.append({"pick": p.to_dict(), "order_id": resp.get("order_id"),
                               "status": poll.get("final_status") or resp.get("status"),
@@ -960,6 +1033,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         "halftime_close_results": close_results,
         "orders": order_results,
         "skip_reasons": skip_reasons,
+        "recommendation_stats": reco_stats,
         "ledger": ledger_result,
         "session_id": session.session_id,
     }
@@ -974,6 +1048,11 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False) -> d
         market_probabilities=fx.market_probabilities,
         market_adjusted_probabilities=fx.market_adjusted_probabilities or fx.probabilities,
         market_source=fx.market_source, mids=fx.mids,
+        recommendations=len(recommendations_payload),
+        abstentions=reco_stats["abstentions"],
+        duplicate_recommendations=reco_stats["duplicate_recommendations"],
+        rejected_recommendations=reco_stats["rejected"],
+        blitz_draw_candidates_removed=reco_stats["blitz_draw_candidates_removed"],
         grounding=fx.grounding, **{k: summary[k] for k in
                                    ("prediction", "wallet_available", "orders",
                                     "skip_reasons", "ledger")})
@@ -1005,10 +1084,20 @@ def run_window_cycle(fixture_id: int, window: str, agents: list[LiveAgent],
         market_source=fx.market_source, mids=fx.mids, grounding=fx.grounding,
         scout_flags=fx.scout_flags, summary=fx.summary)
 
+    # One central allocation book per window, shared by the coordinated agents
+    # (MONK/ANCHOR/HUNTER) as they run in sequence. BLITZ ignores it.
+    coordinator = PortfolioCoordinator(limits=PortfolioLimits(
+        max_fixture_exposure=config.MAX_FIXTURE_EXPOSURE,
+        max_outcome_exposure=config.MAX_OUTCOME_EXPOSURE,
+        max_ultra_tail_exposure=config.MAX_ULTRA_TAIL_EXPOSURE,
+        max_daily_drawdown=config.MAX_DAILY_DRAWDOWN,
+    ))
+
     results: dict[str, dict] = {}
     for agent in agents:
         try:
-            results[agent.name] = act_for_agent(agent, fx, dry_run=dry_run)
+            results[agent.name] = act_for_agent(agent, fx, dry_run=dry_run,
+                                                coordinator=coordinator)
         except Exception as exc:
             print(f"  [{agent.name}] agent tail FAILED: {exc!r}")
             metrics.log_event("error", fixture_id=fixture_id, window=window,

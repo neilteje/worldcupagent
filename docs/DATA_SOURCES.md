@@ -54,7 +54,7 @@ GET /v1/web/mapping?fixture_id=N  -- returns single fixture (often empty; use no
 | `sportmonks_match_name` | `"Mexico vs South Africa"` | Display |
 | `sportmonks_kickoff_utc` | `1781204400000` | Unix ms UTC, compare to now for scheduling |
 | `home_country` / `away_country` | `"Mexico"` / `"South Africa"` | Supabase priors lookup |
-| `home_short_code` / `away_short_code` | `"MEX"` / `"ZAF"` | Order `team_code` field |
+| `home_short_code` / `away_short_code` | `"MEX"` / `"RSA"` | Order `team_code` field |
 | `polymarket_event_slug` | `"fifwc-mex-rsa-2026-06-11"` | Gamma API (deprecated), reference |
 | `polymarket_home_token_yes` | `"207790..."` | CLOB midpoint lookup |
 | `polymarket_draw_token_yes` | `"116341..."` | CLOB midpoint lookup |

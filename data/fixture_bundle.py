@@ -62,7 +62,14 @@ def build_supabase_digest(home_name: str, away_name: str, home_code: str,
         home_id = supabase_client.resolve_country_id(home_name)
         away_id = supabase_client.resolve_country_id(away_name)
         if not home_id or not away_id:
-            _warn(f"country resolver missed: {home_name}={home_id}, {away_name}={away_id}")
+            if (not home_id and supabase_client.known_missing_country(home_name)
+                    or not away_id and supabase_client.known_missing_country(away_name)):
+                _warn(
+                    f"Supabase priors coverage missing for "
+                    f"{home_name if not home_id else away_name}; continuing without priors"
+                )
+            else:
+                _warn(f"country resolver missed: {home_name}={home_id}, {away_name}={away_id}")
             return None
         priors = supabase_client.get_all_priors(home_id, away_id)
         if not priors:

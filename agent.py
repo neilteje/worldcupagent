@@ -45,6 +45,7 @@ from rich.table import Table
 import httpx
 
 import config
+from data.team_codes import fifa_code
 from data import sportmonks, supabase_client, polymarket as pm
 from data import web_search, reddit_sentiment, kalshi
 from reasoning import llm, council, gates
@@ -242,8 +243,8 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
     participants = fixture.get("participants") or []
     home = next((p for p in participants if p.get("meta", {}).get("location") == "home"), {})
     away = next((p for p in participants if p.get("meta", {}).get("location") == "away"), {})
-    home_code = home.get("short_code") or "HOME"
-    away_code = away.get("short_code") or "AWAY"
+    home_code = fifa_code(home.get("short_code"), "HOME")
+    away_code = fifa_code(away.get("short_code"), "AWAY")
     fixture_name = fixture.get("name", f"{home_code} vs {away_code}")
     # Update session name now that we know it
     session.fixture_name = fixture_name
@@ -823,8 +824,8 @@ def run_halftime(fixture_id: int, prematch_prediction: dict | None = None,
     participants = fixture.get("participants") or []
     home = next((p for p in participants if p.get("meta", {}).get("location") == "home"), {})
     away = next((p for p in participants if p.get("meta", {}).get("location") == "away"), {})
-    home_code = home.get("short_code") or "HOME"
-    away_code = away.get("short_code") or "AWAY"
+    home_code = fifa_code(home.get("short_code"), "HOME")
+    away_code = fifa_code(away.get("short_code"), "AWAY")
     fixture_name = fixture.get("name", f"{home_code} vs {away_code}")
     session.fixture_name = fixture_name
 

@@ -29,6 +29,7 @@ class AllocationResult:
     rejected: list[dict] = field(default_factory=list)
     observed_only: list[AgentRecommendation] = field(default_factory=list)
     duplicate_recommendations: int = 0
+    exposure: dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
@@ -36,6 +37,7 @@ class AllocationResult:
             "rejected": self.rejected,
             "observed_only": [r.to_dict() for r in self.observed_only],
             "duplicate_recommendations": self.duplicate_recommendations,
+            "exposure": self.exposure,
         }
 
 
@@ -44,12 +46,20 @@ def allocate_recommendations(
     *,
     current_exposure: dict[str, float] | None = None,
     limits: PortfolioLimits | None = None,
+    seen: set[str] | None = None,
 ) -> AllocationResult:
-    """Deduplicate and exposure-gate MONK/ANCHOR/HUNTER recommendations."""
+    """Deduplicate and exposure-gate MONK/ANCHOR/HUNTER recommendations.
+
+    ``current_exposure`` and ``seen`` may be threaded across successive calls
+    (one per coordinated agent within a window) so that the allocator acts as a
+    single central book: a signal already backed by an earlier agent, or
+    exposure already committed, constrains later agents.  Both are copied, so
+    callers carry forward ``result.exposure`` and reuse the same ``seen`` set.
+    """
     limits = limits or PortfolioLimits()
     exposure = dict(current_exposure or {})
     result = AllocationResult()
-    seen: set[str] = set()
+    seen = seen if seen is not None else set()
 
     for rec in recommendations:
         agent = rec.agent_name.lower()
@@ -93,5 +103,36 @@ def allocate_recommendations(
         exposure[outcome_key] = exposure.get(outcome_key, 0.0) + stake
         result.accepted.append(rec)
 
+    result.exposure = exposure
     return result
+
+
+@dataclass
+class PortfolioCoordinator:
+    """Stateful wrapper that threads one allocation book across coordinated agents.
+
+    Agents in a window run sequentially; each call to :meth:`allocate` carries
+    forward the committed exposure and the set of signals already backed, so the
+    coordinator behaves as one central allocator even though execution stays
+    per-agent.  Counters accumulate for reporting.  BLITZ is never routed here.
+    """
+    limits: PortfolioLimits = field(default_factory=PortfolioLimits)
+    exposure: dict[str, float] = field(default_factory=dict)
+    seen: set[str] = field(default_factory=set)
+    duplicate_recommendations: int = 0
+    duplicate_positions_prevented: int = 0
+    rejected: list[dict] = field(default_factory=list)
+
+    def allocate(self, recommendations: list[AgentRecommendation]) -> AllocationResult:
+        result = allocate_recommendations(
+            recommendations,
+            current_exposure=self.exposure,
+            limits=self.limits,
+            seen=self.seen,
+        )
+        self.exposure = result.exposure
+        self.duplicate_recommendations += result.duplicate_recommendations
+        self.duplicate_positions_prevented += result.duplicate_recommendations
+        self.rejected.extend(result.rejected)
+        return result
 

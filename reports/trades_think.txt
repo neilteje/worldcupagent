@@ -1,6 +1,6 @@
 ════════════════════════════════════════════════════════════════════════════════
   WORLD CUP AGENT PORTFOLIO — ORDER, PREDICTION & RESULTS REPORT
-  20 windows across 10 forecasted fixtures
+  21 windows across 11 forecasted fixtures
 ════════════════════════════════════════════════════════════════════════════════
 
   Fetching results from Sportmonks...
@@ -13,7 +13,8 @@
     19609155: SCO         Scotland won after full-time.
     19609156: AUS         Australia won after full-time.
     19609158: GER         Germany won after full-time.
-    19609138: pending     
+    19609138: draw        Game ended in draw.
+    19609157: pending     
 
 
 ────────────────────────────────────────────────────────────────────────────────
@@ -508,14 +509,14 @@
 ────────────────────────────────────────────────────────────────────────────────
   FIXTURE 19609138: Netherlands vs Japan  [DONE]
   Kickoff: 2026-06-14 20:00:00
-  RESULT: Not settled yet  (not settled)
+  RESULT: Draw  (Game ended in draw.)
 ────────────────────────────────────────────────────────────────────────────────
 
   SHARED FORECAST (council_with_deterministic_v2):
     NED      (home): our=0.444  market=0.465
-    draw     (draw): our=0.284  market=0.285
+    draw     (draw): our=0.284  market=0.285 ← CORRECT
     JPN      (away): our=0.272  market=0.265
-    Top pick: NED @ 0.444
+    Top pick: NED @ 0.444 ✗
 
   COUNCIL REASONING TRACE (shared brain, monk ledger):
     [deterministic]
@@ -557,13 +558,69 @@
 
   Fixture totals: 0 orders, $0.00 staked, net P&L $+0.00
 
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609157: Côte d'Ivoire vs Ecuador  [DONE]
+  Kickoff: 2026-06-14 23:00:00
+  RESULT: Not settled yet  (not settled)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    CIV      (home): our=0.296  market=0.275
+    draw     (draw): our=0.330  market=0.335
+    ECU      (away): our=0.373  market=0.385
+    Top pick: ECU @ 0.373
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.29782976302734776, 'draw': 0.3185904730350012, 'away': 0.38357976393765103}
+      confidence: 0.3836
+    [claude-haiku-4-5-20251001]
+      summary: Significant divergence between SportMonks ML (favoring CIV at home, 42%) and market consensus + deterministic model (bot
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'CIV': 0.3, 'draw': 0.33, 'ECU': 0.37}
+      confidence: low
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'CIV': 0.2964, 'draw': 0.3303, 'ECU': 0.3734}
+      confidence: low
+      summary: The devil correctly identified that the deterministic model's 80% market weight creates a self-reinforcing loop rather t
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: ECU @ 0.373
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $95.88  |  Confidence: low  |  Predicted: ECU @ 0.373
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $89.73  |  Confidence: low  |  Predicted: ECU @ 0.373
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $77.66  |  Confidence: low  |  Predicted: ECU @ 0.373
+  │  ORDERS (1):
+  │    [PEND] [HOME] CIV: $1.49 @ entry≤0.2750 (limit 0.3000)
+  │         our_p=0.296  fair_p=0.2764  edge_vs_fair=+0.0200  ev/$=0.0778
+  │         P&L: pending  |  status=completed  tx=0xec1ed4f7d8c57a67…
+  │  Net this fixture: pending on $1.49 staked
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 1 orders, $1.49 staked, net P&L $+0.00
+
 ════════════════════════════════════════════════════════════════════════════════
   PORTFOLIO SUMMARY
 ════════════════════════════════════════════════════════════════════════════════
 
   Games errored  : 1 (Mexico vs South Africa — LedgerSession API bug, first run)
-  Games processed: 9
-  Results settled: 9 / 10
+  Games processed: 10
+  Results settled: 10 / 11
 
   MONK     | 0 orders | $0.00 staked | 0W/0L/0P | $+0.00 (+0 pending) | ROI — | avg edge=+0.0000 | wallet now $100.00
   ANCHOR   | 2 orders | $4.01 staked | 1W/1L/0P | $+7.42 | ROI +185.0% | avg edge=+0.0804 | wallet now $95.88
@@ -573,7 +630,7 @@
            [WIN ] Australia vs Türkiye                       AUS   $5.00  edge=+0.1041  $+23.57
            [LOSS] Germany vs Curacao                         CUW   $2.51  edge=+0.0346  $-2.51
            [LOSS] Germany vs Curacao                         draw  $2.49  edge=+0.0566  $-2.49
-  BLITZ    | 8 orders | $20.76 staked | 3W/5L/0P | $+28.81 | ROI +138.8% | avg edge=+0.0427 | wallet now $77.66
+  BLITZ    | 9 orders | $22.25 staked | 3W/5L/1P | $+28.81 | ROI +129.5% | avg edge=+0.0402 | wallet now $77.66
            [WIN ] Canada vs Bosnia and Herzegovina           draw  $2.30  edge=+0.0273  $+6.06
            [LOSS] Qatar vs Switzerland                       QAT   $1.79  edge=+0.0272  $-1.79
            [WIN ] Qatar vs Switzerland                       draw  $1.58  edge=+0.0229  $+11.06
@@ -582,8 +639,9 @@
            [WIN ] Australia vs Türkiye                       AUS   $5.00  edge=+0.1041  $+23.57
            [LOSS] Germany vs Curacao                         CUW   $1.90  edge=+0.0346  $-1.90
            [LOSS] Germany vs Curacao                         draw  $3.10  edge=+0.0566  $-3.10
+           [PEND] Côte d'Ivoire vs Ecuador                   CIV   $1.49  edge=+0.0200  pending
 
-  TOTAL    | 13 orders | $34.77 staked | 5W/8L/0P | net P&L $+54.80 | ROI +157.6%
+  TOTAL    | 14 orders | $36.26 staked | 5W/8L/1P | net P&L $+54.80 | ROI +151.1%
 
 ════════════════════════════════════════════════════════════════════════════════
   UPSET & SURPRISE ANALYSIS
@@ -600,13 +658,14 @@
   Haiti vs Scotland                   SCO  (0.60) SCO          SCO       ✓ 
   Australia vs Türkiye                TUR  (0.43) TUR          AUS       ✗ close
   Germany vs Curacao                  GER  (0.85) GER          GER       ✓ 
-  Netherlands vs Japan                —            —            not settled     —
+  Netherlands vs Japan                NED  (0.44) NED          draw      ✗ close
+  Côte d'Ivoire vs Ecuador            —            —            not settled     —
 
 ════════════════════════════════════════════════════════════════════════════════
   ORDER OUTCOME ANALYSIS — Why orders won/lost
 ════════════════════════════════════════════════════════════════════════════════
 
-  13 of 13 orders settled
+  13 of 14 orders settled
 
   Australia vs Türkiye  →  actual: AUS
     [WIN ] anchor   AUS   $2.00  $+9.43    correctly spotted AUS underpriced (mkt 0.175 vs our 0.280)
@@ -632,6 +691,9 @@
 
   Haiti vs Scotland  →  actual: SCO
     [LOSS] blitz    draw  $1.92  $-1.92    draw lost; edge was real (+0.025 vs fair) but outcome didn't land
+
+  Côte d'Ivoire vs Ecuador  →  actual: None
+    [PEND] blitz    CIV   $1.49  pending   pending settlement
 
 ════════════════════════════════════════════════════════════════════════════════
   BEHAVIORAL NOTES
@@ -737,22 +799,30 @@
   hunter    GER     0.847  0.9435  $5.00      [WIN ] $+0.30    CUW+draw $5.00                  $-5.00      $+5.30
   blitz     GER     0.847  0.9435  $5.00      [WIN ] $+0.30    CUW+draw $5.00                  $-5.00      $+5.30
 
-  Netherlands vs Japan  →  actual: pending
+  Netherlands vs Japan  →  actual: draw
   Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
   ────────────────────────────────────────────────────────────────────────────────────────────────────
-  monk      NED     0.444  0.4650  $2.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
-  anchor    NED     0.444  0.4650  $4.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
-  hunter    NED     0.444  0.4650  $5.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
-  blitz     NED     0.444  0.4650  $5.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
+  monk      NED     0.444  0.4650  $2.00      [LOSS] $-2.00    — no order placed               $0.00 (no order)  $-2.00
+  anchor    NED     0.444  0.4650  $4.00      [LOSS] $-4.00    — no order placed               $0.00 (no order)  $-4.00
+  hunter    NED     0.444  0.4650  $5.00      [LOSS] $-5.00    — no order placed               $0.00 (no order)  $-5.00
+  blitz     NED     0.444  0.4650  $5.00      [LOSS] $-5.00    — no order placed               $0.00 (no order)  $-5.00
+
+  Côte d'Ivoire vs Ecuador  →  actual: pending
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      ECU     0.373  0.3850  $2.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
+  anchor    ECU     0.373  0.3850  $4.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
+  hunter    ECU     0.373  0.3850  $5.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
+  blitz     ECU     0.373  0.3850  $5.00      [PEND] pending   CIV $1.49                       $+0.00      pending
 
 ────────────────────────────────────────────────────────────────────────────────
             COUNTERFACTUAL TOTALS (bet top pick at market price each game)
   Agent     CF stake    CF P&L      CF ROI    CF W/L    ||  Actual stake  Actual P&L  Actual ROI
   ──────────────────────────────────────────────────────────────────────────────────────────
-  monk      $   16.00  $   -1.05  -6.6%     4W/4L     ||  $      0.00  $   +0.00  —       
-  anchor    $   32.00  $   -2.09  -6.5%     4W/4L     ||  $      4.01  $   +7.42  +185.0% 
-  hunter    $   40.00  $   -2.62  -6.6%     4W/4L     ||  $     10.00  $  +18.57  +185.7% 
-  blitz     $   40.00  $   -2.62  -6.6%     4W/4L     ||  $     20.76  $  +28.81  +138.8% 
+  monk      $   18.00  $   -3.05  -16.9%    4W/5L     ||  $      0.00  $   +0.00  —       
+  anchor    $   36.00  $   -6.09  -16.9%    4W/5L     ||  $      4.01  $   +7.42  +185.0% 
+  hunter    $   45.00  $   -7.62  -16.9%    4W/5L     ||  $     10.00  $  +18.57  +185.7% 
+  blitz     $   45.00  $   -7.62  -16.9%    4W/5L     ||  $     22.25  $  +28.81  +129.5% 
 
   NOTE: Counterfactual uses profile max bet at Polymarket mid price.
   Actual orders used Kelly sizing vs de-vigged fair price.

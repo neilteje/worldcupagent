@@ -16,11 +16,17 @@ which case we return None mids and the agent proceeds on Polymarket alone.
 from __future__ import annotations
 import httpx
 import config
+from data.team_codes import fifa_code
 
 _BASE = "https://api.elections.kalshi.com/trade-api/v2"
 _TIMEOUT = config.RESEARCH_TIMEOUT_SECONDS
 _MAX_PAGES = 4
 _PAGE_SIZE = 1000
+_TEAM_ALIASES = {
+    "côte d'ivoire": ["côte d'ivoire", "cote d'ivoire", "ivory coast"],
+    "cote d'ivoire": ["côte d'ivoire", "cote d'ivoire", "ivory coast"],
+    "ivory coast": ["côte d'ivoire", "cote d'ivoire", "ivory coast"],
+}
 
 
 def _headers() -> dict:
@@ -30,8 +36,8 @@ def _headers() -> dict:
     return h
 
 
-def _scan_open_markets() -> list[dict]:
-    """Bounded scan of open markets across a few cursor pages. Fails soft to []."""
+def _scan_open_markets_result() -> tuple[list[dict], str]:
+    """Bounded scan of open markets. Returns (markets, status)."""
     markets: list[dict] = []
     cursor = None
     try:
@@ -42,15 +48,20 @@ def _scan_open_markets() -> list[dict]:
             resp = httpx.get(f"{_BASE}/markets", headers=_headers(),
                              params=params, timeout=_TIMEOUT)
             if not resp.is_success:
-                break
+                return markets, "api_unavailable"
             body = resp.json()
             markets.extend(body.get("markets") or [])
             cursor = body.get("cursor")
             if not cursor:
                 break
     except Exception:
-        return markets
-    return markets
+        return markets, "api_unavailable"
+    return markets, "ok"
+
+
+def _scan_open_markets() -> list[dict]:
+    """Bounded scan of open markets across a few cursor pages. Fails soft to []."""
+    return _scan_open_markets_result()[0]
 
 
 def _yes_mid(market: dict) -> float | None:
@@ -71,6 +82,15 @@ def _text(market: dict) -> str:
     ).lower()
 
 
+def _terms(name: str) -> list[str]:
+    raw = str(name or "").strip().lower()
+    terms = _TEAM_ALIASES.get(raw, [raw])
+    code = fifa_code(name)
+    if code and len(code) == 3:
+        terms.append(code.lower())
+    return [t for t in dict.fromkeys(terms) if t]
+
+
 def search_fixture_markets(home: str, away: str, strict: bool = True) -> list[dict]:
     """
     Open Kalshi markets for this exact fixture.
@@ -81,11 +101,12 @@ def search_fixture_markets(home: str, away: str, strict: bool = True) -> list[di
     sides (and a single-game soccer market is a small 2-3 outcome set, not a
     20-team futures parlay).
     """
-    h, a = home.lower(), away.lower()
+    home_terms, away_terms = _terms(home), _terms(away)
     out = []
     for m in _scan_open_markets():
         t = _text(m)
-        has_h, has_a = h in t, a in t
+        has_h = any(term in t for term in home_terms)
+        has_a = any(term in t for term in away_terms)
         if (has_h and has_a) if strict else (has_h or has_a):
             # Reject obvious multi-game/futures parlays (lots of "yes <team>" legs).
             if t.count("yes ") >= 4:
@@ -109,9 +130,29 @@ def get_moneyline(home: str, away: str) -> dict:
     Returns all-None when Kalshi has no clean market for the pairing (common for
     fixtures far in the future) — the agent then proceeds on Polymarket alone.
     """
-    candidates = search_fixture_markets(home, away, strict=True)
-    h, a = home.lower(), away.lower()
-    result = {"home": None, "draw": None, "away": None, "markets_found": len(candidates)}
+    markets, scan_status = _scan_open_markets_result()
+    home_terms, away_terms = _terms(home), _terms(away)
+    candidates = []
+    for m in markets:
+        t = _text(m)
+        has_h = any(term in t for term in home_terms)
+        has_a = any(term in t for term in away_terms)
+        if has_h and has_a and t.count("yes ") < 4:
+            candidates.append({
+                "ticker": m.get("ticker"),
+                "title": m.get("title"),
+                "subtitle": m.get("subtitle") or m.get("yes_sub_title"),
+                "yes_mid": _yes_mid(m),
+                "text": t,
+            })
+    result = {
+        "home": None, "draw": None, "away": None,
+        "markets_found": len(candidates),
+        "markets_scanned": len(markets),
+        "status": scan_status if scan_status != "ok" else (
+            "ok" if candidates else "no_clean_market"
+        ),
+    }
 
     for c in candidates:
         text = c["text"]
@@ -122,9 +163,9 @@ def get_moneyline(home: str, away: str) -> dict:
         # The YES side resolves for whichever outcome the subtitle names.
         if "draw" in sub or "tie" in sub:
             result["draw"] = result["draw"] or mid
-        elif h in sub:
+        elif any(term in sub for term in home_terms):
             result["home"] = result["home"] or mid
-        elif a in sub:
+        elif any(term in sub for term in away_terms):
             result["away"] = result["away"] or mid
     return result
 

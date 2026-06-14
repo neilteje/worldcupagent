@@ -28,6 +28,8 @@ Available tables (from catalog):
 """
 from __future__ import annotations
 import httpx
+import re
+import unicodedata
 from typing import Any
 import config
 
@@ -73,10 +75,30 @@ _NAME_ALIASES = {
     "united states of america": "united states",
     "south korea": "korea republic",
     "north korea": "korea dpr",
-    "ivory coast": "côte d'ivoire",
+    "cote d ivoire": "ivory coast",
+    "cote d'ivoire": "ivory coast",
+    "côte d'ivoire": "ivory coast",
     "iran": "iran",
+    "ir iran": "iran",
     "czechia": "czech republic",
 }
+
+# Countries expected in WC fixtures but absent from the current StatsBomb prior
+# snapshot. Treat these as coverage gaps, not resolver surprises.
+_KNOWN_MISSING_COUNTRIES = {
+    "cote d ivoire",
+    "cote d'ivoire",
+    "côte d'ivoire",
+    "ivory coast",
+}
+
+
+def _norm_name(name: str) -> str:
+    text = unicodedata.normalize("NFKD", str(name or ""))
+    text = "".join(ch for ch in text if not unicodedata.combining(ch))
+    text = text.lower().replace("&", " and ")
+    text = re.sub(r"[^a-z0-9']+", " ", text)
+    return " ".join(text.split())
 
 
 def _build_country_id_map() -> dict[str, int]:
@@ -85,10 +107,21 @@ def _build_country_id_map() -> dict[str, int]:
     m: dict[str, int] = {}
     for r in rows:
         if r.get("country_name_a") and r.get("country_id_a") is not None:
-            m[r["country_name_a"].strip().lower()] = int(r["country_id_a"])
+            name = r["country_name_a"].strip().lower()
+            m[name] = int(r["country_id_a"])
+            m[_norm_name(name)] = int(r["country_id_a"])
         if r.get("country_name_b") and r.get("country_id_b") is not None:
-            m[r["country_name_b"].strip().lower()] = int(r["country_id_b"])
+            name = r["country_name_b"].strip().lower()
+            m[name] = int(r["country_id_b"])
+            m[_norm_name(name)] = int(r["country_id_b"])
     return m
+
+
+def known_missing_country(team_name: str) -> bool:
+    """True when the current Supabase prior snapshot is known not to cover it."""
+    name = _norm_name(team_name)
+    alias = _NAME_ALIASES.get(name, name)
+    return name in _KNOWN_MISSING_COUNTRIES or alias in _KNOWN_MISSING_COUNTRIES
 
 
 def resolve_country_id(team_name: str) -> int | None:
@@ -105,7 +138,7 @@ def resolve_country_id(team_name: str) -> int | None:
         except Exception:
             _COUNTRY_ID_MAP = {}
 
-    name = team_name.strip().lower()
+    name = _norm_name(team_name)
     if name in _COUNTRY_ID_MAP:
         return _COUNTRY_ID_MAP[name]
     if name in _NAME_ALIASES and _NAME_ALIASES[name] in _COUNTRY_ID_MAP:

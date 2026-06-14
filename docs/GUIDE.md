@@ -114,7 +114,7 @@ Self-contained — outcome and size are explicit.
 
 {
   "fixture_code":           "WC2026-GS-M1",
-  "team_code":              "ZAF",         // buy YES of this outcome: home/away team code, or "draw"
+  "team_code":              "RSA",         // buy YES of this outcome: home/away FIFA code, or "draw"
   "usd_size":               "4.00",
   "limit_price":            0.13,         // max price/share (ceiling), 0..1
   "time_in_force_seconds":  30,

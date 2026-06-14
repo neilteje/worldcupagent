@@ -83,9 +83,9 @@ and reworks how the notebook talks to LLMs and how it sizes/places trades.
   prediction + odds lists, the notebook pre-filters to the **`type_id=237` 1X2
   winner** prediction row and **one bookmaker's complete Home/Draw/Away
   quote** (`bookmaker_example`, explicitly flagged as not a consensus).
-- **Step 3 — team codes.** `team_code` uses **Sportmonks** short codes (e.g.
-  `ZAF`, not Polymarket's `RSA`) so the same code flows through to the arena
-  `/orders` endpoint, which validates against Sportmonks codes.
+- **Step 3 — team codes.** `team_code` now uses the arena's FIFA three-letter
+  convention (e.g. `RSA`, not the old ISO-style `ZAF`) so the same code flows
+  through to the arena `/orders` endpoint.
 - **Step 6a — wallet.** Fetches `/v1/arena/agents/me` and feeds
   `available_balance_usdc` into the strategy, which caps total size at
   **`min($5, balance − 0.05)`**.

@@ -11,6 +11,7 @@ from __future__ import annotations
 import httpx
 from typing import Any
 import config
+from data.team_codes import fifa_code
 
 _BASE = f"{config.ARENA_API}/v1/data/proxy/sportmonks/v3/football"
 _HEADERS = {"x-api-key": config.ARENA_KEY}
@@ -214,8 +215,8 @@ def discover_fixtures_safe(limit: int = 5) -> list[dict]:
                 "fixture_code": str(fixture_id),
                 "name": m.get("sportmonks_match_name", f"{m.get('home_country')} vs {m.get('away_country')}"),
                 "starting_at": kickoff_iso,
-                "home_team_code": m.get("home_short_code", "HOME"),
-                "away_team_code": m.get("away_short_code", "AWAY"),
+                "home_team_code": fifa_code(m.get("home_short_code"), "HOME"),
+                "away_team_code": fifa_code(m.get("away_short_code"), "AWAY"),
                 "home_country": m.get("home_country"),
                 "away_country": m.get("away_country"),
                 "polymarket_event_slug": m.get("polymarket_event_slug"),

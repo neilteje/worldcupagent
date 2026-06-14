@@ -135,6 +135,15 @@ HUNTER_MIN_INDEPENDENT_SIGNALS: int = _env_int("HUNTER_MIN_INDEPENDENT_SIGNALS",
 HUNTER_KELLY_FRACTION: float = _env_float("HUNTER_KELLY_FRACTION", 0.10)
 HUNTER_MAX_BANKROLL_FRACTION: float = _env_float("HUNTER_MAX_BANKROLL_FRACTION", 0.015)
 HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE: int = _env_int("HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE", 1)
+# Sub-HUNTER_MIN_ENTRY_PRICE ("ultra tail") buys require a dedicated validation
+# pass that is not built yet, so they are rejected unless explicitly enabled.
+HUNTER_ULTRA_TAIL_VALIDATION_ENABLED: bool = (
+    os.environ.get("HUNTER_ULTRA_TAIL_VALIDATION_ENABLED", "").strip().lower()
+    in ("1", "true", "yes", "on")
+)
+
+# Minimum independent-forecast data coverage a coordinated recommendation needs.
+MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.25)
 
 MAX_FIXTURE_EXPOSURE: float = _env_float("MAX_FIXTURE_EXPOSURE", 0.04)
 MAX_OUTCOME_EXPOSURE: float = _env_float("MAX_OUTCOME_EXPOSURE", 0.03)

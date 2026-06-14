@@ -25,6 +25,14 @@ _HEADERS = {
 }
 _SEARCH_URL = "https://www.reddit.com/r/soccer/search.json"
 _TIMEOUT = config.RESEARCH_TIMEOUT_SECONDS
+_TEAM_ALIASES = {
+    "côte d'ivoire": "Ivory Coast",
+    "cote d'ivoire": "Ivory Coast",
+}
+
+
+def _alias(name: str) -> str:
+    return _TEAM_ALIASES.get(str(name).strip().lower(), name)
 
 
 def search_reddit_threads(home: str, away: str, limit: int = 3) -> list[dict]:
@@ -34,7 +42,7 @@ def search_reddit_threads(home: str, away: str, limit: int = 3) -> list[dict]:
             _SEARCH_URL,
             headers=_HEADERS,
             params={
-                "q": f"{home} {away}",
+                "q": f"{_alias(home)} {_alias(away)}",
                 "restrict_sr": 1,
                 "sort": "relevance",
                 "t": "month",
@@ -105,8 +113,23 @@ def _search_fallback(home: str, away: str, limit: int = 8) -> list[str]:
         from data import web_search
     except Exception:
         return []
-    query = f"site:reddit.com/r/soccer {home} vs {away} match thread"
-    results = web_search._search(query, num=limit)
+    home_q, away_q = _alias(home), _alias(away)
+    queries = [
+        f"site:reddit.com/r/soccer {home_q} vs {away_q} match thread",
+        f"site:reddit.com/r/soccer {home_q} {away_q} World Cup",
+    ]
+    results = []
+    seen = set()
+    for query in queries:
+        for r in web_search._search(query, num=limit):
+            key = r.get("url") or r.get("snippet")
+            if key and key not in seen:
+                seen.add(key)
+                results.append(r)
+            if len(results) >= limit:
+                break
+        if len(results) >= limit:
+            break
     return [f"{r.get('title','')} — {r.get('snippet','')}".strip(" —")
             for r in results if r.get("snippet")]
 
@@ -118,7 +141,8 @@ def get_sentiment_bundle(home: str, away: str, max_comments: int = 25) -> dict:
     Returns:
       {
         "source": "reddit_api" | "web_search" | "none",
-        "threads_found": int,
+        "threads_found": int,        # direct Reddit threads only
+        "comments_found": int,       # direct comments or fallback snippets
         "threads": [{title, score, num_comments}, ...],
         "top_comments": [str, ...],     # raw, for the LLM to interpret
         "home_mentions": int,
@@ -144,6 +168,7 @@ def get_sentiment_bundle(home: str, away: str, max_comments: int = 25) -> dict:
     return {
         "source": source,
         "threads_found": len(threads),
+        "comments_found": len(comments),
         "threads": [{k: t[k] for k in ("title", "score", "num_comments")} for t in threads],
         "top_comments": comments,
         "home_mentions": blob.count(home.lower()),

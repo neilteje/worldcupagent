@@ -21,6 +21,7 @@ import re
 import httpx
 from typing import Any
 import config
+from data.team_codes import fifa_code
 
 _ARENA         = config.ARENA_BASE
 _ARENA_API     = config.ARENA_API
@@ -148,7 +149,7 @@ def get_moneyline(fixture_id: int) -> dict | None:
         token_yes = token_ids[0] if token_ids else None
         outcomes[key] = {
             "team_code":       "draw" if key == "draw" else (
-                                    pm_home.upper() if key == "home" else pm_away.upper()),
+                                    fifa_code(pm_home) if key == "home" else fifa_code(pm_away)),
             "condition_id":    mkt.get("conditionId"),
             "token_yes":       token_yes,
             "current_mid_yes": _clob_mid(token_yes),
@@ -201,7 +202,7 @@ def get_moneyline_by_slug(slug: str) -> dict | None:
         token_yes = token_ids[0] if token_ids else None
         outcomes[key] = {
             "team_code":       "draw" if key == "draw" else (
-                                    pm_home.upper() if key == "home" else pm_away.upper()),
+                                    fifa_code(pm_home) if key == "home" else fifa_code(pm_away)),
             "condition_id":    mkt.get("conditionId"),
             "token_yes":       token_yes,
             "current_mid_yes": _clob_mid(token_yes),

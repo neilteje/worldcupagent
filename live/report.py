@@ -130,12 +130,19 @@ def build_report() -> str:
     agents: dict[str, dict] = defaultdict(lambda: {
         "windows": 0, "predictions": 0, "orders": 0, "confirmed": 0,
         "stake": 0.0, "pnl": 0.0, "wins": 0, "losses": 0, "open": 0,
-        "skips": defaultdict(int), "wallet_last": None})
+        "skips": defaultdict(int), "wallet_last": None,
+        "recommendations": 0, "abstentions": 0, "duplicate_recommendations": 0,
+        "rejected_recommendations": 0, "blitz_draw_candidates_removed": 0})
     for e in agent_windows:
         a = agents[e["agent"]]
         a["windows"] += 1
         if (e.get("prediction") or {}).get("outcome"):
             a["predictions"] += 1
+        a["recommendations"] += int(e.get("recommendations") or 0)
+        a["abstentions"] += int(e.get("abstentions") or 0)
+        a["duplicate_recommendations"] += int(e.get("duplicate_recommendations") or 0)
+        a["rejected_recommendations"] += int(e.get("rejected_recommendations") or 0)
+        a["blitz_draw_candidates_removed"] += int(e.get("blitz_draw_candidates_removed") or 0)
         for r in (e.get("skip_reasons") or [])[:1]:
             a["skips"][r.split(":")[0][:48]] += 1
         s = settlements.get(str(e["fixture_id"]))
@@ -209,6 +216,26 @@ def build_report() -> str:
         for d in divergences[:20]:
             L.append(f"- {d['fixture']} {d['window']}: ours={d['ours']} "
                      f"market={d['market']} → winner={d['winner']}")
+        L.append("")
+
+    # ── coordination: structured recommendations + portfolio dedup ────────
+    coord = {n: a for n, a in agents.items()
+             if any(a[k] for k in ("recommendations", "abstentions",
+                                    "duplicate_recommendations",
+                                    "rejected_recommendations",
+                                    "blitz_draw_candidates_removed"))}
+    if coord:
+        L.append("## Coordination — recommendations & portfolio dedup\n")
+        L.append("| agent | recommendations | abstentions | duplicate recs | "
+                 "duplicate positions prevented | other rejections | "
+                 "BLITZ draw candidates removed |")
+        L.append("|---|---|---|---|---|---|---|")
+        for name, a in sorted(coord.items()):
+            dups = a["duplicate_recommendations"]
+            other = max(0, a["rejected_recommendations"] - dups - a["abstentions"])
+            L.append(f"| {name} | {a['recommendations']} | {a['abstentions']} | "
+                     f"{dups} | {dups} | {other} | "
+                     f"{a['blitz_draw_candidates_removed']} |")
         L.append("")
 
     L.append("## Top skip reasons per agent\n")

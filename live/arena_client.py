@@ -23,6 +23,7 @@ from typing import Any
 import httpx
 
 import config
+from data.team_codes import fifa_code
 
 _BASE = f"{config.ARENA_BASE}/api/v1/arena"
 
@@ -165,7 +166,7 @@ class ArenaClient:
         """
         payload = {
             "fixture_id":            str(fixture_id),
-            "team_code":             team_code,
+            "team_code":             fifa_code(team_code),
             "usd_size":              f"{round(float(usd_size), 2):.2f}",
             "limit_price":           round(float(limit_price), 4),
             "time_in_force_seconds": tif_seconds or config.DEFAULT_TIF_SECONDS,

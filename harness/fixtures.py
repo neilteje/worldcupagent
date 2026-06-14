@@ -70,7 +70,7 @@ DEFAULT_FIXTURES: list[Fixture] = [
     Fixture("FRD-PAK-AFG", "Pakistan",  "Afghanistan", "PAK", "AFG", "11:00"),
     Fixture("FRD-POR-NGA", "Portugal",  "Nigeria",     "POR", "NGA", "14:45"),
     Fixture("FRD-ENG-CRC", "England",   "Costa Rica",  "ENG", "CRC", "15:00"),
-    Fixture("FRD-BOL-DZA", "Bolivia",   "Algeria",     "BOL", "DZA", "19:00"),
+    Fixture("FRD-BOL-ALG", "Bolivia",   "Algeria",     "BOL", "ALG", "19:00"),
 ]
 
 
