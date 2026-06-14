@@ -1,0 +1,627 @@
+════════════════════════════════════════════════════════════════════════════════
+  WORLD CUP AGENT PORTFOLIO — ORDER & PREDICTION REPORT
+  Generated from 19 windows across 10 forecasted fixtures
+════════════════════════════════════════════════════════════════════════════════
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609127: Mexico vs South Africa  [DONE]
+  Kickoff: 2026-06-11 19:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    MEX      (home): our=0.640  market=0.695
+    draw           : our=0.226  market=0.205
+    RSA      (away): our=0.134  market=0.105
+    Top pick: MEX @ 0.640
+
+  PER-AGENT DECISIONS:
+
+  [MONK] ERROR: TypeError("LedgerSession.thinking() missing 2 required positional arguments: 'provider' and 'model_name'")
+
+  [ANCHOR] ERROR: TypeError("LedgerSession.thinking() missing 2 required positional arguments: 'provider' and 'model_name'")
+
+  [HUNTER] ERROR: TypeError("LedgerSession.thinking() missing 2 required positional arguments: 'provider' and 'model_name'")
+
+  [BLITZ] ERROR: TypeError("LedgerSession.thinking() missing 2 required positional arguments: 'provider' and 'model_name'")
+
+  Total orders fired this fixture: 0
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609153: Korea Republic vs Czech Republic  [DONE]
+  Kickoff: 2026-06-12 02:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    KOR      (home): our=0.365  market=0.375
+    draw           : our=0.312  market=0.315
+    CZE      (away): our=0.322  market=0.315
+    Top pick: KOR @ 0.365
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.37660173003019815, 'draw': 0.30233477929261066, 'away': 0.3210634906771913}
+      confidence: 0.3766
+    [claude-haiku-4-5-20251001]
+      summary: KOR vs CZE is a tightly matched Group A opener (all models within 37–42% for KOR). Multiple confirmed KOR injuries (Kim,
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'KOR': 0.365, 'draw': 0.315, 'CZE': 0.32}
+      confidence: low
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'KOR': 0.3652, 'draw': 0.3125, 'CZE': 0.3222}
+      confidence: low
+      summary: Analyst favored KOR at 36.5% with altitude offsetting defensive injuries; devil argued injuries (Kim, Cho, Bae) plus Son
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $0.00  |  Confidence: low  |  Best: KOR @ 0.365
+  │  Predicted: KOR (low confidence)
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $100.00  |  Confidence: low  |  Best: KOR @ 0.365
+  │  Predicted: KOR (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $100.00  |  Confidence: low  |  Best: KOR @ 0.365
+  │  Predicted: KOR (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $98.96  |  Confidence: low  |  Best: KOR @ 0.365
+  │  Predicted: KOR (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 0
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609154: Canada vs Bosnia and Herzegovina  [DONE]
+  Kickoff: 2026-06-12 19:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    CAN      (home): our=0.498  market=0.535
+    draw           : our=0.301  market=0.275
+    BIH      (away): our=0.202  market=0.195
+    Top pick: CAN @ 0.498
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.5078437901585248, 'draw': 0.2708241661228523, 'away': 0.22133204371862297}
+      confidence: 0.5078
+    [claude-haiku-4-5-20251001]
+      summary: Web research is substantial (53 sources with detailed injury/preview coverage). Two critical injury absences for Canada 
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'CAN': 0.5, 'draw': 0.29, 'BIH': 0.21}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'CAN': 0.4976, 'draw': 0.3009, 'BIH': 0.2015}
+      confidence: medium
+      summary: Analyst's bookmaker-anchored view (50/29/21) converges closely with deterministic engine (51/27/22) and Polymarket (54/2
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: CAN @ 0.498
+  │  Predicted: CAN (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: CAN @ 0.498
+  │  Predicted: CAN (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: CAN @ 0.498
+  │  Predicted: CAN (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $98.96  |  Confidence: medium  |  Best: CAN @ 0.498
+  │  Predicted: CAN (medium confidence)
+  │  ORDERS PLACED (1):
+  │    [DRAW] draw: $2.30 @ entry≤0.2750 (limit 0.3000)
+  │         our_p=0.301  fair_p=0.2736  edge_vs_fair=+0.0273  ev/$ = 0.0942
+  │         Kelly suggested $2.30  |  order_id=24bef9aa…  status=completed  tx=0xb2f8a41071d38d45…
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 1
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609133: United States vs Paraguay  [DONE]
+  Kickoff: 2026-06-13 01:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    USA      (home): our=0.462  market=0.465
+    draw           : our=0.297  market=0.295
+    PAR      (away): our=0.240  market=0.235
+    Top pick: USA @ 0.462
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.45470242308569275, 'draw': 0.2884312332031189, 'away': 0.25686634371118844}
+      confidence: 0.4547
+    [claude-haiku-4-5-20251001]
+      summary: Quantitative models and bookmaker consensus strongly converge on USA ~46–48% favorite, draw ~28–31%, Paraguay ~25–26%. E
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'USA': 0.48, 'draw': 0.29, 'PAR': 0.23}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'USA': 0.4622, 'draw': 0.2975, 'PAR': 0.2402}
+      confidence: low
+      summary: The analyst's +2pp move to USA 48% based on Enciso's injury is reasonable directionally, but the devil correctly flags t
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $100.00  |  Confidence: low  |  Best: USA @ 0.462
+  │  Predicted: USA (low confidence)
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $100.00  |  Confidence: low  |  Best: USA @ 0.462
+  │  Predicted: USA (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $100.00  |  Confidence: low  |  Best: USA @ 0.462
+  │  Predicted: USA (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $96.61  |  Confidence: low  |  Best: USA @ 0.462
+  │  Predicted: USA (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 0
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609130: Qatar vs Switzerland  [DONE]
+  Kickoff: 2026-06-13 19:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    QAT      (home): our=0.084  market=0.0575
+    draw           : our=0.147  market=0.125
+    SUI      (away): our=0.769  market=0.825
+    Top pick: SUI @ 0.769
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.11110253256885069, 'draw': 0.15790230624647322, 'away': 0.7309951611846761}
+      confidence: 0.731
+    [claude-haiku-4-5-20251001]
+      summary: Qatar vs Switzerland shows decisive market conviction for Swiss win (84% vs 56% ML), but light external intelligence due
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'QAT': 0.075, 'draw': 0.145, 'SUI': 0.78}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'QAT': 0.0843, 'draw': 0.147, 'SUI': 0.7687}
+      confidence: medium
+      summary: The devil's temporal uncertainty attack is valid—18+ months out with zero recent data weakens market efficiency—but the 
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: SUI @ 0.769
+  │  Predicted: SUI (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: SUI @ 0.769
+  │  Predicted: SUI (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: SUI @ 0.769
+  │  Predicted: SUI (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $96.61  |  Confidence: medium  |  Best: SUI @ 0.769
+  │  Predicted: SUI (medium confidence)
+  │  ORDERS PLACED (2):
+  │    [HOME] QAT: $1.79 @ entry≤0.0575 (limit 0.0800)
+  │         our_p=0.084  fair_p=0.0571  edge_vs_fair=+0.0272  ev/$ = 0.4661
+  │         Kelly suggested $1.79  |  order_id=ef56c013…  status=completed  tx=0x8380a19de2246824…
+  │    [DRAW] draw: $1.58 @ entry≤0.1250 (limit 0.1400)
+  │         our_p=0.147  fair_p=0.1241  edge_vs_fair=+0.0229  ev/$ = 0.1760
+  │         Kelly suggested $1.58  |  order_id=a47d3202…  status=completed  tx=0x81e7396be52c51b9…
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 2
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609131: Brazil vs Morocco  [DONE]
+  Kickoff: 2026-06-13 22:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    BRA      (home): our=0.518  market=0.585
+    draw           : our=0.274  market=0.255
+    MAR      (away): our=0.209  market=0.165
+    Top pick: BRA @ 0.518
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.5482717078966264, 'draw': 0.25559198867279187, 'away': 0.19613630343058178}
+      confidence: 0.5483
+    [claude-haiku-4-5-20251001]
+      summary: Brazil vs Morocco shows confirmed injury damage to both teams, particularly Brazil's attacking depth (Neymar, Rodrygo, E
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'BRA': 0.52, 'draw': 0.29, 'MAR': 0.19}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'BRA': 0.5178, 'draw': 0.2735, 'MAR': 0.2087}
+      confidence: medium
+      summary: The analyst correctly identified Brazil's severe injury crisis (5 confirmed absences including Neymar, Rodrygo, Militao)
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: BRA @ 0.518
+  │  Predicted: BRA (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: BRA @ 0.518
+  │  Predicted: BRA (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: BRA @ 0.518
+  │  Predicted: BRA (medium confidence)
+  │  NO ORDER — away: high-severity scout flag on MAR
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $93.14  |  Confidence: medium  |  Best: BRA @ 0.518
+  │  Predicted: BRA (medium confidence)
+  │  ORDERS PLACED (1):
+  │    [AWAY] MAR: $3.17 @ entry≤0.1650 (limit 0.1800)
+  │         our_p=0.209  fair_p=0.1642  edge_vs_fair=+0.0445  ev/$ = 0.2648
+  │         Kelly suggested $3.17  |  order_id=dc9cea41…  status=completed  tx=0x99b6eaf93995ddff…
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 1
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609155: Haiti vs Scotland  [DONE]
+  Kickoff: 2026-06-14 01:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    HAI      (home): our=0.161  market=0.155
+    draw           : our=0.241  market=0.215
+    SCO      (away): our=0.599  market=0.625
+    Top pick: SCO @ 0.599
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.19364906843421736, 'draw': 0.22784326396247095, 'away': 0.5785076676033117}
+      confidence: 0.5785
+    [claude-haiku-4-5-20251001]
+      summary: Quantitative data is strong: three separate models available, clear xG profile, wide bookmaker consensus. Qualitative da
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'HAI': 0.17, 'draw': 0.23, 'SCO': 0.6}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'HAI': 0.1605, 'draw': 0.2408, 'SCO': 0.5987}
+      confidence: medium
+      summary: Lead analyst anchored appropriately to Polymarket (62.5%) but devil's attack on draw probability holds merit: low xG tot
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: SCO @ 0.599
+  │  Predicted: SCO (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: SCO @ 0.599
+  │  Predicted: SCO (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: SCO @ 0.599
+  │  Predicted: SCO (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $89.90  |  Confidence: medium  |  Best: SCO @ 0.599
+  │  Predicted: SCO (medium confidence)
+  │  ORDERS PLACED (1):
+  │    [DRAW] draw: $1.92 @ entry≤0.2150 (limit 0.2300)
+  │         our_p=0.241  fair_p=0.2161  edge_vs_fair=+0.0247  ev/$ = 0.1200
+  │         Kelly suggested $1.92  |  order_id=19f5fe2e…  status=completed  tx=0x437e2da11ebb8e9b…
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 1
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609156: Australia vs Türkiye  [DONE]
+  Kickoff: 2026-06-14 04:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    AUS      (home): our=0.280  market=0.175
+    draw           : our=0.290  market=0.255
+    TUR      (away): our=0.430  market=0.565
+    Top pick: TUR @ 0.430
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.21175104523343283, 'draw': 0.25772691344829496, 'away': 0.5305220413182723}
+      confidence: 0.5305
+    [claude-haiku-4-5-20251001]
+      summary: Turkey heavily favoured (53%) by deterministic model, primarily driven by 80% market weighting. Key Turkish injuries con
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'AUS': 0.27, 'draw': 0.27, 'TUR': 0.46}
+      confidence: low
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'AUS': 0.28, 'draw': 0.29, 'TUR': 0.43}
+      confidence: low
+      summary: The analyst correctly adjusted Turkey downward from the deterministic 53% to 46% based on confirmed left-flank injuries 
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $100.00  |  Confidence: low  |  Best: TUR @ 0.430
+  │  Predicted: TUR (low confidence)
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $100.00  |  Confidence: low  |  Best: TUR @ 0.430
+  │  Predicted: TUR (low confidence)
+  │  ORDERS PLACED (1):
+  │    [HOME] AUS: $2.00 @ entry≤0.1750 (limit 0.1900)
+  │         our_p=0.280  fair_p=0.1759  edge_vs_fair=+0.1041  ev/$ = 0.6000
+  │         Kelly suggested $4.45  |  order_id=50194c6c…  status=completed  tx=0x7455a4b0aafc9d7e…
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $100.00  |  Confidence: low  |  Best: TUR @ 0.430
+  │  Predicted: TUR (low confidence)
+  │  ORDERS PLACED (1):
+  │    [HOME] AUS: $5.00 @ entry≤0.1750 (limit 0.1900)
+  │         our_p=0.280  fair_p=0.1759  edge_vs_fair=+0.1041  ev/$ = 0.6000
+  │         Kelly suggested $5.00  |  order_id=5e1160e6…  status=completed  tx=0x0341828c2f580a3b…
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $87.93  |  Confidence: low  |  Best: TUR @ 0.430
+  │  Predicted: TUR (low confidence)
+  │  ORDERS PLACED (1):
+  │    [HOME] AUS: $5.00 @ entry≤0.1750 (limit 0.1900)
+  │         our_p=0.280  fair_p=0.1759  edge_vs_fair=+0.1041  ev/$ = 0.6000
+  │         Kelly suggested $5.00  |  order_id=5e5b31d5…  status=completed  tx=0x342a0c3bcc8c9575…
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 3
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609158: Germany vs Curacao  [DONE]
+  Kickoff: 2026-06-14 17:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    GER      (home): our=0.847  market=0.9435
+    draw           : our=0.095  market=0.0385
+    CUW      (away): our=0.058  market=0.0235
+    Top pick: GER @ 0.847
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.8301695742127555, 'draw': 0.09399741444950102, 'away': 0.07583301133774356}
+      confidence: 0.8302
+    [claude-haiku-4-5-20251001]
+      summary: Germany heavily favored across all sources with no credible upset signals. Key tension: bookmaker consensus (96.92%) mat
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'GER': 0.89, 'draw': 0.08, 'CUW': 0.03}
+      confidence: high
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'GER': 0.8471, 'draw': 0.0949, 'CUW': 0.058}
+      confidence: medium
+      summary: The analyst anchored to a 92.84% bookmaker consensus, adjusting only to 89%. The devil successfully challenged this, hig
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $100.00  |  Confidence: medium  |  Best: GER @ 0.847
+  │  Predicted: GER (medium confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $97.95  |  Confidence: medium  |  Best: GER @ 0.847
+  │  Predicted: GER (medium confidence)
+  │  ORDERS PLACED (1):
+  │    [DRAW] draw: $2.01 @ entry≤0.0385 (limit 0.0600)
+  │         our_p=0.095  fair_p=0.0383  edge_vs_fair=+0.0566  ev/$ = 1.4649
+  │         Kelly suggested $2.01  |  order_id=d20205f6…  status=completed  tx=0x9a6482779254cd74…
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $94.88  |  Confidence: medium  |  Best: GER @ 0.847
+  │  Predicted: GER (medium confidence)
+  │  ORDERS PLACED (2):
+  │    [AWAY] CUW: $2.51 @ entry≤0.0235 (limit 0.0400)
+  │         our_p=0.058  fair_p=0.0234  edge_vs_fair=+0.0346  ev/$ = 1.4681
+  │         Kelly suggested $2.51  |  order_id=22c46eb6…  status=completed  tx=0x34a39b3fbf2980dc…
+  │    [DRAW] draw: $2.49 @ entry≤0.0385 (limit 0.0600)
+  │         our_p=0.095  fair_p=0.0383  edge_vs_fair=+0.0566  ev/$ = 1.4649
+  │         Kelly suggested $4.17  |  order_id=8fe45b3d…  status=completed  tx=0xced2a8019abc29bf…
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $82.81  |  Confidence: medium  |  Best: GER @ 0.847
+  │  Predicted: GER (medium confidence)
+  │  ORDERS PLACED (2):
+  │    [AWAY] CUW: $1.90 @ entry≤0.0235 (limit 0.0400)
+  │         our_p=0.058  fair_p=0.0234  edge_vs_fair=+0.0346  ev/$ = 1.4681
+  │         Kelly suggested $1.90  |  order_id=e1acd871…  status=completed  tx=0x157259975e286460…
+  │    [DRAW] draw: $3.10 @ entry≤0.0385 (limit 0.0600)
+  │         our_p=0.095  fair_p=0.0383  edge_vs_fair=+0.0566  ev/$ = 1.4649
+  │         Kelly suggested $3.16  |  order_id=13e691a4…  status=completed  tx=0xcd2f5ae8480eb387…
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 5
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609138: Netherlands vs Japan  [DONE]
+  Kickoff: 2026-06-14 20:00:00  |  Market source: polymarket
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    NED      (home): our=0.444  market=0.465
+    draw           : our=0.284  market=0.285
+    JPN      (away): our=0.272  market=0.265
+    Top pick: NED @ 0.444
+
+  COUNCIL REASONING TRACE (shared brain):
+    [deterministic]
+      probabilities: {'home': 0.4460334887466664, 'draw': 0.27748394469568505, 'away': 0.2764825665576485}
+      confidence: 0.446
+    [claude-haiku-4-5-20251001]
+      summary: Netherlands vs Japan is a Group F World Cup opener with heavy injury toll on both sides. Netherlands lose elite CB Timbe
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'NED': 0.44, 'draw': 0.3, 'JPN': 0.26}
+      confidence: low
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'NED': 0.4441, 'draw': 0.284, 'JPN': 0.2719}
+      confidence: low
+      summary: Analyst increased draw to 0.30 citing balanced injury toll and lineup uncertainty; devil countered that Netherlands' def
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2  | forecast specialist
+  │  Wallet: $100.00  |  Confidence: low  |  Best: NED @ 0.444
+  │  Predicted: NED (low confidence)
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4  | disciplined EV accumulator
+  │  Wallet: $95.88  |  Confidence: low  |  Best: NED @ 0.444
+  │  Predicted: NED (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — min_edge_vs_fair≥3pp, entry_price≤0.40, max_bet=$5 | draws+underdogs only
+  │  Wallet: $89.73  |  Confidence: low  |  Best: NED @ 0.444
+  │  Predicted: NED (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5  | event-driven aggression
+  │  Wallet: $77.66  |  Confidence: low  |  Best: NED @ 0.444
+  │  Predicted: NED (low confidence)
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  Total orders fired this fixture: 0
+
+════════════════════════════════════════════════════════════════════════════════
+  PORTFOLIO SUMMARY
+════════════════════════════════════════════════════════════════════════════════
+
+  Games errored (first run, LedgerSession API bug): 1 (Mexico vs South Africa)
+  Games processed: 9
+
+  MONK    : 0 orders | $0.00 staked | avg edge_vs_fair=+0.0000 | avg EV/$ = 0.0000 | wallet now $100.00
+  ANCHOR  : 2 orders | $4.01 staked | avg edge_vs_fair=+0.0804 | avg EV/$ = 1.0325 | wallet now $95.88
+           └ Australia vs Türkiye                      AUS    $2.00  edge=+0.1041
+           └ Germany vs Curacao                        draw   $2.01  edge=+0.0566
+  HUNTER  : 3 orders | $10.00 staked | avg edge_vs_fair=+0.0651 | avg EV/$ = 1.1777 | wallet now $89.73
+           └ Australia vs Türkiye                      AUS    $5.00  edge=+0.1041
+           └ Germany vs Curacao                        CUW    $2.51  edge=+0.0346
+           └ Germany vs Curacao                        draw   $2.49  edge=+0.0566
+  BLITZ   : 8 orders | $20.76 staked | avg edge_vs_fair=+0.0427 | avg EV/$ = 0.5818 | wallet now $77.66
+           └ Canada vs Bosnia and Herzegovina          draw   $2.30  edge=+0.0273
+           └ Qatar vs Switzerland                      QAT    $1.79  edge=+0.0272
+           └ Qatar vs Switzerland                      draw   $1.58  edge=+0.0229
+           └ Brazil vs Morocco                         MAR    $3.17  edge=+0.0445
+           └ Haiti vs Scotland                         draw   $1.92  edge=+0.0247
+           └ Australia vs Türkiye                      AUS    $5.00  edge=+0.1041
+           └ Germany vs Curacao                        CUW    $1.90  edge=+0.0346
+           └ Germany vs Curacao                        draw   $3.10  edge=+0.0566
+
+════════════════════════════════════════════════════════════════════════════════
+  BEHAVIORAL NOTES
+════════════════════════════════════════════════════════════════════════════════
+
+  1. IDENTICAL PROBABILITIES — All 4 agents run the SAME shared brain (council +
+     deterministic_v2 ensemble). The predicted probabilities are identical across
+     agents every game. Differences in orders come entirely from profile thresholds.
+
+  2. MONK (ORACLE) trades almost never by design — it requires ≥10pp edge vs the
+     de-vigged fair price AND council confidence ≥ medium (0.55). In most games
+     the market mid is too close to our forecast for monk to fire.
+
+  3. BLITZ (SURGE) has the most orders: min_edge_vs_fair=2pp, no scout veto, fires
+     even on low-confidence reads. It often buys draws and underdogs (thin +EV vs fair).
+
+  4. HUNTER (SAW) only buys outcomes priced ≤ 0.40 — it skipped Brazil vs Morocco
+     because of a high-severity scout flag on MAR ("away: high-severity scout flag").
+     It fired hard on Australia (0.175, ≤ 0.40 threshold) and Germany draws/Curacao.
+
+  5. ANCHOR (KEEL) fires on ≥4.5pp edge vs fair with at least 2¢ EV per dollar.
+     It placed orders on Australia vs Türkiye (huge 10.41pp edge) and Germany vs Curacao.
+
+  6. STAIR LEDGER submissions confirm the probability prediction for each agent
+     window (Acting "prediction" record) — the arena PSL score is based on these.
+     Every ledger file is stored in storage/ledgers/ for forensics.
+
+  7. CONTRADICTORY ORDERS vs PREDICTION — Agents often bet on the DRAW or UNDERDOG
+     even when their top predicted outcome is the favorite. This is by design:
+     the EV engine ranks ALL outcomes vs de-vigged fair price; if the market
+     underprices a draw/underdog relative to the de-vigged fair, that outcome has
+     higher EV even though it has lower predicted probability.
+     e.g. Germany vs Curacao: best prediction = GER (84.7%), but orders = DRAW + CUW
+          because GER's market price (94.4%) already bakes in even more certainty
+          than our model — so GER has *negative* edge vs fair.
+
+  8. ALL WINDOWS HALFTIME SKIPPED — The HT window requires a live match state
+     (ht_window_not_open). This is normal; the runner checks and skips if
+     the halftime data endpoint isn't serving live data.
+
+════════════════════════════════════════════════════════════════════════════════
