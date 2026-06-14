@@ -145,9 +145,14 @@ HUNTER_ULTRA_TAIL_VALIDATION_ENABLED: bool = (
 # Minimum independent-forecast data coverage a coordinated recommendation needs.
 MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.25)
 
-MAX_FIXTURE_EXPOSURE: float = _env_float("MAX_FIXTURE_EXPOSURE", 0.04)
-MAX_OUTCOME_EXPOSURE: float = _env_float("MAX_OUTCOME_EXPOSURE", 0.03)
-MAX_ULTRA_TAIL_EXPOSURE: float = _env_float("MAX_ULTRA_TAIL_EXPOSURE", 0.01)
+# Portfolio exposure caps as a fraction of bankroll. The allocator REJECTS (does
+# not shrink) a coordinated bet that would breach a cap, so these must clear a
+# full-size single bet on a small (~$100) arena wallet: ANCHOR maxes at $4 (4%)
+# and HUNTER at $5 (5%). Caps below those would silently zero those agents; we
+# set fixture 10% / outcome 6% so a full bet passes while stacking is still held.
+MAX_FIXTURE_EXPOSURE: float = _env_float("MAX_FIXTURE_EXPOSURE", 0.10)
+MAX_OUTCOME_EXPOSURE: float = _env_float("MAX_OUTCOME_EXPOSURE", 0.06)
+MAX_ULTRA_TAIL_EXPOSURE: float = _env_float("MAX_ULTRA_TAIL_EXPOSURE", 0.02)
 MAX_DAILY_DRAWDOWN: float = _env_float("MAX_DAILY_DRAWDOWN", 0.05)
 
 # ── Cross-market (Polymarket vs Kalshi) gate thresholds ─────────────────────
