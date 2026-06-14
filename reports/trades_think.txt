@@ -1,0 +1,760 @@
+════════════════════════════════════════════════════════════════════════════════
+  WORLD CUP AGENT PORTFOLIO — ORDER, PREDICTION & RESULTS REPORT
+  20 windows across 10 forecasted fixtures
+════════════════════════════════════════════════════════════════════════════════
+
+  Fetching results from Sportmonks...
+    19609127: MEX         Mexico won after full-time.
+    19609153: KOR         Korea Republic won after full-time.
+    19609154: draw        Game ended in draw.
+    19609133: USA         United States won after full-time.
+    19609130: draw        Game ended in draw.
+    19609131: draw        Game ended in draw.
+    19609155: SCO         Scotland won after full-time.
+    19609156: AUS         Australia won after full-time.
+    19609158: GER         Germany won after full-time.
+    19609138: pending     
+
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609127: Mexico vs South Africa  [DONE]
+  Kickoff: 2026-06-11 19:00:00
+  RESULT: MEX WON  (Mexico won after full-time.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    MEX      (home): our=0.640  market=0.695 ← CORRECT
+    draw     (draw): our=0.226  market=0.205
+    RSA      (away): our=0.134  market=0.105
+    Top pick: MEX @ 0.640 ✓
+
+  PER-AGENT DECISIONS:
+
+  [MONK] ERROR: TypeError("LedgerSession.thinking() missing 2 required positional arguments: 'provider' and 'model_name'")
+
+  [ANCHOR] ERROR: TypeError("LedgerSession.thinking() missing 2 required positional arguments: 'provider' and 'model_name'")
+
+  [HUNTER] ERROR: TypeError("LedgerSession.thinking() missing 2 required positional arguments: 'provider' and 'model_name'")
+
+  [BLITZ] ERROR: TypeError("LedgerSession.thinking() missing 2 required positional arguments: 'provider' and 'model_name'")
+
+  Fixture totals: 0 orders, $0.00 staked, net P&L $+0.00
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609153: Korea Republic vs Czech Republic  [DONE]
+  Kickoff: 2026-06-12 02:00:00
+  RESULT: KOR WON  (Korea Republic won after full-time.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    KOR      (home): our=0.365  market=0.375 ← CORRECT
+    draw     (draw): our=0.312  market=0.315
+    CZE      (away): our=0.322  market=0.315
+    Top pick: KOR @ 0.365 ✓
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.37660173003019815, 'draw': 0.30233477929261066, 'away': 0.3210634906771913}
+      confidence: 0.3766
+    [claude-haiku-4-5-20251001]
+      summary: KOR vs CZE is a tightly matched Group A opener (all models within 37–42% for KOR). Multiple confirmed KOR injuries (Kim,
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'KOR': 0.365, 'draw': 0.315, 'CZE': 0.32}
+      confidence: low
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'KOR': 0.3652, 'draw': 0.3125, 'CZE': 0.3222}
+      confidence: low
+      summary: Analyst favored KOR at 36.5% with altitude offsetting defensive injuries; devil argued injuries (Kim, Cho, Bae) plus Son
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $0.00  |  Confidence: low  |  Predicted: KOR @ 0.365
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: KOR @ 0.365
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: KOR @ 0.365
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $98.96  |  Confidence: low  |  Predicted: KOR @ 0.365
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 0 orders, $0.00 staked, net P&L $+0.00
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609154: Canada vs Bosnia and Herzegovina  [DONE]
+  Kickoff: 2026-06-12 19:00:00
+  RESULT: Draw  (Game ended in draw.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    CAN      (home): our=0.498  market=0.535
+    draw     (draw): our=0.301  market=0.275 ← CORRECT
+    BIH      (away): our=0.202  market=0.195
+    Top pick: CAN @ 0.498 ✗
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.5078437901585248, 'draw': 0.2708241661228523, 'away': 0.22133204371862297}
+      confidence: 0.5078
+    [claude-haiku-4-5-20251001]
+      summary: Web research is substantial (53 sources with detailed injury/preview coverage). Two critical injury absences for Canada 
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'CAN': 0.5, 'draw': 0.29, 'BIH': 0.21}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'CAN': 0.4976, 'draw': 0.3009, 'BIH': 0.2015}
+      confidence: medium
+      summary: Analyst's bookmaker-anchored view (50/29/21) converges closely with deterministic engine (51/27/22) and Polymarket (54/2
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: CAN @ 0.498
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: CAN @ 0.498
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: CAN @ 0.498
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $98.96  |  Confidence: medium  |  Predicted: CAN @ 0.498
+  │  ORDERS (1):
+  │    [WIN ] [DRAW] draw: $2.30 @ entry≤0.2750 (limit 0.3000)
+  │         our_p=0.301  fair_p=0.2736  edge_vs_fair=+0.0273  ev/$=0.0942
+  │         P&L: $+6.06  |  status=completed  tx=0xb2f8a41071d38d45…
+  │  Net this fixture: $+6.06 on $2.30 staked
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 1 orders, $2.30 staked, net P&L $+6.06
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609133: United States vs Paraguay  [DONE]
+  Kickoff: 2026-06-13 01:00:00
+  RESULT: USA WON  (United States won after full-time.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    USA      (home): our=0.462  market=0.465 ← CORRECT
+    draw     (draw): our=0.297  market=0.295
+    PAR      (away): our=0.240  market=0.235
+    Top pick: USA @ 0.462 ✓
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.45470242308569275, 'draw': 0.2884312332031189, 'away': 0.25686634371118844}
+      confidence: 0.4547
+    [claude-haiku-4-5-20251001]
+      summary: Quantitative models and bookmaker consensus strongly converge on USA ~46–48% favorite, draw ~28–31%, Paraguay ~25–26%. E
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'USA': 0.48, 'draw': 0.29, 'PAR': 0.23}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'USA': 0.4622, 'draw': 0.2975, 'PAR': 0.2402}
+      confidence: low
+      summary: The analyst's +2pp move to USA 48% based on Enciso's injury is reasonable directionally, but the devil correctly flags t
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: USA @ 0.462
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: USA @ 0.462
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: USA @ 0.462
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $96.61  |  Confidence: low  |  Predicted: USA @ 0.462
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 0 orders, $0.00 staked, net P&L $+0.00
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609130: Qatar vs Switzerland  [DONE]
+  Kickoff: 2026-06-13 19:00:00
+  RESULT: Draw  (Game ended in draw.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    QAT      (home): our=0.084  market=0.0575
+    draw     (draw): our=0.147  market=0.125 ← CORRECT
+    SUI      (away): our=0.769  market=0.825
+    Top pick: SUI @ 0.769 ✗
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.11110253256885069, 'draw': 0.15790230624647322, 'away': 0.7309951611846761}
+      confidence: 0.731
+    [claude-haiku-4-5-20251001]
+      summary: Qatar vs Switzerland shows decisive market conviction for Swiss win (84% vs 56% ML), but light external intelligence due
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'QAT': 0.075, 'draw': 0.145, 'SUI': 0.78}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'QAT': 0.0843, 'draw': 0.147, 'SUI': 0.7687}
+      confidence: medium
+      summary: The devil's temporal uncertainty attack is valid—18+ months out with zero recent data weakens market efficiency—but the 
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: SUI @ 0.769
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: SUI @ 0.769
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: SUI @ 0.769
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $96.61  |  Confidence: medium  |  Predicted: SUI @ 0.769
+  │  ORDERS (2):
+  │    [LOSS] [HOME] QAT: $1.79 @ entry≤0.0575 (limit 0.0800)
+  │         our_p=0.084  fair_p=0.0571  edge_vs_fair=+0.0272  ev/$=0.4661
+  │         P&L: $-1.79  |  status=completed  tx=0x8380a19de2246824…
+  │    [WIN ] [DRAW] draw: $1.58 @ entry≤0.1250 (limit 0.1400)
+  │         our_p=0.147  fair_p=0.1241  edge_vs_fair=+0.0229  ev/$=0.1760
+  │         P&L: $+11.06  |  status=completed  tx=0x81e7396be52c51b9…
+  │  Net this fixture: $+9.27 on $3.37 staked
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 2 orders, $3.37 staked, net P&L $+9.27
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609131: Brazil vs Morocco  [DONE]
+  Kickoff: 2026-06-13 22:00:00
+  RESULT: Draw  (Game ended in draw.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    BRA      (home): our=0.518  market=0.585
+    draw     (draw): our=0.274  market=0.255 ← CORRECT
+    MAR      (away): our=0.209  market=0.165
+    Top pick: BRA @ 0.518 ✗
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.5482717078966264, 'draw': 0.25559198867279187, 'away': 0.19613630343058178}
+      confidence: 0.5483
+    [claude-haiku-4-5-20251001]
+      summary: Brazil vs Morocco shows confirmed injury damage to both teams, particularly Brazil's attacking depth (Neymar, Rodrygo, E
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'BRA': 0.52, 'draw': 0.29, 'MAR': 0.19}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'BRA': 0.5178, 'draw': 0.2735, 'MAR': 0.2087}
+      confidence: medium
+      summary: The analyst correctly identified Brazil's severe injury crisis (5 confirmed absences including Neymar, Rodrygo, Militao)
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: BRA @ 0.518
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: BRA @ 0.518
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: BRA @ 0.518
+  │  NO ORDER — away: high-severity scout flag on MAR
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $93.14  |  Confidence: medium  |  Predicted: BRA @ 0.518
+  │  ORDERS (1):
+  │    [LOSS] [AWAY] MAR: $3.17 @ entry≤0.1650 (limit 0.1800)
+  │         our_p=0.209  fair_p=0.1642  edge_vs_fair=+0.0445  ev/$=0.2648
+  │         P&L: $-3.17  |  status=completed  tx=0x99b6eaf93995ddff…
+  │  Net this fixture: $-3.17 on $3.17 staked
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 1 orders, $3.17 staked, net P&L $-3.17
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609155: Haiti vs Scotland  [DONE]
+  Kickoff: 2026-06-14 01:00:00
+  RESULT: SCO WON  (Scotland won after full-time.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    HAI      (home): our=0.161  market=0.155
+    draw     (draw): our=0.241  market=0.215
+    SCO      (away): our=0.599  market=0.625 ← CORRECT
+    Top pick: SCO @ 0.599 ✓
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.19364906843421736, 'draw': 0.22784326396247095, 'away': 0.5785076676033117}
+      confidence: 0.5785
+    [claude-haiku-4-5-20251001]
+      summary: Quantitative data is strong: three separate models available, clear xG profile, wide bookmaker consensus. Qualitative da
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'HAI': 0.17, 'draw': 0.23, 'SCO': 0.6}
+      confidence: medium
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'HAI': 0.1605, 'draw': 0.2408, 'SCO': 0.5987}
+      confidence: medium
+      summary: Lead analyst anchored appropriately to Polymarket (62.5%) but devil's attack on draw probability holds merit: low xG tot
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: SCO @ 0.599
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: SCO @ 0.599
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: SCO @ 0.599
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $89.90  |  Confidence: medium  |  Predicted: SCO @ 0.599
+  │  ORDERS (1):
+  │    [LOSS] [DRAW] draw: $1.92 @ entry≤0.2150 (limit 0.2300)
+  │         our_p=0.241  fair_p=0.2161  edge_vs_fair=+0.0247  ev/$=0.1200
+  │         P&L: $-1.92  |  status=completed  tx=0x437e2da11ebb8e9b…
+  │  Net this fixture: $-1.92 on $1.92 staked
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 1 orders, $1.92 staked, net P&L $-1.92
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609156: Australia vs Türkiye  [DONE]
+  Kickoff: 2026-06-14 04:00:00
+  RESULT: AUS WON  (Australia won after full-time.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    AUS      (home): our=0.280  market=0.175 ← CORRECT
+    draw     (draw): our=0.290  market=0.255
+    TUR      (away): our=0.430  market=0.565
+    Top pick: TUR @ 0.430 ✗
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.21175104523343283, 'draw': 0.25772691344829496, 'away': 0.5305220413182723}
+      confidence: 0.5305
+    [claude-haiku-4-5-20251001]
+      summary: Turkey heavily favoured (53%) by deterministic model, primarily driven by 80% market weighting. Key Turkish injuries con
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'AUS': 0.27, 'draw': 0.27, 'TUR': 0.46}
+      confidence: low
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'AUS': 0.28, 'draw': 0.29, 'TUR': 0.43}
+      confidence: low
+      summary: The analyst correctly adjusted Turkey downward from the deterministic 53% to 46% based on confirmed left-flank injuries 
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: TUR @ 0.430
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: TUR @ 0.430
+  │  ORDERS (1):
+  │    [WIN ] [HOME] AUS: $2.00 @ entry≤0.1750 (limit 0.1900)
+  │         our_p=0.280  fair_p=0.1759  edge_vs_fair=+0.1041  ev/$=0.6000
+  │         P&L: $+9.43  |  status=completed  tx=0x7455a4b0aafc9d7e…
+  │  Net this fixture: $+9.43 on $2.00 staked
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: TUR @ 0.430
+  │  ORDERS (1):
+  │    [WIN ] [HOME] AUS: $5.00 @ entry≤0.1750 (limit 0.1900)
+  │         our_p=0.280  fair_p=0.1759  edge_vs_fair=+0.1041  ev/$=0.6000
+  │         P&L: $+23.57  |  status=completed  tx=0x0341828c2f580a3b…
+  │  Net this fixture: $+23.57 on $5.00 staked
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $87.93  |  Confidence: low  |  Predicted: TUR @ 0.430
+  │  ORDERS (1):
+  │    [WIN ] [HOME] AUS: $5.00 @ entry≤0.1750 (limit 0.1900)
+  │         our_p=0.280  fair_p=0.1759  edge_vs_fair=+0.1041  ev/$=0.6000
+  │         P&L: $+23.57  |  status=completed  tx=0x342a0c3bcc8c9575…
+  │  Net this fixture: $+23.57 on $5.00 staked
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 3 orders, $12.00 staked, net P&L $+56.57
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609158: Germany vs Curacao  [DONE]
+  Kickoff: 2026-06-14 17:00:00
+  RESULT: GER WON  (Germany won after full-time.)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    GER      (home): our=0.847  market=0.9435 ← CORRECT
+    draw     (draw): our=0.095  market=0.0385
+    CUW      (away): our=0.058  market=0.0235
+    Top pick: GER @ 0.847 ✓
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.8301695742127555, 'draw': 0.09399741444950102, 'away': 0.07583301133774356}
+      confidence: 0.8302
+    [claude-haiku-4-5-20251001]
+      summary: Germany heavily favored across all sources with no credible upset signals. Key tension: bookmaker consensus (96.92%) mat
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'GER': 0.89, 'draw': 0.08, 'CUW': 0.03}
+      confidence: high
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'GER': 0.8471, 'draw': 0.0949, 'CUW': 0.058}
+      confidence: medium
+      summary: The analyst anchored to a 92.84% bookmaker consensus, adjusting only to 89%. The devil successfully challenged this, hig
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: medium  |  Predicted: GER @ 0.847
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $97.95  |  Confidence: medium  |  Predicted: GER @ 0.847
+  │  ORDERS (1):
+  │    [LOSS] [DRAW] draw: $2.01 @ entry≤0.0385 (limit 0.0600)
+  │         our_p=0.095  fair_p=0.0383  edge_vs_fair=+0.0566  ev/$=1.4649
+  │         P&L: $-2.01  |  status=completed  tx=0x9a6482779254cd74…
+  │  Net this fixture: $-2.01 on $2.01 staked
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $94.88  |  Confidence: medium  |  Predicted: GER @ 0.847
+  │  ORDERS (2):
+  │    [LOSS] [AWAY] CUW: $2.51 @ entry≤0.0235 (limit 0.0400)
+  │         our_p=0.058  fair_p=0.0234  edge_vs_fair=+0.0346  ev/$=1.4681
+  │         P&L: $-2.51  |  status=completed  tx=0x34a39b3fbf2980dc…
+  │    [LOSS] [DRAW] draw: $2.49 @ entry≤0.0385 (limit 0.0600)
+  │         our_p=0.095  fair_p=0.0383  edge_vs_fair=+0.0566  ev/$=1.4649
+  │         P&L: $-2.49  |  status=completed  tx=0xced2a8019abc29bf…
+  │  Net this fixture: $-5.00 on $5.00 staked
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $82.81  |  Confidence: medium  |  Predicted: GER @ 0.847
+  │  ORDERS (2):
+  │    [LOSS] [AWAY] CUW: $1.90 @ entry≤0.0235 (limit 0.0400)
+  │         our_p=0.058  fair_p=0.0234  edge_vs_fair=+0.0346  ev/$=1.4681
+  │         P&L: $-1.90  |  status=completed  tx=0x157259975e286460…
+  │    [LOSS] [DRAW] draw: $3.10 @ entry≤0.0385 (limit 0.0600)
+  │         our_p=0.095  fair_p=0.0383  edge_vs_fair=+0.0566  ev/$=1.4649
+  │         P&L: $-3.10  |  status=completed  tx=0xcd2f5ae8480eb387…
+  │  Net this fixture: $-5.00 on $5.00 staked
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 5 orders, $12.01 staked, net P&L $-12.01
+
+────────────────────────────────────────────────────────────────────────────────
+  FIXTURE 19609138: Netherlands vs Japan  [DONE]
+  Kickoff: 2026-06-14 20:00:00
+  RESULT: Not settled yet  (not settled)
+────────────────────────────────────────────────────────────────────────────────
+
+  SHARED FORECAST (council_with_deterministic_v2):
+    NED      (home): our=0.444  market=0.465
+    draw     (draw): our=0.284  market=0.285
+    JPN      (away): our=0.272  market=0.265
+    Top pick: NED @ 0.444
+
+  COUNCIL REASONING TRACE (shared brain, monk ledger):
+    [deterministic]
+      probabilities: {'home': 0.4460334887466664, 'draw': 0.27748394469568505, 'away': 0.2764825665576485}
+      confidence: 0.446
+    [claude-haiku-4-5-20251001]
+      summary: Netherlands vs Japan is a Group F World Cup opener with heavy injury toll on both sides. Netherlands lose elite CB Timbe
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'NED': 0.44, 'draw': 0.3, 'JPN': 0.26}
+      confidence: low
+    [deepseek-reasoner]
+    [claude-sonnet-4-5-20250929]
+      probabilities: {'NED': 0.4441, 'draw': 0.284, 'JPN': 0.2719}
+      confidence: low
+      summary: Analyst increased draw to 0.30 citing balanced injury toll and lineup uncertainty; devil countered that Netherlands' def
+    [deterministic]
+
+  PER-AGENT DECISIONS:
+
+  ┌─ [MONK] ORACLE  — min_edge_vs_fair≥10pp, conf≥0.55, max_bet=$2
+  │  Wallet: $100.00  |  Confidence: low  |  Predicted: NED @ 0.444
+  │  NO ORDER — confidence 0.40 < floor 0.55
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [ANCHOR] KEEL    — min_edge_vs_fair≥4.5pp, min_ev≥2¢, max_bet=$4
+  │  Wallet: $95.88  |  Confidence: low  |  Predicted: NED @ 0.444
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [HUNTER] SAW     — entry_price≤0.40 (draws+dogs), max_bet=$5
+  │  Wallet: $89.73  |  Confidence: low  |  Predicted: NED @ 0.444
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  ┌─ [BLITZ] SURGE   — min_edge_vs_fair≥2pp, scout_veto=off, max_bet=$5
+  │  Wallet: $77.66  |  Confidence: low  |  Predicted: NED @ 0.444
+  │  NO ORDER — no outcome cleared the EV/edge bars
+  └────────────────────────────────────────────────────────────
+
+  Fixture totals: 0 orders, $0.00 staked, net P&L $+0.00
+
+════════════════════════════════════════════════════════════════════════════════
+  PORTFOLIO SUMMARY
+════════════════════════════════════════════════════════════════════════════════
+
+  Games errored  : 1 (Mexico vs South Africa — LedgerSession API bug, first run)
+  Games processed: 9
+  Results settled: 9 / 10
+
+  MONK     | 0 orders | $0.00 staked | 0W/0L/0P | $+0.00 (+0 pending) | ROI — | avg edge=+0.0000 | wallet now $100.00
+  ANCHOR   | 2 orders | $4.01 staked | 1W/1L/0P | $+7.42 | ROI +185.0% | avg edge=+0.0804 | wallet now $95.88
+           [WIN ] Australia vs Türkiye                       AUS   $2.00  edge=+0.1041  $+9.43
+           [LOSS] Germany vs Curacao                         draw  $2.01  edge=+0.0566  $-2.01
+  HUNTER   | 3 orders | $10.00 staked | 1W/2L/0P | $+18.57 | ROI +185.7% | avg edge=+0.0651 | wallet now $89.73
+           [WIN ] Australia vs Türkiye                       AUS   $5.00  edge=+0.1041  $+23.57
+           [LOSS] Germany vs Curacao                         CUW   $2.51  edge=+0.0346  $-2.51
+           [LOSS] Germany vs Curacao                         draw  $2.49  edge=+0.0566  $-2.49
+  BLITZ    | 8 orders | $20.76 staked | 3W/5L/0P | $+28.81 | ROI +138.8% | avg edge=+0.0427 | wallet now $77.66
+           [WIN ] Canada vs Bosnia and Herzegovina           draw  $2.30  edge=+0.0273  $+6.06
+           [LOSS] Qatar vs Switzerland                       QAT   $1.79  edge=+0.0272  $-1.79
+           [WIN ] Qatar vs Switzerland                       draw  $1.58  edge=+0.0229  $+11.06
+           [LOSS] Brazil vs Morocco                          MAR   $3.17  edge=+0.0445  $-3.17
+           [LOSS] Haiti vs Scotland                          draw  $1.92  edge=+0.0247  $-1.92
+           [WIN ] Australia vs Türkiye                       AUS   $5.00  edge=+0.1041  $+23.57
+           [LOSS] Germany vs Curacao                         CUW   $1.90  edge=+0.0346  $-1.90
+           [LOSS] Germany vs Curacao                         draw  $3.10  edge=+0.0566  $-3.10
+
+  TOTAL    | 13 orders | $34.77 staked | 5W/8L/0P | net P&L $+54.80 | ROI +157.6%
+
+════════════════════════════════════════════════════════════════════════════════
+  UPSET & SURPRISE ANALYSIS
+════════════════════════════════════════════════════════════════════════════════
+
+  Fixture                          Our Top Pick  Market Fav   Actual Result  Surprise?
+  ────────────────────────────────────────────────────────────────────────────
+  Mexico vs South Africa              MEX  (0.64) MEX          MEX       ✓ 
+  Korea Republic vs Czech Republic    KOR  (0.37) KOR          KOR       ✓ close
+  Canada vs Bosnia and Herzegovina    CAN  (0.50) CAN          draw      ✗ close
+  United States vs Paraguay           USA  (0.46) USA          USA       ✓ 
+  Qatar vs Switzerland                SUI  (0.77) SUI          draw      ✗ UPSET!
+  Brazil vs Morocco                   BRA  (0.52) BRA          draw      ✗ close
+  Haiti vs Scotland                   SCO  (0.60) SCO          SCO       ✓ 
+  Australia vs Türkiye                TUR  (0.43) TUR          AUS       ✗ close
+  Germany vs Curacao                  GER  (0.85) GER          GER       ✓ 
+  Netherlands vs Japan                —            —            not settled     —
+
+════════════════════════════════════════════════════════════════════════════════
+  ORDER OUTCOME ANALYSIS — Why orders won/lost
+════════════════════════════════════════════════════════════════════════════════
+
+  13 of 13 orders settled
+
+  Australia vs Türkiye  →  actual: AUS
+    [WIN ] anchor   AUS   $2.00  $+9.43    correctly spotted AUS underpriced (mkt 0.175 vs our 0.280)
+    [WIN ] hunter   AUS   $5.00  $+23.57   correctly spotted AUS underpriced (mkt 0.175 vs our 0.280)
+    [WIN ] blitz    AUS   $5.00  $+23.57   correctly spotted AUS underpriced (mkt 0.175 vs our 0.280)
+
+  Germany vs Curacao  →  actual: GER
+    [LOSS] anchor   draw  $2.01  $-2.01    draw lost; edge was real (+0.057 vs fair) but outcome didn't land
+    [LOSS] hunter   CUW   $2.51  $-2.51    CUW lost; edge was real (+0.035 vs fair) but outcome didn't land
+    [LOSS] hunter   draw  $2.49  $-2.49    draw lost; edge was real (+0.057 vs fair) but outcome didn't land
+    [LOSS] blitz    CUW   $1.90  $-1.90    CUW lost; edge was real (+0.035 vs fair) but outcome didn't land
+    [LOSS] blitz    draw  $3.10  $-3.10    draw lost; edge was real (+0.057 vs fair) but outcome didn't land
+
+  Canada vs Bosnia and Herzegovina  →  actual: draw
+    [WIN ] blitz    draw  $2.30  $+6.06    correctly spotted draw underpriced (mkt 0.275 vs our 0.301)
+
+  Qatar vs Switzerland  →  actual: draw
+    [LOSS] blitz    QAT   $1.79  $-1.79    QAT lost; edge was real (+0.027 vs fair) but outcome didn't land
+    [WIN ] blitz    draw  $1.58  $+11.06   correctly spotted draw underpriced (mkt 0.125 vs our 0.147)
+
+  Brazil vs Morocco  →  actual: draw
+    [LOSS] blitz    MAR   $3.17  $-3.17    MAR lost; edge was real (+0.044 vs fair) but outcome didn't land
+
+  Haiti vs Scotland  →  actual: SCO
+    [LOSS] blitz    draw  $1.92  $-1.92    draw lost; edge was real (+0.025 vs fair) but outcome didn't land
+
+════════════════════════════════════════════════════════════════════════════════
+  BEHAVIORAL NOTES
+════════════════════════════════════════════════════════════════════════════════
+
+  1. IDENTICAL PROBABILITIES — All 4 agents share one brain. Probability output is
+     identical; only risk profiles (edge bars, size, scout veto) differ.
+
+  2. ORDERS ≠ TOP PREDICTION — Agents bet on draws/underdogs even when their top
+     pick is the favourite, because the EV engine measures edge vs the DE-VIGGED
+     fair price. If the market overprices the favourite, the +EV bet is on the
+     other side.
+     Example — Germany vs Curacao: top pick = GER (84.7%), but orders = DRAW + CUW
+     because GER market (94.4%) exceeds our estimate → GER has NEGATIVE edge.
+
+  3. MONK (ORACLE) never fired — requires ≥10pp edge AND conf ≥ medium (0.55).
+     No game cleared both bars simultaneously.
+
+  4. BLITZ (SURGE) placed 8 orders on 6 games — the most active agent by design.
+     It fires on ≥2pp edge with scout veto off.
+
+  5. HUNTER (SAW) skipped Brazil vs Morocco despite a +4.45pp edge on MAR because
+     of a high-severity scout flag; only blitz (scout_veto=False) took that bet.
+
+  6. AUSTRALIA UPSET — biggest surprise: AUS was only 28% in our model (market 17.5%)
+     yet won. All three agents that fired on AUS (anchor, hunter, blitz) won.
+     The +10.41pp edge vs fair was the largest edge of any order placed.
+
+  7. ALL HALFTIME WINDOWS SKIPPED — ht_window_not_open at check time for every game.
+
+════════════════════════════════════════════════════════════════════════════════
+
+════════════════════════════════════════════════════════════════════════════════
+  COUNTERFACTUAL — WHAT EACH AGENT PREDICTED & WHAT WOULD HAVE HAPPENED
+  (If every agent had simply placed a max-profile-size bet on its top pick)
+════════════════════════════════════════════════════════════════════════════════
+
+  Mexico vs South Africa  →  actual: MEX
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  Korea Republic vs Czech Republic  →  actual: KOR
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      KOR     0.365  0.3750  $2.00      [WIN ] $+3.33    — no order placed               $0.00 (no order)  $+3.33
+  anchor    KOR     0.365  0.3750  $4.00      [WIN ] $+6.67    — no order placed               $0.00 (no order)  $+6.67
+  hunter    KOR     0.365  0.3750  $5.00      [WIN ] $+8.33    — no order placed               $0.00 (no order)  $+8.33
+  blitz     KOR     0.365  0.3750  $5.00      [WIN ] $+8.33    — no order placed               $0.00 (no order)  $+8.33
+
+  Canada vs Bosnia and Herzegovina  →  actual: draw
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      CAN     0.498  0.5350  $2.00      [LOSS] $-2.00    — no order placed               $0.00 (no order)  $-2.00
+  anchor    CAN     0.498  0.5350  $4.00      [LOSS] $-4.00    — no order placed               $0.00 (no order)  $-4.00
+  hunter    CAN     0.498  0.5350  $5.00      [LOSS] $-5.00    — no order placed               $0.00 (no order)  $-5.00
+  blitz     CAN     0.498  0.5350  $5.00      [LOSS] $-5.00    draw $2.30                      $+6.06      $-11.06
+
+  United States vs Paraguay  →  actual: USA
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      USA     0.462  0.4650  $2.00      [WIN ] $+2.30    — no order placed               $0.00 (no order)  $+2.30
+  anchor    USA     0.462  0.4650  $4.00      [WIN ] $+4.60    — no order placed               $0.00 (no order)  $+4.60
+  hunter    USA     0.462  0.4650  $5.00      [WIN ] $+5.75    — no order placed               $0.00 (no order)  $+5.75
+  blitz     USA     0.462  0.4650  $5.00      [WIN ] $+5.75    — no order placed               $0.00 (no order)  $+5.75
+
+  Qatar vs Switzerland  →  actual: draw
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      SUI     0.769  0.8250  $2.00      [LOSS] $-2.00    — no order placed               $0.00 (no order)  $-2.00
+  anchor    SUI     0.769  0.8250  $4.00      [LOSS] $-4.00    — no order placed               $0.00 (no order)  $-4.00
+  hunter    SUI     0.769  0.8250  $5.00      [LOSS] $-5.00    — no order placed               $0.00 (no order)  $-5.00
+  blitz     SUI     0.769  0.8250  $5.00      [LOSS] $-5.00    QAT+draw $3.37                  $+9.27      $-14.27
+
+  Brazil vs Morocco  →  actual: draw
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      BRA     0.518  0.5850  $2.00      [LOSS] $-2.00    — no order placed               $0.00 (no order)  $-2.00
+  anchor    BRA     0.518  0.5850  $4.00      [LOSS] $-4.00    — no order placed               $0.00 (no order)  $-4.00
+  hunter    BRA     0.518  0.5850  $5.00      [LOSS] $-5.00    — no order placed               $0.00 (no order)  $-5.00
+  blitz     BRA     0.518  0.5850  $5.00      [LOSS] $-5.00    MAR $3.17                       $-3.17      $-1.83
+
+  Haiti vs Scotland  →  actual: SCO
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      SCO     0.599  0.6250  $2.00      [WIN ] $+1.20    — no order placed               $0.00 (no order)  $+1.20
+  anchor    SCO     0.599  0.6250  $4.00      [WIN ] $+2.40    — no order placed               $0.00 (no order)  $+2.40
+  hunter    SCO     0.599  0.6250  $5.00      [WIN ] $+3.00    — no order placed               $0.00 (no order)  $+3.00
+  blitz     SCO     0.599  0.6250  $5.00      [WIN ] $+3.00    draw $1.92                      $-1.92      $+4.92
+
+  Australia vs Türkiye  →  actual: AUS
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      TUR     0.430  0.5650  $2.00      [LOSS] $-2.00    — no order placed               $0.00 (no order)  $-2.00
+  anchor    TUR     0.430  0.5650  $4.00      [LOSS] $-4.00    AUS $2.00                       $+9.43      $-13.43
+  hunter    TUR     0.430  0.5650  $5.00      [LOSS] $-5.00    AUS $5.00                       $+23.57     $-28.57
+  blitz     TUR     0.430  0.5650  $5.00      [LOSS] $-5.00    AUS $5.00                       $+23.57     $-28.57
+
+  Germany vs Curacao  →  actual: GER
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      GER     0.847  0.9435  $2.00      [WIN ] $+0.12    — no order placed               $0.00 (no order)  $+0.12
+  anchor    GER     0.847  0.9435  $4.00      [WIN ] $+0.24    draw $2.01                      $-2.01      $+2.25
+  hunter    GER     0.847  0.9435  $5.00      [WIN ] $+0.30    CUW+draw $5.00                  $-5.00      $+5.30
+  blitz     GER     0.847  0.9435  $5.00      [WIN ] $+0.30    CUW+draw $5.00                  $-5.00      $+5.30
+
+  Netherlands vs Japan  →  actual: pending
+  Agent     Predicted  Our p   Mkt p   CF stake  CF P&L    Actual order                    Actual P&L  Δ(CF-actual)
+  ────────────────────────────────────────────────────────────────────────────────────────────────────
+  monk      NED     0.444  0.4650  $2.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
+  anchor    NED     0.444  0.4650  $4.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
+  hunter    NED     0.444  0.4650  $5.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
+  blitz     NED     0.444  0.4650  $5.00      [PEND] pending   — no order placed               $0.00 (no order)  pending
+
+────────────────────────────────────────────────────────────────────────────────
+            COUNTERFACTUAL TOTALS (bet top pick at market price each game)
+  Agent     CF stake    CF P&L      CF ROI    CF W/L    ||  Actual stake  Actual P&L  Actual ROI
+  ──────────────────────────────────────────────────────────────────────────────────────────
+  monk      $   16.00  $   -1.05  -6.6%     4W/4L     ||  $      0.00  $   +0.00  —       
+  anchor    $   32.00  $   -2.09  -6.5%     4W/4L     ||  $      4.01  $   +7.42  +185.0% 
+  hunter    $   40.00  $   -2.62  -6.6%     4W/4L     ||  $     10.00  $  +18.57  +185.7% 
+  blitz     $   40.00  $   -2.62  -6.6%     4W/4L     ||  $     20.76  $  +28.81  +138.8% 
+
+  NOTE: Counterfactual uses profile max bet at Polymarket mid price.
+  Actual orders used Kelly sizing vs de-vigged fair price.
+  A positive Δ(CF-actual) means top-pick betting would have outperformed EV betting.
+════════════════════════════════════════════════════════════════════════════════
