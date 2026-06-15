@@ -187,7 +187,8 @@ PREDICT_SYS = (
 
     "## Input\n"
     "  - sportmonks_digest : ML probabilities, bookmaker consensus, xG\n"
-    "  - supabase_digest   : historical priors, H2H, set-piece efficiency\n\n"
+    "  - supabase_digest   : historical priors, H2H, set-piece efficiency\n"
+    "  - bzzoiro_digest    : BZZOIRO API stats, momentum, ML predictions, lineups\n\n"
 
     "## Output schema (return ONLY valid JSON — no prose, no code fences)\n"
     "{\n"
@@ -197,7 +198,8 @@ PREDICT_SYS = (
     "  'rationale'        : str,       // 2-4 sentences; name signals and caveats\n"
     "  'used_signals': {\n"
     "    'sportmonks' : 'leaned_on' | 'unavailable',\n"
-    "    'supabase'   : 'leaned_on' | 'unavailable'\n"
+    "    'supabase'   : 'leaned_on' | 'unavailable',\n"
+    "    'bzzoiro'    : 'leaned_on' | 'unavailable'\n"
     "  },\n"
     "  'confidence_level' : 'high' | 'medium' | 'low'\n"
     "}\n\n"
@@ -312,6 +314,7 @@ def ht_predict_input(
     ht_snapshot: list[dict],
     ht_score: list[dict],
     ht_stats_sportmonks: dict,
+    bz_digest: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
@@ -322,6 +325,7 @@ def ht_predict_input(
         "ht_snapshot_supabase": ht_snapshot,
         "ht_score_supabase":    ht_score,
         "ht_stats_sportmonks":  ht_stats_sportmonks,
+        "bzzoiro_digest":       bz_digest,
     }, default=str)
 
 
@@ -379,7 +383,7 @@ def social_pulse_input(fixture_name: str, home_name: str, away_name: str,
 
 SCOUT_SYS = (
     "You are a rapid intelligence scout for a football betting desk. You receive "
-    "the structured match data plus unstructured external research (injury/lineup "
+    "the structured match data (including Sportmonks and BZZOIRO API) plus unstructured external research (injury/lineup "
     "headlines from the web, Reddit crowd chatter, and a live X/Twitter social "
     "pulse from Grok). Your only job is to surface FLAGS a deeper analyst must "
     "weigh — you do NOT predict the result.\n\n"
@@ -418,6 +422,7 @@ def scout_input(
     reddit_bundle: dict | None,
     social_pulse: dict | None = None,
     deterministic_context: dict | None = None,
+    bz_digest: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
@@ -425,6 +430,7 @@ def scout_input(
         "home_code": home_code,
         "away_code": away_code,
         "sportmonks_digest": sportmonks_digest,
+        "bzzoiro_digest": bz_digest,
         "deterministic_context": deterministic_context,
         "web_research": web_research,
         "reddit_sentiment": reddit_bundle,
@@ -490,6 +496,7 @@ def analyst_input(
     scout_output: dict | None,
     anchor: dict | None = None,
     deterministic_context: dict | None = None,
+    bz_digest: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
@@ -500,6 +507,7 @@ def analyst_input(
         "deterministic_context": deterministic_context,
         "sportmonks_digest": sportmonks_digest,
         "supabase_digest": supabase_digest,
+        "bzzoiro_digest": bz_digest,
         "scout_flags": scout_output,
     }, default=str)
 
@@ -550,6 +558,7 @@ def devil_input(
     sportmonks_digest: dict | None,
     supabase_digest: dict | None,
     deterministic_context: dict | None = None,
+    bz_digest: dict | None = None,
 ) -> str:
     import json
     return json.dumps({
@@ -560,6 +569,7 @@ def devil_input(
         "deterministic_context": deterministic_context,
         "sportmonks_digest": sportmonks_digest,
         "supabase_digest": supabase_digest,
+        "bzzoiro_digest": bz_digest,
     }, default=str)
 
 

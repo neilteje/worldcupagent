@@ -85,20 +85,54 @@ def build_supabase_digest(home_name: str, away_name: str, home_code: str,
         return None
 
 
+def build_bzzoiro_digest(home_name: str, away_name: str, match_date: str) -> dict | None:
+    """
+    Fetch BZZOIRO stats, predictions, and lineups.
+    """
+    try:
+        from data import bzzoiro, bzzoiro_mapper
+        
+        event_id = bzzoiro_mapper.get_bzzoiro_event_id(home_name, away_name, match_date)
+        if not event_id:
+            _warn(f"BZZOIRO event not found for {home_name} vs {away_name}")
+            return None
+            
+        stats = bzzoiro.get_event_stats(event_id)
+        prediction = bzzoiro.get_event_prediction(event_id)
+        lineups = bzzoiro.get_event_lineups(event_id)
+        
+        return {
+            "event_id": event_id,
+            "stats_summary": bzzoiro.extract_event_stats_summary(stats),
+            "ml_prediction": bzzoiro.extract_ml_probabilities(prediction),
+            "has_lineups": bool(lineups and lineups.get("lineups")),
+            "raw_stats": stats
+        }
+    except Exception as exc:
+        _warn(f"BZZOIRO digest failed for {home_name} vs {away_name}: {exc!r}")
+        return None
+
+
 def build_context(home_name: str, away_name: str, home_code: str, away_code: str,
                   *, sportmonks_fixture_id: int | None = None,
-                  fixture_name: str | None = None) -> dict:
+                  fixture_name: str | None = None,
+                  match_date: str | None = None) -> dict:
     """
     Assemble the council's structured grounding inputs.
 
     Returns {"sportmonks_digest": dict|None, "supabase_digest": dict|None,
-             "sources": {"sportmonks": bool, "supabase": bool}}.
+             "bzzoiro_digest": dict|None,
+             "sources": {"sportmonks": bool, "supabase": bool, "bzzoiro": bool}}.
     """
     sm = build_sportmonks_digest(sportmonks_fixture_id, home_code, away_code)
     sb = build_supabase_digest(home_name, away_name, home_code, away_code,
                                fixture_name=fixture_name)
+    
+    bz = build_bzzoiro_digest(home_name, away_name, match_date) if match_date else None
+    
     return {
         "sportmonks_digest": sm,
         "supabase_digest": sb,
-        "sources": {"sportmonks": sm is not None, "supabase": sb is not None},
+        "bzzoiro_digest": bz,
+        "sources": {"sportmonks": sm is not None, "supabase": sb is not None, "bzzoiro": bz is not None},
     }

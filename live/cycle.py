@@ -64,6 +64,7 @@ class Forecast:
     mids: dict = field(default_factory=dict)
     sm_digest: dict | None = None
     sb_digest: dict | None = None
+    bz_digest: dict | None = None
     pm_digest_result: Any = None     # LLM result obj (parsed/provider/model/…)
     kalshi_ml: dict = field(default_factory=dict)
     web_research: dict = field(default_factory=dict)
@@ -195,7 +196,10 @@ def _deterministic_v2_model(fx: Forecast, fixture: dict) -> dict:
     is_knockout = bool(stage) and "group" not in stage
     home_state = _state_from_prior(prior, "home")
     away_state = _state_from_prior(prior, "away")
-    out = predict_v2(home_state, away_state, market_probs=prior, cfg=cfg, is_knockout=is_knockout)
+    
+    bzzoiro_probs = (fx.bz_digest or {}).get("ml_prediction")
+    
+    out = predict_v2(home_state, away_state, market_probs=prior, bzzoiro_probs=bzzoiro_probs, cfg=cfg, is_knockout=is_knockout)
     confidence = float(out.get("confidence", 0.5) or 0.5)
     return {
         "probabilities": out["probabilities"],
@@ -254,6 +258,8 @@ def _state_from_independent_context(fx: Forecast, side: str) -> dict:
         "xg_against": 0.0,
         "goals_for": 0.0,
         "goals_against": 0.0,
+        "bzzoiro_xg": 0.0,
+        "bzzoiro_momentum": 0.0,
     }
 
     xg = (fx.sm_digest or {}).get("expected_goals") or {}
@@ -284,6 +290,13 @@ def _state_from_independent_context(fx: Forecast, side: str) -> dict:
             state["talent_score"] = max(0.0, min(5.0, float(ko_rate) * 5.0))
     except (TypeError, ValueError):
         pass
+        
+    bz = fx.bz_digest or {}
+    bz_stats = bz.get("stats_summary") or {}
+    if bz_stats:
+        state["bzzoiro_xg"] = float(bz_stats.get(f"{side}_xg", 0.0))
+        state["bzzoiro_momentum"] = float(bz_stats.get(f"{side}_momentum", 0.0))
+        
     return state
 
 
@@ -312,7 +325,10 @@ def _build_independent_forecast_snapshot(fx: Forecast, fixture: dict) -> dict:
     is_knockout = bool(stage) and "group" not in stage
     home_state = _state_from_independent_context(fx, "home")
     away_state = _state_from_independent_context(fx, "away")
-    out = predict_v2(home_state, away_state, market_probs=None, cfg=cfg, is_knockout=is_knockout)
+    
+    bzzoiro_probs = (fx.bz_digest or {}).get("ml_prediction")
+    
+    out = predict_v2(home_state, away_state, market_probs=None, bzzoiro_probs=bzzoiro_probs, cfg=cfg, is_knockout=is_knockout)
     probabilities = out["probabilities"]
     confidence = max(0.0, min(1.0, float(out.get("confidence", 0.5) or 0.5)))
     coverage = _coverage_score(fx)
@@ -446,9 +462,11 @@ def gather_prematch(fixture_id: int) -> Forecast:
     # Structured digests (Sportmonks via fixture id, Supabase via names)
     ctx = fixture_bundle.build_context(
         fx.home_name, fx.away_name, fx.home_code, fx.away_code,
-        sportmonks_fixture_id=fixture_id, fixture_name=fx.fixture_name)
+        sportmonks_fixture_id=fixture_id, fixture_name=fx.fixture_name,
+        match_date=match_date)
     fx.sm_digest = ctx.get("sportmonks_digest")
     fx.sb_digest = ctx.get("supabase_digest")
+    fx.bz_digest = ctx.get("bzzoiro_digest")
 
     fx.independent_forecast = _build_independent_forecast_snapshot(fx, fixture)
     fx.forecast_snapshot_id = fx.independent_forecast["forecast_id"]
@@ -483,6 +501,7 @@ def gather_prematch(fixture_id: int) -> Forecast:
         fx.kickoff, fx.sm_digest, fx.sb_digest, fx.pm_digest_result.parsed,
         fx.kalshi_ml, fx.web_research, fx.reddit_bundle,
         deterministic_context=deterministic_context,
+        bz_digest=fx.bz_digest,
     )
     fx.cr = cr
     fx.probabilities = cr.probabilities

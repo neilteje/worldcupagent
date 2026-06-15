@@ -92,6 +92,7 @@ def run_council(
     web_research: dict | None,
     reddit_bundle: dict | None,
     deterministic_context: dict | None = None,
+    bz_digest: dict | None = None,
 ) -> CouncilResult:
     # 0 — Social pulse: Grok reads live X/Twitter + news for breaking signals.
     pulse = _safe_call(
@@ -113,7 +114,7 @@ def run_council(
         SCOUT_SYS,
         scout_input(fixture_name, home_code, away_code,
                     sportmonks_digest, web_research, reddit_bundle, social_pulse,
-                    deterministic_context=deterministic_context),
+                    deterministic_context=deterministic_context, bz_digest=bz_digest),
         model=config.SCOUT_MODEL,
         thinking_budget=config.SCOUT_THINKING_BUDGET,
     )
@@ -128,7 +129,7 @@ def run_council(
         analyst_input(fixture_name, home_code, away_code,
                       sportmonks_digest, supabase_digest, scout.parsed,
                       anchor=anchor,
-                      deterministic_context=deterministic_context),
+                      deterministic_context=deterministic_context, bz_digest=bz_digest),
         model=config.ANALYST_MODEL,
         thinking_budget=config.THINKING_BUDGET,
     )
@@ -140,7 +141,7 @@ def run_council(
         DEVIL_SYS,
         devil_input(fixture_name, home_code, away_code,
                     analyst.parsed, sportmonks_digest, supabase_digest,
-                    deterministic_context=deterministic_context),
+                    deterministic_context=deterministic_context, bz_digest=bz_digest),
         model=config.DEVIL_MODEL,
     )
 

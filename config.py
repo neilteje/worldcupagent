@@ -54,6 +54,12 @@ SUPABASE_KEY: str = (
     or "sb_publishable__m8bOkD05ToFwATpaWST5w_2-3fGS7V"  # shared staging key
 )
 
+# ── BZZOIRO Football API ───────────────────────────────────────────────────
+BZZOIRO_KEY: str = os.environ.get("BZZOIRO_KEY") or os.environ.get("BZZOIRO_API_KEY", "")
+BZZOIRO_BASE: str = "https://sports.bzzoiro.com"
+BZZOIRO_API: str = f"{BZZOIRO_BASE}/api"
+
+
 # ── LLM keys ───────────────────────────────────────────────────────────────
 # Accept both naming conventions (ANTHROPIC_KEY and ANTHROPIC_API_KEY)
 ANTHROPIC_KEY: str = os.environ.get("ANTHROPIC_KEY") or os.environ.get("ANTHROPIC_API_KEY", "")

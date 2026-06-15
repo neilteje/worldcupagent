@@ -35,6 +35,8 @@ class StrengthConfig:
     continent_advantage_goals: float = 0.10 # goal supremacy edge if matching host continent
     talent_rating_bonus: float = 0.05   # weight given to squad talent depth score (0-5)
     h2h_xg_tilt: float = 0.10           # how much to tilt xG supremacy based on H2H win rate diff
+    bz_xg_weight: float = 0.30          # weight to blend BZZOIRO xG into the form attack
+    bz_momentum_weight: float = 0.15    # weight of BZZOIRO momentum added to effective rating
 
 
 def effective_rating(state: dict, cfg: "StrengthConfig", is_knockout: bool = False) -> float:
@@ -43,13 +45,15 @@ def effective_rating(state: dict, cfg: "StrengthConfig", is_knockout: bool = Fal
     Falls back to whichever signal is present."""
     live = float((state or {}).get("live_rating", 0.0) or 0.0)
     talent_bonus = float((state or {}).get("talent_score", 0.0) or 0.0) * cfg.talent_rating_bonus
+    bz_momentum = float((state or {}).get("bzzoiro_momentum", 0.0) or 0.0) / 100.0 * cfg.bz_momentum_weight
+    
     if "elo_scaled" not in (state or {}):
-        return live + talent_bonus
+        return live + talent_bonus + bz_momentum
     elo = float(state.get("elo_scaled", 0.0) or 0.0)
     b = max(0.0, min(1.0, cfg.elo_blend))
     if is_knockout:
         b = max(0.0, min(1.0, b + cfg.ko_experience_weight))
-    return b * elo + (1 - b) * live + talent_bonus
+    return b * elo + (1 - b) * live + talent_bonus + bz_momentum
 
 
 def _team_form(state: dict, cfg: StrengthConfig) -> tuple[float, float]:
@@ -71,6 +75,11 @@ def _team_form(state: dict, cfg: StrengthConfig) -> tuple[float, float]:
         attack -= (g_for - xg_for) * cfg.xg_regression_penalty
     if g_ag < xg_ag - 0.2:
         concede += (xg_ag - g_ag) * cfg.xg_regression_penalty
+        
+    # Mix BZZOIRO xG
+    bz_xg = float(state.get("bzzoiro_xg", 0.0))
+    if bz_xg > 0.0:
+        attack = (1 - cfg.bz_xg_weight) * attack + cfg.bz_xg_weight * bz_xg
         
     # Sample-size shrinkage toward the league average.
     shrink = matches / (matches + cfg.shrink_matches)
