@@ -25,6 +25,14 @@ def test_supabase_known_missing_cote_divoire_is_coverage_gap(monkeypatch):
     assert supabase_client.resolve_country_id("Ecuador") == 65
 
 
+def test_supabase_resolves_cape_verde_aliases(monkeypatch):
+    from data import supabase_client
+
+    monkeypatch.setattr(supabase_client, "_COUNTRY_ID_MAP", {"cape verde": 44})
+    assert supabase_client.resolve_country_id("Cape Verde Islands") == 44
+    assert supabase_client.resolve_country_id("Cabo Verde") == 44
+
+
 def test_reddit_fallback_counts_web_snippets(monkeypatch):
     from data import reddit_sentiment
 

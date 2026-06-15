@@ -124,6 +124,25 @@ def test_bzzoiro_mapper_event_resolution(monkeypatch):
     assert event_id == 99999
 
 
+def test_bzzoiro_mapper_resolves_cape_verde_alias():
+    from datetime import datetime
+
+    mapping = bzzoiro_mapper.map_event(
+        "internal",
+        "Spain",
+        "Cape Verde Islands",
+        datetime.fromisoformat("2026-06-15T16:00:00+00:00"),
+        [{
+            "id": 19609162,
+            "home_team": "Spain",
+            "away_team": "Cape Verde",
+            "event_date": "2026-06-15T16:00:00Z",
+        }],
+    )
+    assert mapping.bzzoiro_event_id == "19609162"
+    assert mapping.confidence >= 0.8
+
+
 def test_bzzoiro_deterministic_v2_predictions():
     home_state = {"live_rating": 0.0, "matches": 0}
     away_state = {"live_rating": 0.0, "matches": 0}

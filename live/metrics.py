@@ -60,7 +60,7 @@ def runtime_metadata() -> dict:
         },
         "active_data_sources": [
             "sportmonks", "supabase", "bzzoiro", "web", "reddit", "grok",
-            "polymarket", "odds2prob", "live_state",
+            "polymarket", "live_state",
         ],
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
     }

@@ -105,8 +105,14 @@ class BzzoiroAPIClient:
         
         results = list(self._paginate("v2/events/", params))
         if away_team_name and results and isinstance(results[0], dict) and "error" not in results[0]:
-            away_lower = away_team_name.lower()
-            results = [r for r in results if away_lower in _team_name(r.get("away_team")).lower()]
+            from data.bzzoiro_mapper import canonicalize_team_name
+
+            away_norm = canonicalize_team_name(away_team_name)
+            results = [
+                r for r in results
+                if away_norm in canonicalize_team_name(_team_name(r.get("away_team")))
+                or canonicalize_team_name(_team_name(r.get("away_team"))) in away_norm
+            ]
         return results
 
     def get_event_stats(self, event_id: int) -> dict:

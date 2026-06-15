@@ -35,7 +35,10 @@ def _get_anthropic():
     global _anthropic_client
     if _anthropic_client is None and config.ANTHROPIC_KEY:
         import anthropic
-        _anthropic_client = anthropic.Anthropic(api_key=config.ANTHROPIC_KEY)
+        _anthropic_client = anthropic.Anthropic(
+            api_key=config.ANTHROPIC_KEY,
+            timeout=config.PRIMARY_LLM_TIMEOUT_SECONDS,
+        )
     return _anthropic_client
 
 
@@ -43,7 +46,10 @@ def _get_openai():
     global _openai_client
     if _openai_client is None and config.OPENAI_KEY:
         from openai import OpenAI
-        _openai_client = OpenAI(api_key=config.OPENAI_KEY)
+        _openai_client = OpenAI(
+            api_key=config.OPENAI_KEY,
+            timeout=config.PRIMARY_LLM_TIMEOUT_SECONDS,
+        )
     return _openai_client
 
 
@@ -59,6 +65,7 @@ def _get_openrouter():
         kwargs = {
             "api_key": config.OPENROUTER_KEY,
             "base_url": config.OPENROUTER_BASE_URL,
+            "timeout": config.PRIMARY_LLM_TIMEOUT_SECONDS,
         }
         if headers:
             kwargs["default_headers"] = headers
@@ -213,6 +220,7 @@ def call_claude(
                 thinking={"type": "enabled", "budget_tokens": budget},
                 system=system,
                 messages=[{"role": "user", "content": user_content}],
+                timeout=config.PRIMARY_LLM_TIMEOUT_SECONDS,
             )
             text, thinking = _extract_text_and_thinking(resp)
             return LLMResult(
@@ -257,6 +265,7 @@ def _call_openai_compatible_result(
             {"role": "system", "content": system},
             {"role": "user",   "content": user_content},
         ],
+        timeout=config.PRIMARY_LLM_TIMEOUT_SECONDS,
     )
     text, thinking = _chat_message_text_and_thinking(resp.choices[0].message)
     return LLMResult(

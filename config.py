@@ -98,6 +98,7 @@ DEVIL_MODEL: str = "deepseek-reasoner"             # raw chain-of-thought contra
 JUDGE_MODEL: str = ANTHROPIC_MODEL                 # final calibrated synthesis
 GROK_MODEL: str = os.environ.get("GROK_MODEL", "grok-4.3")  # live X/social pulse
 SCOUT_THINKING_BUDGET: int = 1024
+PRIMARY_LLM_TIMEOUT_SECONDS: int = _env_int("PRIMARY_LLM_TIMEOUT_SECONDS", 90)
 DEVIL_TIMEOUT_SECONDS: int = 120                   # DeepSeek-R1 can be slow
 GROK_TIMEOUT_SECONDS: int = 60
 
@@ -148,6 +149,8 @@ ANCHOR_MAX_BETS_PER_FIXTURE: int = _env_int("ANCHOR_MAX_BETS_PER_FIXTURE", 1)
 HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", 0.02)
 HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.005)
 HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE: int = _env_int("HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE", 3)
+BLITZ_MIN_CONSERVATIVE_EDGE: float = _env_float("BLITZ_MIN_CONSERVATIVE_EDGE", -1.0)
+BLITZ_MIN_EV_AFTER_COSTS: float = _env_float("BLITZ_MIN_EV_AFTER_COSTS", 0.005)
 
 # Minimum independent-forecast data coverage a coordinated recommendation needs.
 MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.25)
@@ -161,7 +164,7 @@ CONVICTION_MIN_PROB: float = _env_float("CONVICTION_MIN_PROB", 0.10)
 # Supplemental bookmaker calibration. odds2prob de-vigs raw 1X2 decimal odds
 # with calibrated Power/Shin models. It supports the deterministic engine and
 # council as an extra probability read; it is never required for a cycle.
-ODDS2PROB_ENABLED: bool = _env_bool("ODDS2PROB_ENABLED", True)
+ODDS2PROB_ENABLED: bool = _env_bool("ODDS2PROB_ENABLED", False)
 ODDS2PROB_URL: str = os.environ.get("ODDS2PROB_URL", "https://odds2prob.onrender.com")
 ODDS2PROB_MODEL: str = os.environ.get("ODDS2PROB_MODEL", "average")
 ODDS2PROB_TIMEOUT_SECONDS: int = _env_int("ODDS2PROB_TIMEOUT_SECONDS", 8)
@@ -197,7 +200,7 @@ MONK_INDEPENDENT_ENABLED: bool = _env_bool("MONK_INDEPENDENT_ENABLED", True)
 ANCHOR_INDEPENDENT_VALUE_ENABLED: bool = _env_bool("ANCHOR_INDEPENDENT_VALUE_ENABLED", True)
 HUNTER_SPECIALIZED_MODELS_ENABLED: bool = _env_bool("HUNTER_SPECIALIZED_MODELS_ENABLED", True)
 JOINT_PORTFOLIO_ENABLED: bool = _env_bool("JOINT_PORTFOLIO_ENABLED", True)
-BZZOIRO_ENABLED: bool = _env_bool("BZZOIRO_ENABLED", False)
+BZZOIRO_ENABLED: bool = _env_bool("BZZOIRO_ENABLED", bool(BZZOIRO_KEY))
 BZZOIRO_MODEL_SHADOW_ONLY: bool = _env_bool("BZZOIRO_MODEL_SHADOW_ONLY", True)
 BZZOIRO_MODEL_WEIGHT: float = _env_float("BZZOIRO_MODEL_WEIGHT", 0.0)
 BZZOIRO_TIMEOUT_SECONDS: int = _env_int("BZZOIRO_TIMEOUT_SECONDS", 10)

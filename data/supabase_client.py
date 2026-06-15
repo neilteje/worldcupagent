@@ -81,11 +81,19 @@ _NAME_ALIASES = {
     "iran": "iran",
     "ir iran": "iran",
     "czechia": "czech republic",
+    "cape verde islands": "cape verde",
+    "cape verde island": "cape verde",
+    "cabo verde": "cape verde",
+    "cabo verde islands": "cape verde",
 }
 
 # Countries expected in WC fixtures but absent from the current StatsBomb prior
 # snapshot. Treat these as coverage gaps, not resolver surprises.
 _KNOWN_MISSING_COUNTRIES = {
+    "cape verde",
+    "cape verde islands",
+    "cabo verde",
+    "cabo verde islands",
     "cote d ivoire",
     "cote d'ivoire",
     "côte d'ivoire",

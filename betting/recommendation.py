@@ -76,8 +76,8 @@ def thresholds_for(agent_name: str) -> AgentEdgeThresholds:
     if name == "blitz":
         return AgentEdgeThresholds(
             signal_type="event_trigger",
-            min_conservative_edge=getattr(config, "BLITZ_MIN_CONSERVATIVE_EDGE", 0.02),
-            min_ev_after_costs=0.0,
+            min_conservative_edge=getattr(config, "BLITZ_MIN_CONSERVATIVE_EDGE", -1.0),
+            min_ev_after_costs=getattr(config, "BLITZ_MIN_EV_AFTER_COSTS", 0.005),
             min_data_coverage=0.0,
             min_independent_signals=1,
         )
