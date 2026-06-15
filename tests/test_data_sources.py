@@ -33,6 +33,29 @@ def test_supabase_resolves_cape_verde_aliases(monkeypatch):
     assert supabase_client.resolve_country_id("Cabo Verde") == 44
 
 
+def test_supabase_resolves_world_cup_name_aliases(monkeypatch):
+    from data import supabase_client
+
+    monkeypatch.setattr(supabase_client, "_COUNTRY_ID_MAP", {
+        "usa": 241,
+        "turkey": 233,
+        "korea south": 121,
+    })
+    assert supabase_client.resolve_country_id("United States") == 241
+    assert supabase_client.resolve_country_id("Türkiye") == 233
+    assert supabase_client.resolve_country_id("Korea Republic") == 121
+
+
+def test_supabase_known_missing_world_cup_coverage_gaps(monkeypatch):
+    from data import supabase_client
+
+    monkeypatch.setattr(supabase_client, "_COUNTRY_ID_MAP", {})
+    for name in ("Bosnia and Herzegovina", "Congo DR", "Iraq", "Algeria",
+                 "Jordan", "Uzbekistan", "Curacao"):
+        assert supabase_client.resolve_country_id(name) is None
+        assert supabase_client.known_missing_country(name)
+
+
 def test_reddit_fallback_counts_web_snippets(monkeypatch):
     from data import reddit_sentiment
 

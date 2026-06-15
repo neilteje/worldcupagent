@@ -21,16 +21,32 @@ class EventMapping:
 
 
 TEAM_ALIASES = {
+    "bosnia and herzegovina": "bosnia and herzegovina",
+    "bosnia herzegovina": "bosnia and herzegovina",
     "cote d'ivoire": "ivory coast",
     "cote d ivoire": "ivory coast",
     "cape verde islands": "cape verde",
     "cape verde island": "cape verde",
     "cabo verde": "cape verde",
     "cabo verde islands": "cape verde",
+    "czechia": "czech republic",
     "korea republic": "south korea",
     "korea dpr": "north korea",
     "usa": "united states",
     "united states of america": "united states",
+    "dr congo": "congo dr",
+}
+
+BZZOIRO_QUERY_ALIASES = {
+    "bosnia and herzegovina": ("Bosnia", "Bosnia & Herzegovina"),
+    "cape verde": ("Cabo Verde",),
+    "cape verde islands": ("Cabo Verde",),
+    "czech republic": ("Czechia",),
+    "korea republic": ("South Korea",),
+    "south korea": ("South Korea",),
+    "united states": ("USA",),
+    "united states of america": ("USA",),
+    "congo dr": ("DR Congo", "Congo"),
 }
 
 
@@ -57,6 +73,23 @@ def _names_match(target: str, candidate: str) -> bool:
         return False
     overlap = len(target_tokens & candidate_tokens)
     return overlap / min(len(target_tokens), len(candidate_tokens)) >= 0.75
+
+
+def search_variants(name: str) -> list[str]:
+    """BZZOIRO API query names to try, ordered from source name to aliases."""
+    raw = str(name or "").strip()
+    canonical = canonicalize_team_name(raw)
+    variants = [raw]
+    variants.extend(BZZOIRO_QUERY_ALIASES.get(canonical, ()))
+    variants.extend(BZZOIRO_QUERY_ALIASES.get(raw.lower(), ()))
+    out: list[str] = []
+    seen: set[str] = set()
+    for value in variants:
+        key = value.strip().lower()
+        if value and key not in seen:
+            seen.add(key)
+            out.append(value)
+    return out
 
 
 def _team_name(value) -> str:
@@ -177,14 +210,16 @@ def get_bzzoiro_event_id(home_name: str, away_name: str, match_date: str) -> int
         date_from = ""
         date_to = ""
 
-    results = bzzoiro.search_events(home_name, away_name, date_from, date_to)
-    mapping = map_event("internal", home_name, away_name, dt, results)
-    if mapping.bzzoiro_event_id is not None:
-        return int(mapping.bzzoiro_event_id)
+    for home_query in search_variants(home_name):
+        for away_query in search_variants(away_name):
+            results = bzzoiro.search_events(home_query, away_query, date_from, date_to)
+            mapping = map_event("internal", home_name, away_name, dt, results)
+            if mapping.bzzoiro_event_id is not None:
+                return int(mapping.bzzoiro_event_id)
 
-    results_fb = bzzoiro.search_events(home_name, "", date_from, date_to)
-    mapping_fb = map_event("internal", home_name, away_name, dt, results_fb)
-    if mapping_fb.bzzoiro_event_id is not None:
-        return int(mapping_fb.bzzoiro_event_id)
+        results_fb = bzzoiro.search_events(home_query, "", date_from, date_to)
+        mapping_fb = map_event("internal", home_name, away_name, dt, results_fb)
+        if mapping_fb.bzzoiro_event_id is not None:
+            return int(mapping_fb.bzzoiro_event_id)
 
     return None

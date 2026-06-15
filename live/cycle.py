@@ -393,6 +393,42 @@ def _market_probabilities_by_code(fx: Forecast) -> dict:
     return _hda_to_code(hda, fx.home_code, fx.away_code)
 
 
+def _fmt_pct(value) -> str:
+    try:
+        return f"{float(value):.1%}"
+    except (TypeError, ValueError):
+        return "n/a"
+
+
+def _fmt_usd(value) -> str:
+    try:
+        return f"${float(value):.2f}"
+    except (TypeError, ValueError):
+        return "$0.00"
+
+
+def _recommendation_line(rec: dict) -> str:
+    outcome = fifa_code(rec.get("outcome") or rec.get("code") or "?")
+    stake = rec.get("recommended_stake")
+    stake_txt = f" stake={float(stake):.2%}" if isinstance(stake, (int, float)) else ""
+    return (
+        f"{outcome} p={_fmt_pct(rec.get('probability_mean'))} "
+        f"fill={_fmt_pct(rec.get('expected_fill_price') or rec.get('market_midpoint'))} "
+        f"ev_after_costs={_fmt_pct(rec.get('expected_value_after_costs'))}"
+        f"{stake_txt}"
+    )
+
+
+def _pick_line(p) -> str:
+    return (
+        f"{fifa_code(getattr(p, 'code', '?'))} "
+        f"{_fmt_usd(getattr(p, 'stake_usd', 0.0))} "
+        f"@ <= {_fmt_pct(getattr(p, 'limit_price', None))} "
+        f"(our={_fmt_pct(getattr(p, 'our_prob', None))}, "
+        f"fill={_fmt_pct(getattr(p, 'entry_price', None))})"
+    )
+
+
 def _build_independent_forecast_snapshot(fx: Forecast, fixture: dict) -> dict:
     from models.deterministic_v2 import EnsembleConfig, predict_v2
 
@@ -826,9 +862,22 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
     ) if fx.mids else None
     
     candidates = strategy.generate_candidates(agent_forecast, view, market)
+    if not market:
+        print(f"  [{agent.name}] trade decision: NO TRADE — no live market mids")
+    else:
+        print(f"  [{agent.name}] trade scan: {len(candidates)} candidate(s), "
+              f"wallet={_fmt_usd(available)}")
 
     # 5. Generate Recommendations
     recs = strategy.generate_recommendations(candidates, agent_forecast, view, market, available)
+    if recs:
+        for rec in recs:
+            status = "candidate" if getattr(rec, "should_trade", True) else (
+                f"abstain:{getattr(rec, 'abstain_reason', None) or 'unknown'}"
+            )
+            print(f"  [{agent.name}] recommendation {status}: {_recommendation_line(rec.to_dict())}")
+    elif market:
+        print(f"  [{agent.name}] trade decision: NO TRADE — no candidate cleared EV/profile gates")
 
     # 6. Coordinate (Portfolio)
     abstentions = sum(1 for r in recs if not getattr(r, "should_trade", True))
@@ -856,6 +905,8 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
             for rej in alloc.rejected:
                 rejected_payload.append(rej)
                 skip_reasons.append(f"portfolio {rej.get('reason')}")
+                print(f"  [{agent.name}] trade blocked: portfolio {rej.get('reason')} "
+                      f"({rej.get('outcome') or rej.get('code') or 'unknown'})")
             for rec in alloc.accepted:
                 recommendations_payload.append(rec.to_dict())
                 # Adapt the structured recommendation into the legacy pick shape.
@@ -883,11 +934,20 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         room = round(cycle_cap - spent, 2)
         if room < bet_policy.MIN_ORDER_USD:
             skip_reasons.append(f"{p.slot}: cycle cap ${cycle_cap:.2f} exhausted")
+            print(f"  [{agent.name}] trade blocked: {p.slot} cycle cap "
+                  f"{_fmt_usd(cycle_cap)} exhausted")
             continue
         p.stake_usd = min(p.stake_usd, room)
         spent += p.stake_usd
         capped.append(p)
     picks = capped
+    if picks:
+        for p in picks:
+            print(f"  [{agent.name}] trade decision: WILL {'SIMULATE' if dry_run else 'PLACE'} "
+                  f"BUY YES {_pick_line(p)}")
+    elif recs or skip_reasons:
+        reasons = "; ".join(skip_reasons) if skip_reasons else "accepted recommendations became zero-sized"
+        print(f"  [{agent.name}] trade decision: NO TRADE — {reasons}")
     gate_info = {}
 
     # Tool-call records for the shared bundle (the calls genuinely happened
@@ -1067,6 +1127,8 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
             upstream_ids=[rec_decision["record_id"]])
     for p in picks:
         if dry_run:
+            print(f"  [{agent.name}] simulated order {fifa_code(p.code)} "
+                  f"{_fmt_usd(p.stake_usd)} @ <= {_fmt_pct(p.limit_price)}")
             order_results.append({"pick": p.to_dict(), "status": "dry_run",
                                   "execution": {"partial_fill_state": "simulated"}})
             session.acting_order(

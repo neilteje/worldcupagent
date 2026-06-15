@@ -143,6 +143,15 @@ def test_bzzoiro_mapper_resolves_cape_verde_alias():
     assert mapping.confidence >= 0.8
 
 
+def test_bzzoiro_search_variants_cover_world_cup_api_names():
+    assert "South Korea" in bzzoiro_mapper.search_variants("Korea Republic")
+    assert "Czechia" in bzzoiro_mapper.search_variants("Czech Republic")
+    assert "USA" in bzzoiro_mapper.search_variants("United States")
+    assert "Bosnia" in bzzoiro_mapper.search_variants("Bosnia and Herzegovina")
+    assert "Cabo Verde" in bzzoiro_mapper.search_variants("Cape Verde Islands")
+    assert "DR Congo" in bzzoiro_mapper.search_variants("Congo DR")
+
+
 def test_bzzoiro_deterministic_v2_predictions():
     home_state = {"live_rating": 0.0, "matches": 0}
     away_state = {"live_rating": 0.0, "matches": 0}

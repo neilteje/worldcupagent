@@ -71,10 +71,12 @@ _COUNTRY_ID_MAP: dict[str, int] | None = None
 
 # Hand-tuned aliases for names that differ between Sportmonks and StatsBomb.
 _NAME_ALIASES = {
-    "usa": "united states",
-    "united states of america": "united states",
-    "south korea": "korea republic",
+    "united states": "usa",
+    "united states of america": "usa",
+    "south korea": "korea south",
+    "korea republic": "korea south",
     "north korea": "korea dpr",
+    "turkiye": "turkey",
     "cote d ivoire": "ivory coast",
     "cote d'ivoire": "ivory coast",
     "côte d'ivoire": "ivory coast",
@@ -90,14 +92,23 @@ _NAME_ALIASES = {
 # Countries expected in WC fixtures but absent from the current StatsBomb prior
 # snapshot. Treat these as coverage gaps, not resolver surprises.
 _KNOWN_MISSING_COUNTRIES = {
+    "algeria",
+    "bosnia and herzegovina",
+    "bosnia herzegovina",
     "cape verde",
     "cape verde islands",
     "cabo verde",
     "cabo verde islands",
+    "congo dr",
+    "curacao",
     "cote d ivoire",
     "cote d'ivoire",
+    "dr congo",
+    "iraq",
     "côte d'ivoire",
     "ivory coast",
+    "jordan",
+    "uzbekistan",
 }
 
 
