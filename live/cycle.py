@@ -18,6 +18,7 @@ from typing import Any
 
 import config
 from data import sportmonks, supabase_client, polymarket as pm
+from data import odds2prob
 from data import web_search, reddit_sentiment
 from data import fixture_bundle
 from data.team_codes import fifa_code, normalize_probabilities
@@ -78,6 +79,7 @@ class Forecast:
     sm_digest: dict | None = None
     sb_digest: dict | None = None
     bz_digest: dict | None = None
+    odds2prob_digest: dict = field(default_factory=dict)
     pm_digest_result: Any = None     # LLM result obj (parsed/provider/model/…)
     web_research: dict = field(default_factory=dict)
     reddit_bundle: dict = field(default_factory=dict)
@@ -168,6 +170,9 @@ def _market_prior(fx: Forecast, fixture: dict) -> tuple[dict | None, str]:
         prior = _normalize_hda(mids)
         if prior:
             return prior, "polymarket"
+    bookmaker_calibrated = _normalize_hda((fx.odds2prob_digest or {}).get("probabilities"))
+    if bookmaker_calibrated:
+        return bookmaker_calibrated, "odds2prob_bookmaker"
     bookmaker = _normalize_hda(sportmonks.extract_bookmaker_probs(fixture))
     if bookmaker:
         return bookmaker, "sportmonks_bookmaker"
@@ -247,6 +252,7 @@ def _coverage_score(fx: Forecast) -> float:
         bool(fx.sm_digest),
         bool(fx.sb_digest),
         bool(fx.bz_digest),
+        bool((fx.odds2prob_digest or {}).get("available")),
         bool((fx.web_research or {}).get("total_results")),
         bool((fx.reddit_bundle or {}).get("threads_found")),
     ]
@@ -265,6 +271,7 @@ def _signal_coverage(fx: Forecast) -> dict:
         "sportmonks": bool(fx.sm_digest),
         "supabase": bool(fx.sb_digest),
         "bzzoiro": bool(fx.bz_digest),
+        "odds2prob": bool((fx.odds2prob_digest or {}).get("available")),
         "web_search": bool((fx.web_research or {}).get("total_results")),
         "reddit": bool((fx.reddit_bundle or {}).get("threads_found")),
         "grok_pulse": bool(pulse.get("summary") or pulse.get("breaking")
@@ -281,6 +288,8 @@ def _evidence_ids(fx: Forecast) -> list[str]:
         ids.append("supabase_digest")
     if fx.bz_digest:
         ids.append("bzzoiro_digest")
+    if (fx.odds2prob_digest or {}).get("available"):
+        ids.append("odds2prob_calibrated_bookmaker")
     for source in (fx.web_research or {}).get("sources") or []:
         ids.append(f"web:{source}")
     if (fx.reddit_bundle or {}).get("threads_found"):
@@ -392,6 +401,7 @@ def _build_independent_forecast_snapshot(fx: Forecast, fixture: dict) -> dict:
         "away_code": fx.away_code,
         "sm_digest": fx.sm_digest,
         "sb_digest": fx.sb_digest,
+        "odds2prob_digest": fx.odds2prob_digest,
         "web_sources": (fx.web_research or {}).get("sources") or [],
         "reddit_threads": (fx.reddit_bundle or {}).get("threads_found", 0),
         "home_state": home_state,
@@ -445,6 +455,7 @@ def _deterministic_context_for_council(fx: Forecast, fixture: dict) -> dict:
         "risk_flags": det["risk_flags"],
         "expected_goals": det["expected_goals"],
         "components": det["components"],
+        "odds2prob": fx.odds2prob_digest,
         "component_weights": det["weights"],
         "blended_raw": det["blended_raw"],
         "prior_hda": det["prior_hda"],
@@ -508,6 +519,12 @@ def gather_prematch(fixture_id: int) -> Forecast:
     fx.sm_digest = ctx.get("sportmonks_digest")
     fx.sb_digest = ctx.get("supabase_digest")
     fx.bz_digest = ctx.get("bzzoiro_digest")
+    fx.odds2prob_digest = odds2prob.from_fixture(fixture)
+    if fx.odds2prob_digest.get("available"):
+        probs = fx.odds2prob_digest.get("probabilities") or {}
+        print(f"  [live] odds2prob: { {k: round(v, 3) for k, v in probs.items()} }")
+    else:
+        print(f"  [live] odds2prob unavailable: {fx.odds2prob_digest.get('reason')}")
 
     fx.independent_forecast = _build_independent_forecast_snapshot(fx, fixture)
     fx.forecast_snapshot_id = fx.independent_forecast["forecast_id"]
@@ -555,6 +572,7 @@ def gather_prematch(fixture_id: int) -> Forecast:
     signal_coverage = _signal_coverage(fx)
     fx.grounding = {"council": cr.grounding, "deterministic_context": deterministic_context,
                     "independent_forecast": fx.independent_forecast,
+                    "odds2prob": fx.odds2prob_digest,
                     "market_probabilities": fx.market_probabilities,
                     "market_adjusted_probabilities": fx.market_adjusted_probabilities,
                     "signal_coverage": signal_coverage}
@@ -726,6 +744,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
             "sportmonks_digest": fx.sm_digest,
             "supabase_digest": fx.sb_digest,
             "bzzoiro_digest": fx.bz_digest,
+            "odds2prob_digest": fx.odds2prob_digest,
             "deterministic_model": fx.deterministic_model,
             # Codes + frozen independent snapshot let each agent map outcomes and
             # gate conservative edge against the SAME market-blind belief.
@@ -869,7 +888,10 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
             picks.append(p)
 
     # Per-cycle wallet cap: min($5, available − 5¢) across ALL orders.
-    cycle_cap = min(config.MAX_BET_USD, max(0.0, available - WALLET_BUFFER_USD))
+    cycle_cap = min(
+        profile.max_bet_usd * max(1, int(profile.max_bets_per_window)),
+        max(0.0, available - WALLET_BUFFER_USD),
+    )
     spent = 0.0
     capped: list = []
     for p in picks:
@@ -890,7 +912,8 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         description="Fixture detail with predictions/odds/xG",
         input_payload={"fixture_id": fx.fixture_id},
         output_payload={"fixture": fx.fixture_name, "kickoff": fx.kickoff,
-                        "sm_digest": fx.sm_digest},
+                        "sm_digest": fx.sm_digest,
+                        "odds2prob": fx.odds2prob_digest},
         success=fx.sm_digest is not None,
         upstream_ids=[rec_trigger["record_id"]])
     rec_pm = session.tool_call(
@@ -900,15 +923,24 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         output_payload={"market_source": fx.market_source, "mids": fx.mids},
         success=fx.moneyline is not None,
         upstream_ids=[rec_trigger["record_id"]])
-    upstream_data = [rec_sm["record_id"], rec_pm["record_id"]]
+    rec_odds2prob = session.tool_call(
+        name="odds2prob", endpoint="/convert",
+        description="Calibrated de-vigged bookmaker 1X2 probabilities",
+        input_payload=(fx.odds2prob_digest or {}).get("input_odds"),
+        output_payload=fx.odds2prob_digest,
+        via="external.odds2prob",
+        success=bool((fx.odds2prob_digest or {}).get("available")),
+        upstream_ids=[rec_sm["record_id"]])
+    upstream_data = [rec_sm["record_id"], rec_pm["record_id"], rec_odds2prob["record_id"]]
 
     if fx.window == "PRE_MATCH" and fx.cr is not None:
         rec_det = session.thinking(
             prompt_system="[DETERMINISTIC_V2] Elo + Poisson + market-prior calibrated ensemble",
             inputs=[{"record_id": rec_sm["record_id"], "payload": fx.sm_digest},
+                    {"record_id": rec_odds2prob["record_id"], "payload": fx.odds2prob_digest},
                     {"record_id": rec_pm["record_id"], "payload": fx.pm_digest_result.parsed}],
             output_payload=fx.deterministic_model,
-            upstream_ids=[rec_sm["record_id"], rec_pm["record_id"]])
+            upstream_ids=[rec_sm["record_id"], rec_odds2prob["record_id"], rec_pm["record_id"]])
         rec_web = session.tool_call(
             name="web_search", endpoint="search",
             description="Injury/lineup/preview research",

@@ -24,6 +24,15 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    val = os.environ.get(name, "").strip().lower()
+    if val in ("1", "true", "yes", "on"):
+        return True
+    if val in ("0", "false", "no", "off"):
+        return False
+    return default
+
+
 
 # ── Arena ──────────────────────────────────────────────────────────────────
 # Explicit STAIR_API_KEY / ARENA_KEY, else any AGENT_KEY_* (all work for data
@@ -118,14 +127,14 @@ FEE_BUFFER: float = _env_float("FEE_BUFFER", 0.01)
 SLIPPAGE_BUFFER: float = _env_float("SLIPPAGE_BUFFER", 0.01)
 MODEL_RISK_BUFFER: float = _env_float("MODEL_RISK_BUFFER", 0.02)
 
-MONK_MIN_CONSERVATIVE_EDGE: float = _env_float("MONK_MIN_CONSERVATIVE_EDGE", 0.08)
+MONK_MIN_CONSERVATIVE_EDGE: float = _env_float("MONK_MIN_CONSERVATIVE_EDGE", 0.06)
 MONK_MIN_CONFIDENCE: float = _env_float("MONK_MIN_CONFIDENCE", 0.65)
 MONK_KELLY_FRACTION: float = _env_float("MONK_KELLY_FRACTION", 0.10)
 MONK_MAX_BANKROLL_FRACTION: float = _env_float("MONK_MAX_BANKROLL_FRACTION", 0.015)
 MONK_MAX_BETS_PER_FIXTURE: int = _env_int("MONK_MAX_BETS_PER_FIXTURE", 1)
 
-ANCHOR_MIN_CONSERVATIVE_EDGE: float = _env_float("ANCHOR_MIN_CONSERVATIVE_EDGE", 0.05)
-ANCHOR_MIN_EV_AFTER_COSTS: float = _env_float("ANCHOR_MIN_EV_AFTER_COSTS", 0.03)
+ANCHOR_MIN_CONSERVATIVE_EDGE: float = _env_float("ANCHOR_MIN_CONSERVATIVE_EDGE", 0.035)
+ANCHOR_MIN_EV_AFTER_COSTS: float = _env_float("ANCHOR_MIN_EV_AFTER_COSTS", 0.015)
 ANCHOR_MIN_ENTRY_PRICE: float = _env_float("ANCHOR_MIN_ENTRY_PRICE", 0.10)
 ANCHOR_MAX_ENTRY_PRICE: float = _env_float("ANCHOR_MAX_ENTRY_PRICE", 0.80)
 ANCHOR_KELLY_FRACTION: float = _env_float("ANCHOR_KELLY_FRACTION", 0.20)
@@ -136,9 +145,9 @@ ANCHOR_MAX_BETS_PER_FIXTURE: int = _env_int("ANCHOR_MAX_BETS_PER_FIXTURE", 1)
 # coordinated three (monk strictest → anchor → hunter), paired with the biggest
 # Kelly in the profile. It backs the council's best-EV pick like the others, just
 # on thinner edges and at larger size.
-HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", 0.03)
-HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.01)
-HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE: int = _env_int("HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE", 1)
+HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", 0.02)
+HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.005)
+HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE: int = _env_int("HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE", 3)
 
 # Minimum independent-forecast data coverage a coordinated recommendation needs.
 MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.25)
@@ -147,7 +156,15 @@ MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.25)
 # the genuine best-EV outcome. No outcome the council gives below this real
 # probability is ever backed — kills payout-chasing on ~10x longshots, no matter
 # how cheap. (User directive: bet the prediction, not the lottery ticket.)
-CONVICTION_MIN_PROB: float = _env_float("CONVICTION_MIN_PROB", 0.12)
+CONVICTION_MIN_PROB: float = _env_float("CONVICTION_MIN_PROB", 0.10)
+
+# Supplemental bookmaker calibration. odds2prob de-vigs raw 1X2 decimal odds
+# with calibrated Power/Shin models. It supports the deterministic engine and
+# council as an extra probability read; it is never required for a cycle.
+ODDS2PROB_ENABLED: bool = _env_bool("ODDS2PROB_ENABLED", True)
+ODDS2PROB_URL: str = os.environ.get("ODDS2PROB_URL", "https://odds2prob.onrender.com")
+ODDS2PROB_MODEL: str = os.environ.get("ODDS2PROB_MODEL", "average")
+ODDS2PROB_TIMEOUT_SECONDS: int = _env_int("ODDS2PROB_TIMEOUT_SECONDS", 8)
 
 # Portfolio exposure caps as a fraction of bankroll. The allocator REJECTS (does
 # not shrink) a coordinated bet that would breach a cap, so these must clear a

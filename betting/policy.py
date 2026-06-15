@@ -73,24 +73,12 @@ def suppress_blitz_draw_picks(
     skip_reasons: list[str] | None = None,
 ) -> list[SizedPick]:
     """
-    Remove draw candidates for BLITZ immediately before order creation.
+    Compatibility shim for the retired BLITZ draw block.
 
-    This deliberately runs after BLITZ's existing selection logic.  It preserves
-    every non-draw pick already selected and never promotes a second-best outcome
-    that BLITZ did not independently select.
+    Draws are now allowed for every profile, including BLITZ. Keep this function
+    as a no-op so older call sites and tests do not need a shape change.
     """
-    if profile.name != "blitz":
-        return picks
-    kept: list[SizedPick] = []
-    removed = 0
-    for pick in picks:
-        if is_draw_outcome(pick.slot, pick.code):
-            removed += 1
-            continue
-        kept.append(pick)
-    if removed and skip_reasons is not None:
-        skip_reasons.extend([BLITZ_DRAW_DISABLED_REASON] * removed)
-    return kept
+    return picks
 
 
 def select_picks(

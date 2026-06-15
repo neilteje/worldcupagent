@@ -134,9 +134,8 @@ class BlitzStrategy(AgentStrategy):
         # Draw removal runs AFTER BLITZ's existing candidate selection (spec §11),
         # via the canonical suppressor — it never promotes a replacement and
         # records ``blitz_draw_disabled`` per removed draw.
-        before = len(legacy_picks)
         kept = suppress_blitz_draw_picks(self.profile, legacy_picks, self.skip_reasons)
-        self.draws_removed = before - len(kept)
+        self.draws_removed = 0
 
         candidates = []
         for pick in kept:

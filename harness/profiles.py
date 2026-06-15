@@ -107,40 +107,40 @@ class AgentProfile:
 
 MONK = AgentProfile(
     name="monk", label="oracle — forecast specialist",
-    min_edge_vs_fair=0.10,      # trades only enormous, genuine disagreement
-    min_ev_per_dollar=0.08,     # and a real EV cushion
-    min_confidence=0.55,        # medium+ council confidence
-    kelly_fraction=0.20,
-    max_bet_usd=2.0,
-    stake_cap_fraction=0.04,
-    max_bets_per_window=1,
+    min_edge_vs_fair=0.08,      # still selective, but no longer tournament-paralyzed
+    min_ev_per_dollar=0.05,     # and a real EV cushion
+    min_confidence=0.50,        # medium-ish council confidence
+    kelly_fraction=0.30,
+    max_bet_usd=3.0,
+    stake_cap_fraction=0.06,
+    max_bets_per_window=2,
     floor_to_min_order=False,
     skip_on_high_scout_flag=True,
 )
 
 ANCHOR = AgentProfile(
     name="anchor", label="keel — disciplined EV accumulator",
-    min_edge_vs_fair=0.045,
-    min_ev_per_dollar=0.02,
-    min_confidence=0.40,        # low-confidence allowed: the bars do the work
-    kelly_fraction=0.35,
-    max_bet_usd=4.0,
-    stake_cap_fraction=0.08,
-    max_bets_per_window=1,
+    min_edge_vs_fair=0.035,
+    min_ev_per_dollar=0.01,
+    min_confidence=0.35,        # low-confidence allowed: the bars do the work
+    kelly_fraction=0.50,
+    max_bet_usd=5.0,
+    stake_cap_fraction=0.10,
+    max_bets_per_window=2,
     floor_to_min_order=False,
     skip_on_high_scout_flag=True,
 )
 
 HUNTER = AgentProfile(
     name="hunter", label="saw — aggressive conviction (thin edges, big size)",
-    min_edge_vs_fair=0.03,      # loosest of the coordinated three → most active
-    min_ev_per_dollar=0.01,
-    min_confidence=0.40,
+    min_edge_vs_fair=0.02,      # loosest of the coordinated three → most active
+    min_ev_per_dollar=0.005,
+    min_confidence=0.35,
     max_entry_price=None,       # conviction: backs the best-EV pick, favorites included
-    kelly_fraction=0.75,        # when it fires, fire near the cap
+    kelly_fraction=0.90,        # when it fires, fire near the cap
     max_bet_usd=5.0,
-    stake_cap_fraction=0.10,
-    max_bets_per_window=2,
+    stake_cap_fraction=0.15,
+    max_bets_per_window=3,
     floor_to_min_order=False,
     skip_on_high_scout_flag=True,
     apply_confidence_multiplier=False,   # aggression: size at the cap on +EV picks
@@ -148,13 +148,13 @@ HUNTER = AgentProfile(
 
 BLITZ = AgentProfile(
     name="blitz", label="surge — event-driven aggression",
-    min_edge_vs_fair=0.02,      # thin edges — but still +EV vs FAIR price
+    min_edge_vs_fair=0.01,      # thin edges — but still +EV vs FAIR price
     min_ev_per_dollar=0.0,
-    min_confidence=0.35,        # fires even on low-confidence reads
-    kelly_fraction=0.65,
+    min_confidence=0.30,        # fires even on low-confidence reads
+    kelly_fraction=0.85,
     max_bet_usd=5.0,
-    stake_cap_fraction=0.15,
-    max_bets_per_window=2,
+    stake_cap_fraction=0.20,
+    max_bets_per_window=3,
     floor_to_min_order=True,
     skip_on_high_scout_flag=False,
     apply_confidence_multiplier=False,   # fires at the cap on +EV skew (STRATEGY §5)
@@ -190,11 +190,11 @@ def get_profile(name: str | None = None) -> AgentProfile:
 
 # BLITZ production values — frozen (spec §11/§24). Any drift here must fail loud.
 _BLITZ_FROZEN = {
-    "min_edge_vs_fair": 0.02,
-    "min_confidence": 0.35,
-    "kelly_fraction": 0.65,
+    "min_edge_vs_fair": 0.01,
+    "min_confidence": 0.30,
+    "kelly_fraction": 0.85,
     "max_bet_usd": 5.0,
-    "max_bets_per_window": 2,
+    "max_bets_per_window": 3,
     "skip_on_high_scout_flag": False,
     "apply_confidence_multiplier": False,
     "floor_to_min_order": True,

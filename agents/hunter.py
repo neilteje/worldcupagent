@@ -126,7 +126,10 @@ class HunterStrategy(AgentStrategy):
         market: MarketContext | None,
         bankroll: float,
     ) -> list[AgentRecommendation]:
-        limit = max(1, int(config.HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE))
+        limit = min(
+            self.profile.max_bets_per_window,
+            max(1, int(config.HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE)),
+        )
         ranked = sorted(candidates, key=lambda c: c.expected_value_after_costs or -1, reverse=True)
         return [
             reco_from_candidate(self.name, cand, view, forecast, bankroll, self.profile)
