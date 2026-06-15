@@ -7,7 +7,7 @@ import pytest
 from betting.policy import select_picks
 from harness.profiles import get_profile
 from ledger.client import LedgerSession
-from live.cycle import Forecast, _deterministic_context_for_council
+from live.cycle import Forecast, _deterministic_context_for_council, _outcome_to_code
 from live.state import LiveState
 from live.runner import LiveRunner, flatten_schedule, _parse_kickoff
 
@@ -162,6 +162,12 @@ def test_prediction_record_uses_fixture_id():
     assert 0.001 <= rec["parameters"]["probability"] <= 0.999
 
 
+def test_live_prediction_outcome_slots_normalize_to_team_codes():
+    assert _outcome_to_code("home", "MEX", "ZAF") == "MEX"
+    assert _outcome_to_code("away_win", "MEX", "ZAF") == "RSA"
+    assert _outcome_to_code("x", "MEX", "ZAF") == "draw"
+
+
 def test_planning_record_has_goal_and_steps():
     s = LedgerSession(1, "A vs B", "PRE_MATCH", api_key="k")
     rec = s.planning(goal="win", steps=["fetch", "think", "act"])
@@ -194,6 +200,45 @@ def test_session_ids_distinct_per_agent():
     b = LedgerSession(1, "A vs B", "PRE_MATCH", api_key="k2", agent_tag="blitz")
     assert a.session_id != b.session_id
     assert "monk" in a.session_id and "blitz" in b.session_id
+
+
+def test_ledger_submit_binds_session_to_fixture(monkeypatch, tmp_path):
+    import ledger.client as ledger_client
+
+    calls = []
+
+    class Resp:
+        def __init__(self, body, status_code=200):
+            self._body = body
+            self.status_code = status_code
+            self.is_success = status_code < 400
+            self.text = json.dumps(body)
+
+        def json(self):
+            return self._body
+
+        def raise_for_status(self):
+            if not self.is_success:
+                raise AssertionError(self.text)
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        calls.append((url, json))
+        if url.endswith("/validate"):
+            return Resp({"valid": True})
+        if "/ledger/sessions/" in url and url.endswith("/fixture"):
+            return Resp({"bound": True})
+        if url.endswith("/batch"):
+            return Resp({"records": [], "errors": []})
+        raise AssertionError(url)
+
+    monkeypatch.setattr(ledger_client.httpx, "post", fake_post)
+    monkeypatch.setattr(ledger_client, "_PAYLOAD_DIR", tmp_path)
+    s = LedgerSession(19609127, "MEX vs RSA", "PRE_MATCH", api_key="k")
+    s.trigger()
+    s.submit()
+    assert any("/ledger/sessions/" in url and body == {"fixture_id": "19609127"}
+               for url, body in calls)
+    assert calls[-1][1]["fixture_id"] == "19609127"
 
 
 # ── Runner helpers ───────────────────────────────────────────────────────────

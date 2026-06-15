@@ -35,6 +35,7 @@ import config
 
 _BATCH_URL = f"{config.ARENA_BASE}/api/v1/arena/ledger/records/batch"
 _VALIDATE_URL = f"{config.ARENA_BASE}/api/v1/arena/ledger/records/validate"
+_SESSION_BIND_URL = f"{config.ARENA_BASE}/api/v1/arena/ledger/sessions"
 _SCHEMA_VERSION = "0.3"
 
 # Local dump of every batch payload before POSTing (replay / forensics).
@@ -353,6 +354,31 @@ class LedgerSession:
         except Exception:
             return None
 
+    def bind_fixture(self) -> dict | None:
+        """
+        Idempotently bind this session to the arena fixture before batch submit.
+        The batch also includes top-level fixture_id; this mirrors the notebook
+        and is non-blocking if the endpoint is unavailable.
+        """
+        try:
+            resp = httpx.post(
+                f"{_SESSION_BIND_URL}/{self.session_id}/fixture",
+                headers={"x-api-key": self.api_key, "Content-Type": "application/json"},
+                json={"fixture_id": str(self.fixture_id)},
+                timeout=30,
+            )
+            if resp.status_code == 404:
+                return None
+            try:
+                body = resp.json()
+            except Exception:
+                body = {"body": resp.text[:400]}
+            if not resp.is_success:
+                return {"ok": False, "status_code": resp.status_code, **body}
+            return {"ok": True, "status_code": resp.status_code, **body}
+        except Exception as exc:
+            return {"ok": False, "error": repr(exc)}
+
     def submit(self, validate_first: bool = True) -> dict:
         """
         Batch-submit all records for this session.
@@ -381,6 +407,11 @@ class LedgerSession:
             if v and (v.get("errors") or not v.get("valid", True)):
                 print(f"  [ledger] validate flagged {len(v.get('errors') or [])} issue(s): "
                       f"{json.dumps((v.get('errors') or [])[:3], default=str)[:400]}")
+
+        bind = self.bind_fixture()
+        if bind and not bind.get("ok", True):
+            print(f"  [ledger] session fixture bind failed/non-blocking: "
+                  f"{json.dumps(bind, default=str)[:300]}")
 
         resp = httpx.post(
             _BATCH_URL,

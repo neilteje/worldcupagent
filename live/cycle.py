@@ -161,6 +161,19 @@ def _hda_values_to_code(values: dict, home_code: str, away_code: str) -> dict:
     }
 
 
+def _outcome_to_code(outcome: str | None, home_code: str, away_code: str) -> str:
+    """Normalize slot/model outcome labels to arena team codes."""
+    raw = str(outcome or "").strip()
+    low = raw.lower()
+    if low in ("home", "home_win", "1"):
+        return fifa_code(home_code, "HOME")
+    if low in ("away", "away_win", "2"):
+        return fifa_code(away_code, "AWAY")
+    if low in ("draw", "tie", "x"):
+        return "draw"
+    return fifa_code(raw, fifa_code(home_code, "HOME"))
+
+
 def _market_prior(fx: Forecast, fixture: dict) -> tuple[dict | None, str]:
     if fx.moneyline:
         mids = {
@@ -651,7 +664,7 @@ def gather_halftime(fixture_id: int, prematch_note: dict | None = None) -> Forec
         prematch_note, ht_snapshot, ht_score, ht_stats_sm))
     fx.ht_pred_result = result
     parsed = result.parsed or {}
-    fx.outcome = fifa_code(parsed.get("outcome"), fx.home_code)
+    fx.outcome = _outcome_to_code(parsed.get("outcome"), fx.home_code, fx.away_code)
     fx.probability = float(parsed.get("probability") or 0.34)
     fx.confidence = parsed.get("confidence_level", "low")
     fx.summary = parsed.get("rationale", "")
@@ -997,7 +1010,8 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
 
     # ── Prediction (scored even when we don't bet) ────────────────────────
     session.acting_prediction(
-        outcome=fx.outcome, probability=fx.probability,
+        outcome=_outcome_to_code(fx.outcome, fx.home_code, fx.away_code),
+        probability=fx.probability,
         upstream_ids=[rec_final["record_id"]])
 
     # ── Decision record ───────────────────────────────────────────────────

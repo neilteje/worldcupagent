@@ -217,9 +217,9 @@ class BlitzStrategy(AgentStrategy):
         market: MarketContext | None,
     ) -> list[TradeCandidate]:
         signals = valid_blitz_signals(view, now=view.as_of_timestamp)
-        candidates = conviction_candidates(forecast, view, market, self.profile, self.name, signals)
         if not signals:
-            return candidates
+            return []
+        candidates = conviction_candidates(forecast, view, market, self.profile, self.name, signals)
         valid_outcomes = set(signals)
         return [
             TradeCandidate(
