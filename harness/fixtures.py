@@ -22,8 +22,10 @@ import json
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from data.team_codes import fifa_code
+
 LOCAL_TZ = ZoneInfo("America/Chicago")
-DEFAULT_DATE = "2026-06-10"          # "tomorrow" relative to the request
+DEFAULT_DATE = (datetime.now(LOCAL_TZ) + timedelta(days=1)).date().isoformat()
 PREMATCH_LEAD_MIN = 5
 HT_OFFSET_MIN = 50
 
@@ -81,6 +83,11 @@ def load_fixtures(override_path: str | Path | None = None) -> list[Fixture]:
     Override format: a JSON list of objects with the Fixture fields. If present it
     fully replaces the defaults (so you can supply a different match day).
     """
+    if str(override_path or "").strip().lower() == "auto":
+        auto = load_sportmonks_fixtures()
+        if auto:
+            return auto
+        return list(DEFAULT_FIXTURES)
     if not override_path:
         return list(DEFAULT_FIXTURES)
     path = Path(override_path)
@@ -92,6 +99,41 @@ def load_fixtures(override_path: str | Path | None = None) -> list[Fixture]:
     for row in rows:
         out.append(Fixture(**{k: v for k, v in row.items() if k in valid}))
     return out or list(DEFAULT_FIXTURES)
+
+
+def load_sportmonks_fixtures() -> list[Fixture]:
+    """Build harness fixtures from the live Sportmonks schedule."""
+    try:
+        from data import sportmonks
+        from live.runner import flatten_schedule, _parse_kickoff
+    except Exception:
+        return []
+    try:
+        rows = flatten_schedule(sportmonks.get_season_schedule())
+    except Exception:
+        return []
+    out: list[Fixture] = []
+    for row in rows:
+        participants = row.get("participants") or []
+        home = next((p for p in participants if (p.get("meta") or {}).get("location") == "home"), {})
+        away = next((p for p in participants if (p.get("meta") or {}).get("location") == "away"), {})
+        ko = _parse_kickoff(row.get("starting_at"))
+        if not home or not away or ko is None:
+            continue
+        home_code = fifa_code(home.get("short_code"), "HOME")
+        away_code = fifa_code(away.get("short_code"), "AWAY")
+        local = ko.astimezone(LOCAL_TZ)
+        out.append(Fixture(
+            fixture_code=f"SM-{row.get('id')}",
+            home=home.get("name", home_code),
+            away=away.get("name", away_code),
+            home_code=home_code,
+            away_code=away_code,
+            kickoff_local=f"{local:%H:%M}",
+            date=f"{local:%Y-%m-%d}",
+            sportmonks_fixture_id=int(row.get("id")),
+        ))
+    return out
 
 
 def all_windows(fixtures: list[Fixture]) -> list[tuple[Fixture, str]]:

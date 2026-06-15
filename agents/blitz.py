@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 from agents.base import AgentStrategy, ExecutionPlan, AgentRecommendation
 from agents.contracts import (
@@ -28,6 +28,21 @@ VALID_EVENT_TRIGGERS = {
     "material_live_state_change",
 }
 
+_TRIGGER_KEYWORDS = (
+    ("red card", "red_card"),
+    ("lineup", "confirmed_lineup_surprise"),
+    ("starting xi", "confirmed_lineup_surprise"),
+    ("injury", "late_injury_or_rotation"),
+    ("rotation", "late_injury_or_rotation"),
+    ("stale market", "stale_market_after_news"),
+    ("cross-market", "cross_market_divergence"),
+    ("divergence", "cross_market_divergence"),
+    ("dead rubber", "dead_rubber_motivation"),
+    ("motivation", "dead_rubber_motivation"),
+    ("xg reversion", "halftime_xg_reversion"),
+    ("live state", "material_live_state_change"),
+)
+
 
 def _parse_dt(value) -> datetime | None:
     if isinstance(value, datetime):
@@ -44,7 +59,11 @@ def _parse_dt(value) -> datetime | None:
 def valid_blitz_signals(view: AgentDataView, *, now: datetime | None = None) -> dict[str, list[DirectionalSignal]]:
     now = now or datetime.now(timezone.utc)
     out: dict[str, list[DirectionalSignal]] = {}
-    for raw in (view.football_features or {}).get("event_signals") or ():
+    for raw in coerce_event_signals((view.football_features or {}).get("event_signals") or (),
+                                    fixture_id=view.fixture_id,
+                                    observed_at=now,
+                                    home_code=(view.football_features or {}).get("home_code"),
+                                    away_code=(view.football_features or {}).get("away_code")):
         trigger = str(raw.get("event_type") or raw.get("trigger") or "")
         observed = _parse_dt(raw.get("observed_at"))
         expires = _parse_dt(raw.get("expires_at"))
@@ -66,6 +85,53 @@ def valid_blitz_signals(view: AgentDataView, *, now: datetime | None = None) -> 
             summary=str(raw.get("summary") or trigger),
         )
         out.setdefault(outcome, []).append(signal)
+    return out
+
+
+def _trigger_from_text(text: str) -> str | None:
+    lower = text.lower()
+    for needle, trigger in _TRIGGER_KEYWORDS:
+        if needle in lower:
+            return trigger
+    return None
+
+
+def coerce_event_signals(raw_flags, *, fixture_id: str, observed_at: datetime,
+                         home_code: str | None = None,
+                         away_code: str | None = None) -> list[dict]:
+    """Convert Scout/live flags into timestamped BLITZ event signals."""
+    out = []
+    for raw in raw_flags or ():
+        if not isinstance(raw, dict):
+            continue
+        observed = _parse_dt(raw.get("observed_at")) or observed_at
+        expires = _parse_dt(raw.get("expires_at"))
+        signal_text = " ".join(str(raw.get(k) or "") for k in ("signal", "summary", "rationale", "event_type", "trigger"))
+        trigger = str(raw.get("event_type") or raw.get("trigger") or "") or (_trigger_from_text(signal_text) or "")
+        if trigger not in VALID_EVENT_TRIGGERS:
+            continue
+        if expires is None:
+            expires = observed + timedelta(minutes=30 if trigger in {"red_card", "material_live_state_change", "halftime_xg_reversion"} else 90)
+        direction = str(raw.get("outcome") or raw.get("direction") or "").lower()
+        team = str(raw.get("team") or "").upper()
+        direction_code = str(raw.get("direction") or raw.get("outcome") or "").upper()
+        outcome = "draw" if direction == "draw" else (
+            "home" if "home" in direction or direction_code == str(home_code or "").upper() or team == str(home_code or "").upper() else (
+                "away" if "away" in direction or direction_code == str(away_code or "").upper() or team == str(away_code or "").upper() else ""
+            )
+        )
+        if outcome not in {"home", "draw", "away"}:
+            continue
+        out.append({
+            **raw,
+            "signal_id": raw.get("signal_id") or raw.get("evidence_id") or hashlib.sha256(json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest(),
+            "fixture_id": raw.get("fixture_id") or fixture_id,
+            "event_type": trigger,
+            "outcome": outcome,
+            "observed_at": observed,
+            "expires_at": expires,
+            "summary": raw.get("summary") or raw.get("signal") or trigger,
+        })
     return out
 
 
@@ -198,4 +264,4 @@ class BlitzStrategy(AgentStrategy):
         return ExecutionPlan(recommendations=tuple(recommendations))
 
 
-__all__ = ["BlitzStrategy", "VALID_EVENT_TRIGGERS", "valid_blitz_signals"]
+__all__ = ["BlitzStrategy", "VALID_EVENT_TRIGGERS", "coerce_event_signals", "valid_blitz_signals"]

@@ -117,6 +117,51 @@ def _already_traded(ledger: dict, agent: str, fixture_code: str, window: str) ->
                for t in ledger["agents"][agent]["trades"])
 
 
+def already_traded(ledger: dict, agent: str, fixture_code: str, window: str) -> bool:
+    return _already_traded(ledger, agent, fixture_code, window)
+
+
+def record_recommendation_trade(ledger: dict, agent: str, fixture_code: str, window: str,
+                                recommendation, *, market_source: str,
+                                home_code: str | None = None,
+                                away_code: str | None = None) -> dict | None:
+    """Persist one allocated recommendation as a paper trade."""
+    if _already_traded(ledger, agent, fixture_code, window):
+        return None
+    book = ledger["agents"][agent]
+    bankroll = float(book["bankroll"])
+    stake = round(min(bankroll, bankroll * float(recommendation.recommended_stake or 0.0)), 2)
+    if stake <= 0:
+        return None
+    outcome = recommendation.outcome
+    slot = "draw" if str(outcome).lower() in ("draw", "tie", "x") else (
+        "home" if outcome == home_code else ("away" if outcome == away_code else None)
+    )
+    trade = {
+        "trade_id": str(uuid.uuid4())[:8],
+        "agent": agent,
+        "fixture_code": fixture_code,
+        "window": window,
+        "slot": slot,
+        "outcome": outcome,
+        "stake": stake,
+        "entry_price": recommendation.expected_fill_price,
+        "our_prob": recommendation.probability_mean,
+        "fair_prob": recommendation.market_midpoint,
+        "edge_vs_fair": recommendation.gross_edge,
+        "ev_per_dollar": recommendation.expected_value_after_costs,
+        "market_source": market_source,
+        "synthetic_warning": market_source == "synthetic_demo",
+        "overround": None,
+        "ts": datetime.now(timezone.utc).isoformat(),
+        "status": "open",
+        "pnl": 0.0,
+        "recommendation": recommendation.to_dict(),
+    }
+    book["trades"].append(trade)
+    return trade
+
+
 # ── The decision: prediction + profile → paper trades ───────────────────────
 
 def decide_trades(profile: AgentProfile, prediction, moneyline: dict, ledger: dict) -> list[dict]:

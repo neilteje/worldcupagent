@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+import config
 from models.forecast_contracts import AgentRecommendation
 
 
@@ -40,10 +41,10 @@ def _joint_sort_key(rec: "AgentRecommendation"):
 
 @dataclass(frozen=True)
 class PortfolioLimits:
-    max_fixture_exposure: float = 0.04
-    max_outcome_exposure: float = 0.03
-    max_ultra_tail_exposure: float = 0.01
-    max_daily_drawdown: float = 0.05
+    max_fixture_exposure: float = config.MAX_FIXTURE_EXPOSURE
+    max_outcome_exposure: float = config.MAX_OUTCOME_EXPOSURE
+    max_ultra_tail_exposure: float = config.MAX_ULTRA_TAIL_EXPOSURE
+    max_daily_drawdown: float = config.MAX_DAILY_DRAWDOWN
 
 
 @dataclass

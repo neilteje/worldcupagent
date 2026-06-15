@@ -23,7 +23,7 @@ from harness.fixtures import DEFAULT_DATE
 def _common(p: argparse.ArgumentParser) -> None:
     p.add_argument("--date", default=DEFAULT_DATE, help="Match date YYYY-MM-DD (default tomorrow's friendlies).")
     p.add_argument("--session", default=None, help="Session name (default = date).")
-    p.add_argument("--fixtures", default=None, help="Override fixtures JSON path.")
+    p.add_argument("--fixtures", default=None, help="Override fixtures JSON path, or 'auto' for Sportmonks schedule.")
     p.add_argument("--profiles", default=None, help="Override agent-profiles JSON path.")
     p.add_argument("--engine", default="council", choices=["council", "deterministic", "market"],
                    help="Prediction engine (falls back automatically).")

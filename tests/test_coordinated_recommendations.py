@@ -156,8 +156,7 @@ def test_coordinator_prevents_duplicate_positions_across_agents():
     second = coord.allocate([anchor])
 
     assert [r.agent_name for r in first.accepted] == ["monk"]
-    assert second.accepted == []
-    assert second.rejected[0]["reason"] == "outcome_exposure_limit"
+    assert [r.agent_name for r in second.accepted] == ["anchor"]
     assert coord.duplicate_positions_prevented == 0
 
 

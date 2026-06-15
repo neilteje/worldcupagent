@@ -74,6 +74,7 @@ def _market_probs(moneyline: dict | None, home_code: str, away_code: str) -> dic
 def _predict_council(fx, window, moneyline) -> Prediction | None:
     try:
         from reasoning import council
+        from models.deterministic_v2 import EnsembleConfig, predict_v2
     except Exception as exc:
         print(f"  [predictor] council import failed: {exc!r}")
         return None
@@ -120,12 +121,43 @@ def _predict_council(fx, window, moneyline) -> Prediction | None:
             "data_availability": "mids_available",
         }
 
+    deterministic_context = None
+    try:
+        home_state = _state_from_football_context(sm_digest, sb_digest, home_code, away_code, "home")
+        away_state = _state_from_football_context(sm_digest, sb_digest, home_code, away_code, "away")
+        det = predict_v2(
+            home_state,
+            away_state,
+            market_probs=None,
+            cfg=EnsembleConfig(use_market=False, w_market=0.0),
+        )
+        deterministic_context = {
+            "engine": "deterministic_v2",
+            "model_version": "deterministic_v2_market_blind.1",
+            "probabilities_hda": det["probabilities"],
+            "probabilities_by_code": {
+                home_code: det["probabilities"]["home"],
+                "draw": det["probabilities"]["draw"],
+                away_code: det["probabilities"]["away"],
+            },
+            "confidence": det.get("confidence", 0.5),
+            "expected_goals": det.get("expected_goals"),
+            "components": det.get("components"),
+            "component_weights": det.get("weights"),
+            "home_state": home_state,
+            "away_state": away_state,
+            "risk_flags": ["market_inputs_excluded"],
+        }
+    except Exception as exc:
+        print(f"  [predictor] deterministic context failed: {exc!r}")
+
     try:
         cr = council.run_council(
             f"{home} vs {away}", home_code, away_code, home, away,
             f"{date} ({window})",
             sm_digest, sb_digest,
             pm_digest, web, reddit,
+            deterministic_context=deterministic_context,
         )
     except Exception as exc:
         print(f"  [predictor] council run failed: {exc!r}")
@@ -163,18 +195,49 @@ def _state_from_prior(prior: dict | None, side: str) -> dict:
     }
 
 
+def _state_from_football_context(sm_digest: dict | None, sb_digest: dict | None,
+                                 home_code: str, away_code: str, side: str) -> dict:
+    code = home_code if side == "home" else away_code
+    other = away_code if side == "home" else home_code
+    state = {
+        "live_rating": 0.0,
+        "matches": 0,
+        "xg_for": 0.0,
+        "xg_against": 0.0,
+        "goals_for": 0.0,
+        "goals_against": 0.0,
+    }
+    xg = (sm_digest or {}).get("expected_goals") or {}
+    own_xg = xg.get(code)
+    opp_xg = xg.get(other)
+    if isinstance(own_xg, (int, float)) and isinstance(opp_xg, (int, float)):
+        state.update({
+            "matches": 1,
+            "xg_for": max(0.0, float(own_xg)),
+            "xg_against": max(0.0, float(opp_xg)),
+            "goals_for": max(0.0, float(own_xg)),
+            "goals_against": max(0.0, float(opp_xg)),
+        })
+    team = ((sb_digest or {}).get("teams") or {}).get(code) or {}
+    try:
+        wins = float(team.get("h2h_wins") or 0.0)
+        losses = float(team.get("h2h_losses") or 0.0)
+        total = wins + losses
+        if total > 0:
+            state["live_rating"] += 0.35 * (wins - losses) / total
+    except (TypeError, ValueError):
+        pass
+    return state
+
+
 def _predict_deterministic(fx, window, moneyline) -> Prediction | None:
     try:
         from models.deterministic_v2 import EnsembleConfig, predict_v2
     except Exception:
         return None
-    mkt = _market_probs(moneyline, fx.home_code, fx.away_code)
-    prior = None
-    if mkt:
-        prior = {"home": mkt[fx.home_code], "draw": mkt["draw"], "away": mkt[fx.away_code]}
     try:
-        out = predict_v2(_state_from_prior(prior, "home"), _state_from_prior(prior, "away"),
-                         market_probs=prior, cfg=EnsembleConfig())
+        out = predict_v2(_state_from_prior(None, "home"), _state_from_prior(None, "away"),
+                         market_probs=None, cfg=EnsembleConfig(use_market=False, w_market=0.0))
         hda = out["probabilities"]
     except Exception:
         return None
@@ -188,7 +251,7 @@ def _predict_deterministic(fx, window, moneyline) -> Prediction | None:
         probabilities=probs,
         confidence_label="medium", confidence_num=float(out.get("confidence", 0.55)),
         engine="deterministic_v2",
-        note=f"deterministic_v2 ensemble (prior={'market' if prior else 'neutral'})",
+        note="deterministic_v2 market-blind ensemble",
     )
 
 

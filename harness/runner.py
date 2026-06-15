@@ -20,6 +20,20 @@ from harness import predictor as predictor_mod
 from harness import paper_broker as broker
 from harness import performance
 from harness.profiles import load_profiles
+from agents.anchor import AnchorStrategy
+from agents.blitz import BlitzStrategy
+from agents.contracts import FixtureDataSnapshot, MarketContext
+from agents.hunter import HunterStrategy
+from agents.monk import MonkStrategy
+from betting.portfolio import PortfolioLimits, allocate_jointly
+
+
+STRATEGIES = {
+    "monk": MonkStrategy(),
+    "anchor": AnchorStrategy(),
+    "hunter": HunterStrategy(),
+    "blitz": BlitzStrategy(),
+}
 
 
 def session_dir_for(date: str, name: str | None) -> Path:
@@ -33,12 +47,137 @@ def _find_fixture(fixtures, code):
     return None
 
 
+def _load_fixtures_for_args(args):
+    fixtures = fx_mod.load_fixtures(args.fixtures)
+    date = getattr(args, "date", None)
+    if str(getattr(args, "fixtures", "")).strip().lower() == "auto" and date:
+        fixtures = [f for f in fixtures if f.date == date]
+    return fixtures
+
+
 def _market_for(fx, prediction, real_ml, market_mode):
     if market_mode == "synthetic":
         return broker.synthetic_market(fx, prediction)
     if real_ml:
         return real_ml
+    if market_mode == "real":
+        return None
     return broker.synthetic_market(fx, prediction)
+
+
+def _market_context(moneyline: dict | None) -> MarketContext | None:
+    if not moneyline:
+        return None
+    mids = {
+        s: (moneyline.get("outcomes", {}).get(s) or {}).get("current_mid_yes")
+        for s in ("home", "draw", "away")
+    }
+    if not all(isinstance(v, (int, float)) for v in mids.values()):
+        return None
+    return MarketContext(
+        observed_at=datetime.now(timezone.utc),
+        polymarket=moneyline if moneyline.get("market_source") == "polymarket" else None,
+        kalshi=None,
+        bookmaker_consensus=None,
+        bookmaker_comparison=None,
+        devigged_probabilities=mids,
+        best_bid=mids,
+        best_ask=mids,
+        midpoint=mids,
+        expected_fill_price=mids,
+        movement={},
+        dispersion={},
+        overround=None,
+    )
+
+
+def _snapshot_for(fx, prediction, market) -> FixtureDataSnapshot:
+    p = prediction.probabilities
+    home_p = float(p[fx.home_code])
+    draw_p = float(p["draw"])
+    away_p = float(p[fx.away_code])
+    evidence_ids = [
+        str(flag.get("evidence_id") or flag.get("signal_id") or flag.get("signal"))
+        for flag in prediction.scout_flags
+        if isinstance(flag, dict) and (flag.get("evidence_id") or flag.get("signal_id") or flag.get("signal"))
+    ]
+    return FixtureDataSnapshot(
+        fixture_id=fx.fixture_code,
+        fixture_name=f"{fx.home} vs {fx.away}",
+        window=prediction.window,
+        kickoff=fx.kickoff_dt(),
+        as_of_timestamp=datetime.now(timezone.utc),
+        home_code=fx.home_code,
+        away_code=fx.away_code,
+        home_name=fx.home,
+        away_name=fx.away,
+        sportmonks=None,
+        supabase=None,
+        bzzoiro=None,
+        web=None,
+        reddit=None,
+        social=None,
+        football_context={
+            "home_code": fx.home_code,
+            "away_code": fx.away_code,
+            "council_forecast": {
+                "probabilities": {"home": home_p, "draw": draw_p, "away": away_p},
+                "confidence": prediction.confidence_num,
+                "evidence_ids": evidence_ids,
+            },
+            "independent_forecast": {
+                "probabilities_by_code": {fx.home_code: home_p, "draw": draw_p, fx.away_code: away_p},
+                "lower_bounds_by_code": {
+                    fx.home_code: max(0.0, home_p - 0.10),
+                    "draw": max(0.0, draw_p - 0.10),
+                    fx.away_code: max(0.0, away_p - 0.10),
+                },
+                "upper_bounds_by_code": {
+                    fx.home_code: min(1.0, home_p + 0.10),
+                    "draw": min(1.0, draw_p + 0.10),
+                    fx.away_code: min(1.0, away_p + 0.10),
+                },
+                "data_coverage_score": 0.75,
+            },
+            "forecast_snapshot_id": f"{fx.fixture_code}-{prediction.window}-{prediction.engine}",
+            "evidence_ids": evidence_ids,
+            "scout_flags": prediction.scout_flags,
+            "event_signals": [
+                flag for flag in prediction.scout_flags
+                if isinstance(flag, dict) and (flag.get("event_type") or flag.get("trigger"))
+            ],
+        },
+        live_context=None,
+        market_context=_market_context(market),
+        snapshot_id=f"snap_{fx.fixture_code}_{prediction.window}",
+        snapshot_hash="",
+    )
+
+
+def _agent_recommendations(fx, prediction, market, profiles, ledger) -> list:
+    snapshot = _snapshot_for(fx, prediction, market)
+    market_ctx = snapshot.market_context
+    recs = []
+    is_synthetic = (market or {}).get("market_source") == "synthetic_demo"
+    for name, profile in profiles.items():
+        if name not in STRATEGIES:
+            continue
+        if broker.already_traded(ledger, name, fx.fixture_code, prediction.window):
+            continue
+        if is_synthetic and not profile.trade_synthetic:
+            continue
+        strategy = STRATEGIES[name]
+        view = strategy.build_data_view(snapshot, None)
+        forecast = strategy.build_forecast(view)
+        candidates = strategy.generate_candidates(forecast, view, market_ctx)
+        recs.extend(strategy.generate_recommendations(
+            candidates,
+            forecast,
+            view,
+            market_ctx,
+            float(ledger["agents"][name]["bankroll"]),
+        ))
+    return recs
 
 
 def execute_window(fx, window, *, engine, market_mode, profiles, session_dir, refresh=False) -> dict:
@@ -54,22 +193,46 @@ def execute_window(fx, window, *, engine, market_mode, profiles, session_dir, re
           f"{fx.away_code} {p[fx.away_code]:.0%}  (conf {pred.confidence_label})")
 
     market = _market_for(fx, pred, real_ml, market_mode)
-    src = market.get("market_source")
-    mids = {s: (market["outcomes"].get(s) or {}).get("current_mid_yes") for s in ("home", "draw", "away")}
+    src = (market or {}).get("market_source", "none")
+    mids = {
+        s: ((market or {}).get("outcomes", {}).get(s) or {}).get("current_mid_yes")
+        for s in ("home", "draw", "away")
+    }
     print(f"  market[{src}]: home {mids['home']} | draw {mids['draw']} | away {mids['away']}")
 
     ledger = broker.load_ledger(session_dir, profiles)
+    recs = _agent_recommendations(fx, pred, market, profiles, ledger)
+    allocation = allocate_jointly(recs, limits=PortfolioLimits())
     window_trades = []
-    for name, profile in profiles.items():
-        trades = broker.decide_trades(profile, pred, market, ledger)
-        window_trades.extend(trades)
+    accepted_by_agent = {r.agent_name: [] for r in allocation.accepted}
+    for rec in allocation.accepted:
+        trade = broker.record_recommendation_trade(
+            ledger,
+            rec.agent_name,
+            fx.fixture_code,
+            window,
+            rec,
+            market_source=src,
+            home_code=fx.home_code,
+            away_code=fx.away_code,
+        )
+        if trade:
+            accepted_by_agent.setdefault(rec.agent_name, []).append(trade)
+            window_trades.append(trade)
+    rejected = {}
+    for row in allocation.rejected:
+        rec = row.get("recommendation") or {}
+        rejected.setdefault(rec.get("agent_name"), []).append(row.get("reason"))
+    for name in profiles:
+        trades = accepted_by_agent.get(name) or []
         if trades:
             for t in trades:
                 print(f"  [{name}] BET ${t['stake']:.2f} on {t['outcome']} "
                       f"@ {t['entry_price']:.2f}  (edge {t['edge_vs_fair']*100:+.1f}pp, "
                       f"EV {t['ev_per_dollar']*100:+.1f}%)")
         else:
-            print(f"  [{name}] no bet (policy bar not cleared)")
+            reason = (rejected.get(name) or ["policy bar not cleared"])[0]
+            print(f"  [{name}] no bet ({reason})")
     broker.save_ledger(session_dir, ledger)
 
     _append_window_log(session_dir, {
@@ -88,7 +251,7 @@ def _append_window_log(session_dir, row) -> None:
 
 
 def cmd_init(args) -> None:
-    fixtures = fx_mod.load_fixtures(args.fixtures)
+    fixtures = _load_fixtures_for_args(args)
     profiles = load_profiles(args.profiles)
     session_dir = session_dir_for(args.date, args.session)
     session_dir.mkdir(parents=True, exist_ok=True)
@@ -108,7 +271,7 @@ def cmd_init(args) -> None:
 
 
 def cmd_now(args) -> None:
-    fixtures = fx_mod.load_fixtures(args.fixtures)
+    fixtures = _load_fixtures_for_args(args)
     profiles = load_profiles(args.profiles)
     session_dir = session_dir_for(args.date, args.session)
     session_dir.mkdir(parents=True, exist_ok=True)
@@ -123,7 +286,7 @@ def cmd_now(args) -> None:
 
 
 def cmd_run(args) -> None:
-    fixtures = fx_mod.load_fixtures(args.fixtures)
+    fixtures = _load_fixtures_for_args(args)
     profiles = load_profiles(args.profiles)
     session_dir = session_dir_for(args.date, args.session)
     session_dir.mkdir(parents=True, exist_ok=True)
