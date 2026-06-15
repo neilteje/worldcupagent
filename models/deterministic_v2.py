@@ -92,7 +92,15 @@ def predict_v2(home_state: dict, away_state: dict, *, market_probs: dict | None 
     poisson = poisson_1x2(eg["lambda_home"], eg["lambda_away"], rho=cfg.rho)
     elo = elo_1x2(home_state, away_state, cfg=cfg.strength, is_knockout=is_knockout)
     market = normalize_probs(market_probs) if market_probs else None
-    bzzoiro_ml = normalize_probs(bzzoiro_probs) if bzzoiro_probs else None
+    if bzzoiro_probs:
+        bz_mapped = {
+            "home": bzzoiro_probs.get("home", bzzoiro_probs.get("home_win")),
+            "draw": bzzoiro_probs.get("draw"),
+            "away": bzzoiro_probs.get("away", bzzoiro_probs.get("away_win")),
+        }
+        bzzoiro_ml = normalize_probs(bz_mapped)
+    else:
+        bzzoiro_ml = None
 
     components: dict[str, dict[str, float]] = {}
     weights: dict[str, float] = {}

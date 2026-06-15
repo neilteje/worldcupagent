@@ -36,6 +36,19 @@ from live import metrics
 # Per-cycle spend ceiling per agent: min($5 arena rule, wallet − 5¢ buffer).
 WALLET_BUFFER_USD = 0.05
 
+from agents.monk import MonkStrategy
+from agents.anchor import AnchorStrategy
+from agents.hunter import HunterStrategy
+from agents.blitz import BlitzStrategy
+from agents.contracts import FixtureDataSnapshot, MarketContext
+
+STRATEGIES = {
+    "monk": MonkStrategy(),
+    "anchor": AnchorStrategy(),
+    "hunter": HunterStrategy(),
+    "blitz": BlitzStrategy(),
+}
+
 
 class _EmptyResult:
     """Stand-in for a failed/skipped LLM step (keeps ledger building uniform)."""
@@ -598,7 +611,7 @@ def gather_halftime(fixture_id: int, prematch_note: dict | None = None) -> Forec
 def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
                   coordinator: PortfolioCoordinator | None = None) -> dict:
     """
-    Run one agent's decision + execution + ledger for a shared forecast.
+    Run one agent's distinct decision pathway using its Strategy class.
     Returns a summary dict for state/metrics. Never raises (logs + degrades).
 
     MONK/ANCHOR/HUNTER route their picks through the structured recommendation +
@@ -651,128 +664,163 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         wallet = {"available": 0.0, "locked": 0.0, "address": None}
     available = float(wallet["available"])
 
-    # ── Policy: shared forecast → sized picks ────────────────────────────
-    skip_reasons: list[str] = []
-    picks = bet_policy.select_picks(
-        profile, fx.probabilities, fx.moneyline,
-        fx.home_code, fx.away_code, max(available, 0.0),
-        window=fx.window,
-        confidence_num=confidence_to_num(fx.confidence),
-        scout_flags=fx.scout_flags,
-        skip_reasons=skip_reasons,
-    )
-    blitz_draw_removed_before = sum(
-        1 for r in skip_reasons if r == bet_policy.BLITZ_DRAW_DISABLED_REASON)
-    picks = bet_policy.suppress_blitz_draw_picks(profile, picks, skip_reasons)
-    blitz_draw_candidates_removed = sum(
-        1 for r in skip_reasons if r == bet_policy.BLITZ_DRAW_DISABLED_REASON
-    ) - blitz_draw_removed_before
+    strategy = STRATEGIES.get(agent.name.lower())
+    if not strategy:
+        print(f"  [{agent.name}] WARNING: unknown strategy, defaulting to blitz")
+        strategy = STRATEGIES["blitz"]
 
-    # ── Coordinated path (MONK/ANCHOR/HUNTER): structured recommendations →
-    # central allocator. BLITZ skips this entirely and stays on the direct path.
-    reco_stats = {"recommendations": 0, "abstentions": 0,
+    # 1. Build Data Snapshot
+    snapshot = FixtureDataSnapshot(
+        fixture_id=str(fx.fixture_id),
+        fixture_name=fx.fixture_name,
+        window=fx.window,
+        kickoff=fx.kickoff,
+        as_of_timestamp=datetime.now(timezone.utc),
+        home_code=fx.home_code,
+        away_code=fx.away_code,
+        home_name=fx.home_name,
+        away_name=fx.away_name,
+        sportmonks=None,
+        supabase=None,
+        bzzoiro=None,
+        web=None,
+        reddit=None,
+        social=None,
+        football_context={
+            "sportmonks_digest": fx.sm_digest,
+            "supabase_digest": fx.sb_digest,
+            "bzzoiro_digest": fx.bz_digest,
+            "deterministic_model": fx.deterministic_model,
+            # Codes + frozen independent snapshot let each agent map outcomes and
+            # gate conservative edge against the SAME market-blind belief.
+            "home_code": fx.home_code,
+            "away_code": fx.away_code,
+            "independent_forecast": fx.independent_forecast,
+            "forecast_snapshot_id": fx.forecast_snapshot_id,
+            "scout_flags": fx.scout_flags,
+        },
+        live_context=fx.ht_context,
+        market_context=None,
+        snapshot_id=f"snap_{fx.fixture_id}_{fx.window}",
+        snapshot_hash="",
+    )
+
+    # 2. Build Agent Data View
+    view = strategy.build_data_view(snapshot, None)
+    
+    # Adapter for BlitzLegacyDataView
+    if agent.name.lower() == "blitz":
+        from models.forecast_contracts import MatchForecast
+        from harness.profiles import get_profile
+        # Blitz uses the legacy forecast contract
+        lf = MatchForecast(
+            fixture_id=str(fx.fixture_id),
+            as_of_timestamp=datetime.now(timezone.utc),
+            home_probability=fx.probabilities.get(fx.home_code, 0.40),
+            draw_probability=fx.probabilities.get("draw", 0.28),
+            away_probability=fx.probabilities.get(fx.away_code, 0.32),
+            home_lower_bound=fx.probabilities.get(fx.home_code, 0.40),
+            draw_lower_bound=fx.probabilities.get("draw", 0.28),
+            away_lower_bound=fx.probabilities.get(fx.away_code, 0.32),
+            home_upper_bound=fx.probabilities.get(fx.home_code, 0.40),
+            draw_upper_bound=fx.probabilities.get("draw", 0.28),
+            away_upper_bound=fx.probabilities.get(fx.away_code, 0.32),
+            confidence=confidence_to_num(fx.confidence),
+            data_coverage_score=_coverage_score(fx),
+            model_version=fx.engine,
+            feature_snapshot_hash="",
+            evidence_ids=_evidence_ids(fx),
+            warnings=[],
+        )
+        lf.active_components = []
+        lf.component_weights = {}
+        view.legacy_forecast = lf
+
+    # 3. Build Forecast
+    agent_forecast = strategy.build_forecast(view)
+
+    # 4. Generate Candidates
+    market = MarketContext(
+        observed_at=datetime.now(timezone.utc),
+        polymarket=None,
+        kalshi=fx.kalshi_ml,
+        bookmaker_consensus=None,
+        bookmaker_comparison=None,
+        devigged_probabilities=fx.mids,
+        best_bid=fx.mids, # stub
+        best_ask=fx.mids, # stub
+        midpoint=fx.mids,
+        expected_fill_price=fx.mids, # stub
+        movement={},
+        dispersion={},
+        overround=None,
+    ) if fx.mids else None
+    
+    candidates = strategy.generate_candidates(agent_forecast, view, market)
+
+    # 5. Generate Recommendations
+    recs = strategy.generate_recommendations(candidates, agent_forecast, view, market, available)
+
+    # 6. Coordinate (Portfolio)
+    abstentions = sum(1 for r in recs if not getattr(r, "should_trade", True))
+    reco_stats = {"recommendations": len(recs), "abstentions": abstentions,
                   "duplicate_recommendations": 0, "rejected": 0,
-                  "blitz_draw_candidates_removed": blitz_draw_candidates_removed}
+                  "blitz_draw_candidates_removed": int(getattr(strategy, "draws_removed", 0) or 0)}
     recommendations_payload: list[dict] = []
     rejected_payload: list[dict] = []
-    if profile.name in bet_reco.COORDINATED_AGENTS and picks:
-        snap = fx.independent_forecast or {}
-        evidence_ids = list(snap.get("evidence_ids") or _evidence_ids(fx))
-        coverage = float(snap.get("data_coverage_score", _coverage_score(fx)) or 0.0)
-        conf_num = float(snap.get("confidence", confidence_to_num(fx.confidence)) or 0.0)
-        thresholds = bet_reco.thresholds_for(profile.name)
-        paired: list[tuple] = []
-        recs = []
-        for p in picks:
-            rec = bet_reco.build_recommendation(
-                profile.name, p,
-                fixture_id=str(fx.fixture_id),
-                bankroll=max(available, 0.0),
-                forecast_snapshot=snap,
-                forecast_id=fx.forecast_snapshot_id or None,
-                evidence_ids=evidence_ids,
-                data_coverage_score=coverage,
-                confidence=conf_num,
-                thresholds=thresholds,
-            )
-            paired.append((rec, p))
-            recs.append(rec)
+    skip_reasons: list[str] = []
+    picks = []
 
-        if coordinator is not None:
-            alloc = coordinator.allocate(recs)
-        else:
-            from betting.portfolio import allocate_recommendations
-            alloc = allocate_recommendations(recs)
+    def _slot_for_code(code: str) -> str:
+        if str(code).lower() in ("draw", "tie", "x"):
+            return "draw"
+        return "home" if code == fx.home_code else "away"
 
-        accepted_keys = {r.correlation_key for r in alloc.accepted}
-        kept = [p for (rec, p) in paired
-                if rec.should_trade and rec.correlation_key in accepted_keys]
-        for rec in recs:
-            recommendations_payload.append(rec.to_dict())
-            if not rec.should_trade:
-                skip_reasons.append(f"{rec.outcome}: abstain {rec.abstain_reason}")
-        for rej in alloc.rejected:
-            rejected_payload.append(rej)
-            if rej.get("reason") in ("duplicate_signal", "fixture_exposure_limit",
-                                     "outcome_exposure_limit", "ultra_tail_exposure_limit"):
-                outcome = (rej.get("recommendation") or {}).get("outcome")
-                skip_reasons.append(f"{outcome}: portfolio {rej['reason']}")
-        reco_stats.update({
-            "recommendations": len(recs),
-            "abstentions": sum(1 for r in recs if not r.should_trade),
-            "duplicate_recommendations": alloc.duplicate_recommendations,
-            "rejected": len(alloc.rejected),
-        })
-        picks = kept
-
-    # Risk overlay (consensus / scout multipliers) on the top pick only.
-    gate_info = {}
-    if picks:
-        top = picks[0]
-        kalshi_mid = None
-        try:
-            from agent import _kalshi_mid_for
-            kalshi_mid = _kalshi_mid_for(fx.kalshi_ml, top.code, fx.home_code, fx.away_code)
-        except Exception:
-            pass
-        # P&L-tail agents (SAW/SURGE) opt out of confidence-based shrink: their
-        # edge is skew, not conviction (STRATEGY §5). Neutralize the low/high
-        # confidence multiplier for them by passing a neutral confidence label.
-        gate_conf = fx.confidence if profile.apply_confidence_multiplier else "medium"
-        g = gates.evaluate_gates(
-            outcome=top.code, model_prob=top.our_prob, pm_mid=top.entry_price,
-            kalshi_mid=kalshi_mid, scout_flags=fx.scout_flags,
-            confidence=gate_conf, wallet_balance=max(available, 0.0),
-            min_edge=None, scout_veto=profile.skip_on_high_scout_flag,
-        )
-        gate_info = {"bet_multiplier": g.bet_multiplier,
-                     "market_agreement": g.market_agreement,
-                     "veto_reason": g.veto_reason, "reasons": g.reasons}
-        if not g.should_trade:
-            skip_reasons.append(f"gates veto: {g.veto_reason or g.reasons}")
-            picks = []
-        elif g.bet_multiplier != 1.0:
-            cap = min(profile.max_bet_usd, max(0.0, available))
-            survivors = []
-            for p in picks:
-                scaled = round(p.stake_usd * g.bet_multiplier, 2)
-                if scaled < bet_policy.MIN_ORDER_USD:
-                    # Don't let the multiplier silently kill a +EV pick under
-                    # the $1 floor — bump to $1 if allowed and affordable.
-                    if profile.floor_to_min_order and cap >= bet_policy.MIN_ORDER_USD:
-                        skip_reasons.append(
-                            f"{p.slot}: gate ×{g.bet_multiplier} → ${scaled:.2f} "
-                            f"floored up to ${bet_policy.MIN_ORDER_USD:.2f}")
-                        scaled = bet_policy.MIN_ORDER_USD
-                    else:
-                        skip_reasons.append(
-                            f"{p.slot}: {bet_policy.KELLY_BELOW_MINIMUM_ORDER_SIZE} "
-                            f"after gate x{g.bet_multiplier} -> ${scaled:.2f} "
-                            f"< ${bet_policy.MIN_ORDER_USD:.2f}")
-                        continue
-                p.stake_usd = min(scaled, cap)
-                survivors.append(p)
-            picks = survivors
+    if agent.name.lower() in ["monk", "anchor", "hunter"]:
+        # MONK/ANCHOR/HUNTER route through the central allocator. The allocator
+        # only accepts should_trade recommendations; abstentions are surfaced as
+        # rejections carrying the structured abstain reason.
+        alloc = coordinator.allocate(recs) if coordinator else None
+        if alloc:
+            reco_stats["duplicate_recommendations"] = alloc.duplicate_recommendations
+            reco_stats["rejected"] = len(alloc.rejected)
+            for rej in alloc.rejected:
+                rejected_payload.append(rej)
+                skip_reasons.append(f"portfolio {rej.get('reason')}")
+            for rec in alloc.accepted:
+                recommendations_payload.append(rec.to_dict())
+                # Adapt the structured recommendation into the legacy pick shape.
+                # ``recommended_stake`` is a fraction of bankroll; convert to USD.
+                class PickAdapter:
+                    pass
+                p = PickAdapter()
+                p.code = rec.outcome
+                p.slot = _slot_for_code(rec.outcome)
+                p.stake_usd = round(float(rec.recommended_stake or 0.0) * max(0.0, available), 2)
+                p.limit_price = rec.maximum_acceptable_price or round((rec.expected_fill_price or 0.5) + 0.02, 2)
+                p.our_prob = rec.probability_mean
+                p.entry_price = rec.expected_fill_price
+                p.to_dict = lambda self=p: {"code": self.code, "stake": self.stake_usd}
+                picks.append(p)
+    elif agent.name.lower() == "blitz":
+        # BLITZ keeps its direct order path: it is NEVER routed through the
+        # allocator. Stakes come straight from its sized legacy picks.
+        legacy_by_slot = {pk.slot: pk for pk in getattr(strategy, "legacy_picks", [])}
+        for cand in candidates:
+            class PickAdapter:
+                pass
+            p = PickAdapter()
+            slot = cand.outcome.split("_")[0]
+            p.code = "draw" if slot == "draw" else (fx.home_code if slot == "home" else fx.away_code)
+            p.slot = slot
+            sized = legacy_by_slot.get(slot)
+            p.stake_usd = round(min(sized.stake_usd if sized else profile.max_bet_usd,
+                                    max(0.0, available)), 2)
+            p.limit_price = sized.limit_price if sized else round((cand.expected_fill_price or 0.5) + 0.02, 2)
+            p.our_prob = cand.probability_mean
+            p.entry_price = cand.expected_fill_price
+            p.to_dict = lambda self=p: {"code": self.code, "stake": self.stake_usd}
+            picks.append(p)
 
     # Per-cycle wallet cap: min($5, available − 5¢) across ALL orders.
     cycle_cap = min(config.MAX_BET_USD, max(0.0, available - WALLET_BUFFER_USD))
@@ -787,6 +835,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         spent += p.stake_usd
         capped.append(p)
     picks = capped
+    gate_info = {}
 
     # Tool-call records for the shared bundle (the calls genuinely happened
     # for this cycle; each agent reports them in its own trace).

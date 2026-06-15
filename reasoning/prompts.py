@@ -494,7 +494,6 @@ def analyst_input(
     sportmonks_digest: dict | None,
     supabase_digest: dict | None,
     scout_output: dict | None,
-    anchor: dict | None = None,
     deterministic_context: dict | None = None,
     bz_digest: dict | None = None,
 ) -> str:
@@ -503,7 +502,6 @@ def analyst_input(
         "fixture": fixture_name,
         "home_code": home_code,
         "away_code": away_code,
-        "anchor": anchor,                # {'source', 'probabilities'} | null
         "deterministic_context": deterministic_context,
         "sportmonks_digest": sportmonks_digest,
         "supabase_digest": supabase_digest,

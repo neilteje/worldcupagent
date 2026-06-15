@@ -1,123 +1,152 @@
-"""
-BZZOIRO Football API client.
-
-Fetches data from sports.bzzoiro.com endpoints, specifically:
-- /api/v2/events/
-- /api/v2/events/{id}/stats/
-- /api/v2/events/{id}/lineups/
-- /api/v2/predictions/
-
-Fails soft and degrades gracefully.
-"""
 from __future__ import annotations
 import httpx
-from typing import Any
+import time
+import json
+import hashlib
+from typing import Any, Iterator
+from datetime import datetime, timezone
 import config
 
-_BASE = config.BZZOIRO_API
-_HEADERS = {"Authorization": f"Token {config.BZZOIRO_KEY}"} if config.BZZOIRO_KEY else {}
+class BzzoiroError(Exception):
+    pass
 
-def _get(path: str, params: dict | None = None) -> Any:
-    if not config.BZZOIRO_KEY:
-        # Fallback if no key is configured, just pretend it's empty
-        return {}
-    url = f"{_BASE}/{path.lstrip('/')}"
-    try:
-        resp = httpx.get(url, headers=_HEADERS, params=params or {}, timeout=15.0)
-        resp.raise_for_status()
-        return resp.json()
-    except Exception as exc:
-        print(f"  [bzzoiro] GET {path} failed: {exc!r}")
-        return {}
+class BzzoiroRateLimitError(BzzoiroError):
+    pass
 
-def search_teams(name: str) -> list[dict]:
-    """Search for a team by name to get its BZZOIRO ID."""
-    data = _get("v2/teams/", params={"name": name, "limit": 10})
-    if isinstance(data, dict) and "results" in data:
-        return data["results"]
-    return data if isinstance(data, list) else []
+class BzzoiroAPIClient:
+    def __init__(self):
+        self.base_url = config.BZZOIRO_API
+        self.headers = {"Authorization": f"Token {config.BZZOIRO_KEY}"} if config.BZZOIRO_KEY else {}
+        self.timeout = config.BZZOIRO_TIMEOUT_SECONDS
+        self.max_retries = config.BZZOIRO_MAX_RETRIES
+        self._client = httpx.Client(base_url=self.base_url, headers=self.headers, timeout=self.timeout)
 
-def get_event(event_id: int) -> dict:
-    """Get full event detail."""
-    data = _get(f"v2/events/{event_id}/")
-    return data if isinstance(data, dict) else {}
+    def _request(self, method: str, path: str, params: dict | None = None) -> dict:
+        if not config.BZZOIRO_ENABLED:
+            return {"error": "BZZOIRO_ENABLED is False"}
+        if not config.BZZOIRO_KEY:
+            return {"error": "No BZZOIRO_KEY configured"}
 
-def search_events(home_team_name: str, away_team_name: str = "", date_from: str = "", date_to: str = "") -> list[dict]:
-    """Find events matching team names."""
-    params = {"team_name": home_team_name}
-    if date_from: params["date_from"] = date_from
-    if date_to: params["date_to"] = date_to
-    
-    data = _get("v2/events/", params=params)
-    results = data.get("results", []) if isinstance(data, dict) else (data if isinstance(data, list) else [])
-    
-    if away_team_name:
-        away_lower = away_team_name.lower()
-        results = [r for r in results if away_lower in (r.get("away_team") or {}).get("name", "").lower()]
-    return results
+        url_path = path.lstrip('/')
+        retries = 0
+        backoff = 1.0
 
-def get_event_stats(event_id: int) -> dict:
-    """Get event stats, including xG, momentum, and shots."""
-    data = _get(f"v2/events/{event_id}/stats/")
-    return data if isinstance(data, dict) else {}
+        while retries <= self.max_retries:
+            try:
+                response = self._client.request(method, url_path, params=params)
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get("Retry-After", backoff))
+                    time.sleep(retry_after)
+                    retries += 1
+                    backoff *= 2
+                    continue
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError as e:
+                if e.response.status_code >= 500 and retries < self.max_retries:
+                    time.sleep(backoff)
+                    retries += 1
+                    backoff *= 2
+                    continue
+                return {"error": f"HTTP {e.response.status_code}", "message": str(e)}
+            except httpx.RequestError as e:
+                if retries < self.max_retries:
+                    time.sleep(backoff)
+                    retries += 1
+                    backoff *= 2
+                    continue
+                return {"error": "RequestError", "message": str(e)}
+            except Exception as e:
+                return {"error": "Exception", "message": str(e)}
 
-def get_event_lineups(event_id: int) -> dict:
-    """Get confirmed or predicted lineups for an event."""
-    data = _get(f"v2/events/{event_id}/lineups/")
-    return data if isinstance(data, dict) else {}
+        return {"error": "MaxRetriesExceeded"}
 
-def get_event_prediction(event_id: int) -> dict:
-    """Get CatBoost ML prediction for an event."""
-    data = _get(f"v2/events/{event_id}/prediction/")
-    return data if isinstance(data, dict) else {}
+    def _paginate(self, path: str, params: dict | None = None) -> Iterator[dict]:
+        params = params or {}
+        params["limit"] = params.get("limit", 100)
+        params["offset"] = params.get("offset", 0)
+
+        while True:
+            data = self._request("GET", path, params)
+            if "error" in data:
+                yield data
+                break
+
+            results = data.get("results", [])
+            if not isinstance(results, list):
+                break
+            
+            for item in results:
+                yield item
+            
+            if not data.get("next"):
+                break
+            
+            params["offset"] += params["limit"]
+
+    def search_teams(self, name: str) -> list[dict]:
+        return list(self._paginate("v2/teams/", {"name": name}))
+
+    def get_event(self, event_id: int) -> dict:
+        return self._request("GET", f"v2/events/{event_id}/")
+
+    def search_events(self, home_team_name: str, away_team_name: str = "", date_from: str = "", date_to: str = "") -> list[dict]:
+        params = {"team_name": home_team_name}
+        if date_from: params["date_from"] = date_from
+        if date_to: params["date_to"] = date_to
+        
+        results = list(self._paginate("v2/events/", params))
+        if away_team_name and results and "error" not in results[0]:
+            away_lower = away_team_name.lower()
+            results = [r for r in results if away_lower in (r.get("away_team") or {}).get("name", "").lower()]
+        return results
+
+    def get_event_stats(self, event_id: int) -> dict:
+        return self._request("GET", f"v2/events/{event_id}/stats/")
+
+    def get_event_lineups(self, event_id: int) -> dict:
+        return self._request("GET", f"v2/events/{event_id}/lineups/")
+
+    def get_event_prediction(self, event_id: int) -> dict:
+        return self._request("GET", f"v2/events/{event_id}/prediction/")
+
+client = BzzoiroAPIClient()
+
+# Export functions for backwards compatibility, but use the new client
+def search_teams(name: str) -> list[dict]: return client.search_teams(name)
+def get_event(event_id: int) -> dict: return client.get_event(event_id)
+def search_events(home_team_name: str, away_team_name: str = "", date_from: str = "", date_to: str = "") -> list[dict]: return client.search_events(home_team_name, away_team_name, date_from, date_to)
+def get_event_stats(event_id: int) -> dict: return client.get_event_stats(event_id)
+def get_event_lineups(event_id: int) -> dict: return client.get_event_lineups(event_id)
+def get_event_prediction(event_id: int) -> dict: return client.get_event_prediction(event_id)
 
 def extract_ml_probabilities(prediction: dict) -> dict[str, float] | None:
-    """
-    Extract ML win/draw/win probabilities from a BZZOIRO PredictionV2Schema response.
-    Returns {home_win, draw, away_win} or None.
-    """
-    if not prediction:
+    try:
+        mr = prediction.get("match_result", {})
+        if not mr:
+            return None
+        return {
+            "home_win": float(mr["home_win_probability"]),
+            "draw": float(mr["draw_probability"]),
+            "away_win": float(mr["away_win_probability"])
+        }
+    except (KeyError, TypeError, ValueError):
         return None
-    match_result = prediction.get("match_result", {})
-    if not match_result:
-        return None
-        
-    home = match_result.get("home_win_probability")
-    draw = match_result.get("draw_probability")
-    away = match_result.get("away_win_probability")
-    
-    if home is not None and draw is not None and away is not None:
-        # BZZOIRO probabilities are usually 0-1
-        try:
-            return {
-                "home_win": float(home),
-                "draw": float(draw),
-                "away_win": float(away)
-            }
-        except (ValueError, TypeError):
-            pass
-    return None
 
 def extract_event_stats_summary(stats: dict) -> dict:
-    """
-    Extract a simplified summary of BZZOIRO stats for the council/deterministic engine.
-    """
-    if not stats:
+    try:
+        teams = stats.get("teams", {})
+        if not teams:
+            return {}
+        home = teams.get("home", {})
+        away = teams.get("away", {})
+        return {
+            "home_xg": float(home.get("expected_goals", 0.0)),
+            "away_xg": float(away.get("expected_goals", 0.0)),
+            "home_possession": int(home.get("possession_time", 0)),
+            "away_possession": int(away.get("possession_time", 0)),
+            "home_momentum": float(home.get("momentum_score", 0.0)),
+            "away_momentum": float(away.get("momentum_score", 0.0))
+        }
+    except (KeyError, TypeError, ValueError):
         return {}
-    
-    # We mainly care about xG, momentum, possession, shots
-    summary = {}
-    teams_stats = stats.get("teams", {})
-    home_stats = teams_stats.get("home", {})
-    away_stats = teams_stats.get("away", {})
-    
-    if home_stats and away_stats:
-        summary["home_xg"] = home_stats.get("expected_goals", 0.0)
-        summary["away_xg"] = away_stats.get("expected_goals", 0.0)
-        summary["home_possession"] = home_stats.get("possession_time", 0)
-        summary["away_possession"] = away_stats.get("possession_time", 0)
-        summary["home_momentum"] = home_stats.get("momentum_score", 0)
-        summary["away_momentum"] = away_stats.get("momentum_score", 0)
-        
-    # Maybe add per-minute xG summary if available
-    return summary

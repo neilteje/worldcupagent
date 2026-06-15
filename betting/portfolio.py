@@ -14,6 +14,22 @@ from models.forecast_contracts import AgentRecommendation
 COORDINATED_AGENTS = {"monk", "anchor", "hunter"}
 OBSERVED_ONLY_AGENTS = {"blitz"}
 
+# Mandate-fit ownership order used to break ties when two agents back the same
+# correlation key (spec §22): the higher conservative edge wins; on a tie the
+# agent whose mandate best fits leads. Lower rank = preferred owner.
+_MANDATE_RANK = {"monk": 0, "anchor": 1, "hunter": 2}
+
+
+def _joint_sort_key(rec: "AgentRecommendation"):
+    """Total, deterministic ordering so joint allocation is invariant to the
+    order recommendations arrive in (acceptance criterion §22/#24)."""
+    edge = rec.conservative_edge if rec.conservative_edge is not None else -1.0
+    return (
+        -float(edge),
+        _MANDATE_RANK.get((rec.agent_name or "").lower(), 9),
+        rec.correlation_key or f"{rec.fixture_id}:{rec.outcome}",
+    )
+
 
 @dataclass(frozen=True)
 class PortfolioLimits:
@@ -107,6 +123,22 @@ def allocate_recommendations(
     return result
 
 
+def allocate_jointly(
+    recommendations: list[AgentRecommendation],
+    *,
+    limits: PortfolioLimits | None = None,
+) -> AllocationResult:
+    """Allocate MONK/ANCHOR/HUNTER recommendations JOINTLY (spec §22).
+
+    Unlike sequential per-agent allocation, this sorts the combined pool by a
+    deterministic mandate/edge key before applying dedup + exposure caps, so the
+    accepted set is INVARIANT to the order recommendations are supplied in.
+    BLITZ recommendations are observed but never gated.
+    """
+    ordered = sorted(recommendations, key=_joint_sort_key)
+    return allocate_recommendations(ordered, limits=limits)
+
+
 @dataclass
 class PortfolioCoordinator:
     """Stateful wrapper that threads one allocation book across coordinated agents.
@@ -135,4 +167,14 @@ class PortfolioCoordinator:
         self.duplicate_positions_prevented += result.duplicate_recommendations
         self.rejected.extend(result.rejected)
         return result
+
+    def allocate_jointly(self, recommendations: list[AgentRecommendation]) -> AllocationResult:
+        """Order-invariant joint allocation over the full coordinated pool.
+
+        Sorts by the deterministic mandate/edge key, then runs allocation
+        threading the coordinator's existing book so prior commitments still
+        constrain. Use this when all coordinated recommendations for a window
+        are collected up front (spec §22)."""
+        ordered = sorted(recommendations, key=_joint_sort_key)
+        return self.allocate(ordered)
 

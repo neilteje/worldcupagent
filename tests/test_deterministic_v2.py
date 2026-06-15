@@ -82,7 +82,7 @@ def test_predict_v2_outputs_valid_distribution():
                      market_probs={"home": 0.5, "draw": 0.27, "away": 0.23})
     _is_distribution(out["probabilities"])
     assert out["pick"] in OUTCOMES
-    assert set(out["components"]) == {"elo", "poisson", "market"}
+    assert set(out["components"]) == {"elo", "poisson", "market", "bzzoiro"}
 
 
 def test_predict_v2_without_market_drops_market_component():

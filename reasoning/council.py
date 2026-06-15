@@ -120,16 +120,20 @@ def run_council(
     )
     scout_flags = (scout.parsed or {}).get("flags") or []
 
-    # 2 — Analyst: market-blind base probability (sees the bookmaker anchor —
-    # it's a data signal, not a tradable market price).
+    # 2 — Analyst: market-blind base probability (TRULY market-blind, no anchor).
+    # The raw digests carry bookmaker consensus / odds; scrub those before the
+    # Analyst sees anything (spec §12 — Analyst must receive NO market info).
+    from reasoning.market_blind import scrub_market_fields
+    analyst_sm, _ = scrub_market_fields(sportmonks_digest or {})
+    analyst_bz, _ = scrub_market_fields(bz_digest or {})
+    analyst_det, _ = scrub_market_fields(deterministic_context or {})
     analyst = _safe_call(
         "analyst",
         llm.call_claude,
         ANALYST_SYS,
         analyst_input(fixture_name, home_code, away_code,
-                      sportmonks_digest, supabase_digest, scout.parsed,
-                      anchor=anchor,
-                      deterministic_context=deterministic_context, bz_digest=bz_digest),
+                      analyst_sm, supabase_digest, scout.parsed,
+                      deterministic_context=analyst_det, bz_digest=analyst_bz),
         model=config.ANALYST_MODEL,
         thinking_budget=config.THINKING_BUDGET,
     )

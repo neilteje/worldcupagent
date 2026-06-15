@@ -171,3 +171,29 @@ CONFIDENCE_HIGH_MULTIPLIER: float = 1.20
 
 # ── Tournament ─────────────────────────────────────────────────────────────
 SEASON_ID: int = 26618             # FIFA WC 2026 on Sportmonks
+
+# ── Feature Flags & Rollout ──────────────────────────────────────────────────
+def _env_bool(name: str, default: bool) -> bool:
+    val = os.environ.get(name, "").strip().lower()
+    if val in ("1", "true", "yes", "on"):
+        return True
+    if val in ("0", "false", "no", "off"):
+        return False
+    return default
+
+FOUR_AGENT_ARCHITECTURE_ENABLED: bool = _env_bool("FOUR_AGENT_ARCHITECTURE_ENABLED", False)
+MONK_INDEPENDENT_ENABLED: bool = _env_bool("MONK_INDEPENDENT_ENABLED", False)
+ANCHOR_INDEPENDENT_VALUE_ENABLED: bool = _env_bool("ANCHOR_INDEPENDENT_VALUE_ENABLED", False)
+HUNTER_SPECIALIZED_MODELS_ENABLED: bool = _env_bool("HUNTER_SPECIALIZED_MODELS_ENABLED", False)
+JOINT_PORTFOLIO_ENABLED: bool = _env_bool("JOINT_PORTFOLIO_ENABLED", False)
+BZZOIRO_ENABLED: bool = _env_bool("BZZOIRO_ENABLED", False)
+BZZOIRO_MODEL_SHADOW_ONLY: bool = _env_bool("BZZOIRO_MODEL_SHADOW_ONLY", True)
+BZZOIRO_MODEL_WEIGHT: float = _env_float("BZZOIRO_MODEL_WEIGHT", 0.0)
+BZZOIRO_TIMEOUT_SECONDS: int = _env_int("BZZOIRO_TIMEOUT_SECONDS", 10)
+BZZOIRO_MAX_RETRIES: int = _env_int("BZZOIRO_MAX_RETRIES", 3)
+BZZOIRO_CACHE_DIR: str = os.environ.get("BZZOIRO_CACHE_DIR", "storage/bzzoiro_cache")
+BZZOIRO_HISTORICAL_CACHE_TTL: int = _env_int("BZZOIRO_HISTORICAL_CACHE_TTL", 86400 * 7)
+BZZOIRO_UPCOMING_CACHE_TTL: int = _env_int("BZZOIRO_UPCOMING_CACHE_TTL", 3600)
+BZZOIRO_LIVE_CACHE_TTL: int = _env_int("BZZOIRO_LIVE_CACHE_TTL", 60)
+DETERMINISTIC_HT_ENABLED: bool = _env_bool("DETERMINISTIC_HT_ENABLED", False)
+AGENT_SPECIFIC_LEDGER_ENABLED: bool = _env_bool("AGENT_SPECIFIC_LEDGER_ENABLED", False)

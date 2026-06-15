@@ -89,6 +89,19 @@ class AgentProfile:
     def to_dict(self) -> dict:
         return asdict(self)
 
+    @classmethod
+    def from_config(cls, name: str) -> "AgentProfile":
+        """Resolve ONE profile from the single source of truth.
+
+        ``harness/profiles`` owns profile *policy* (sizing, confidence floors,
+        windows). ``config.py`` owns the coordinated *edge* layer (conservative-
+        edge buffers + per-agent edge/EV bars consumed by
+        ``betting/recommendation``). These are disjoint concerns; this
+        constructor returns the canonical profile and is validated against config
+        by :func:`validate_profile_config` at startup so the two layers can never
+        silently disagree. BLITZ is frozen at its production values."""
+        return get_profile(name)
+
 
 # ── The four tuned agents ───────────────────────────────────────────────────
 
@@ -173,6 +186,61 @@ def get_profile(name: str | None = None) -> AgentProfile:
         valid = ", ".join(DEFAULT_PROFILES)
         raise ValueError(f"Unknown AGENT_PROFILE '{raw}'. Valid: {valid}")
     return DEFAULT_PROFILES[raw]
+
+
+# BLITZ production values — frozen (spec §11/§24). Any drift here must fail loud.
+_BLITZ_FROZEN = {
+    "min_edge_vs_fair": 0.02,
+    "min_confidence": 0.35,
+    "kelly_fraction": 0.65,
+    "max_bet_usd": 5.0,
+    "max_bets_per_window": 2,
+    "skip_on_high_scout_flag": False,
+    "apply_confidence_multiplier": False,
+    "floor_to_min_order": True,
+}
+
+
+def validate_profile_config() -> list[str]:
+    """Startup validation that the profile layer and ``config.py`` agree where
+    they must (spec §24). Raises ``ValueError`` on drift; returns the list of
+    checks performed for logging.
+
+    Enforced invariants:
+      * BLITZ is frozen at its production values.
+      * No profile exceeds the hard per-order USD cap (arena rule ≤ $5).
+      * Kelly / stake-cap fractions stay within [0, 1].
+      * Coordinated edge config is internally consistent (min ≤ max entry price).
+    """
+    import config
+
+    issues: list[str] = []
+    checks: list[str] = []
+
+    blitz = DEFAULT_PROFILES["blitz"]
+    for field_name, expected in _BLITZ_FROZEN.items():
+        actual = getattr(blitz, field_name)
+        checks.append(f"blitz.{field_name}")
+        if actual != expected:
+            issues.append(f"BLITZ frozen value drift: {field_name}={actual!r} != {expected!r}")
+
+    for name, p in DEFAULT_PROFILES.items():
+        checks.append(f"{name}.max_bet_usd<=cap")
+        if p.max_bet_usd > config.MAX_BET_USD + 1e-9:
+            issues.append(f"{name}.max_bet_usd {p.max_bet_usd} > MAX_BET_USD {config.MAX_BET_USD}")
+        if not (0.0 <= p.kelly_fraction <= 1.0):
+            issues.append(f"{name}.kelly_fraction {p.kelly_fraction} outside [0,1]")
+        if not (0.0 <= p.stake_cap_fraction <= 1.0):
+            issues.append(f"{name}.stake_cap_fraction {p.stake_cap_fraction} outside [0,1]")
+
+    if config.ANCHOR_MIN_ENTRY_PRICE > config.ANCHOR_MAX_ENTRY_PRICE:
+        issues.append("ANCHOR_MIN_ENTRY_PRICE > ANCHOR_MAX_ENTRY_PRICE")
+    if config.HUNTER_MIN_ENTRY_PRICE > config.HUNTER_MAX_ENTRY_PRICE:
+        issues.append("HUNTER_MIN_ENTRY_PRICE > HUNTER_MAX_ENTRY_PRICE")
+
+    if issues:
+        raise ValueError("Profile/config drift detected: " + "; ".join(issues))
+    return checks
 
 
 def load_profiles(override_path: str | Path | None = None) -> dict[str, AgentProfile]:
