@@ -100,7 +100,7 @@ def test_policy_floors_sub_dollar_blitz_pick_up_to_minimum():
     probs = {"AAA": 0.30, "draw": 0.50, "BBB": 0.20}
     ml = _ml(home=0.55, draw=0.30, away=0.25)
     reasons: list[str] = []
-    picks = select_picks(surge, probs, ml, "AAA", "BBB", 6.0,
+    picks = select_picks(surge, probs, ml, "AAA", "BBB", 4.0,
                          confidence_num=0.6, skip_reasons=reasons)
     assert picks, "expected a floored +EV draw pick"
     assert picks[0].stake_usd == pytest.approx(1.0)
@@ -114,7 +114,7 @@ def test_policy_coordinated_agent_skips_subminimum_kelly():
     ml = _ml(home=0.55, draw=0.30, away=0.25)
     # Coordinated agents do not round subminimum Kelly stakes up.
     reasons: list[str] = []
-    picks = select_picks(saw, probs, ml, "AAA", "BBB", 8.0,
+    picks = select_picks(saw, probs, ml, "AAA", "BBB", 6.0,
                          confidence_num=0.6, skip_reasons=reasons)
     assert picks == []
     assert any("kelly_below_minimum_order_size" in r for r in reasons)

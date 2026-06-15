@@ -9,9 +9,7 @@ from __future__ import annotations
 
 import pytest
 
-from betting.policy import (
-    select_picks, suppress_blitz_draw_picks, BLITZ_DRAW_DISABLED_REASON,
-)
+from betting.policy import select_picks, suppress_blitz_draw_picks
 from betting.portfolio import COORDINATED_AGENTS, OBSERVED_ONLY_AGENTS
 from harness.profiles import get_profile
 
@@ -55,18 +53,16 @@ SCENARIOS = {
 
 
 @pytest.mark.parametrize("label", list(SCENARIOS))
-def test_non_draw_picks_byte_identical_after_suppression(label):
+def test_blitz_picks_identical_after_draw_shim(label):
     probs, ml, conf = SCENARIOS[label]
     baseline = _baseline(probs, ml, conf)
     reasons: list[str] = []
     filtered = suppress_blitz_draw_picks(BLITZ, list(baseline), reasons)
 
-    base_non_draw = _by_slot([p for p in baseline if p.slot != "draw"])
+    base_non_draw = _by_slot(baseline)
     filt_non_draw = _by_slot(filtered)
 
-    # Same set of non-draw outcomes.
     assert set(base_non_draw) == set(filt_non_draw)
-    # Every field of every non-draw pick is unchanged.
     for slot, fp in filt_non_draw.items():
         bp = base_non_draw[slot]
         for f in _PICK_FIELDS:
@@ -74,18 +70,14 @@ def test_non_draw_picks_byte_identical_after_suppression(label):
 
 
 @pytest.mark.parametrize("label", list(SCENARIOS))
-def test_draws_removed_with_reason_and_no_promotion(label):
+def test_draws_pass_through_without_legacy_reason(label):
     probs, ml, conf = SCENARIOS[label]
     baseline = _baseline(probs, ml, conf)
-    n_draws = sum(1 for p in baseline if p.slot == "draw")
     reasons: list[str] = []
     filtered = suppress_blitz_draw_picks(BLITZ, list(baseline), reasons)
 
-    assert all(p.slot != "draw" for p in filtered)
-    # One reason per removed draw, exact identifier.
-    assert reasons.count(BLITZ_DRAW_DISABLED_REASON) == n_draws
-    # No promotion: filtered count == baseline non-draw count.
-    assert len(filtered) == len(baseline) - n_draws
+    assert filtered == baseline
+    assert reasons == []
 
 
 def test_blitz_is_never_a_coordinated_agent():

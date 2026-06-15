@@ -6,7 +6,6 @@ import pytest
 
 from betting.conservative import ConservativeEdgeConfig, calculate_conservative_edge
 from betting.policy import (
-    BLITZ_DRAW_DISABLED_REASON,
     SizedPick,
     is_draw_outcome,
     suppress_blitz_draw_picks,
@@ -33,39 +32,39 @@ def _pick(slot: str, code: str) -> SizedPick:
     )
 
 
-def test_blitz_draw_filter_removes_only_selected_draws():
+def test_blitz_draw_filter_passes_all_picks_through():
     blitz = get_profile("blitz")
     draw = _pick("draw", "draw")
     away = _pick("away", "BBB")
-    before = away.to_dict()
+    before = [p.to_dict() for p in (draw, away)]
     reasons: list[str] = []
 
     filtered = suppress_blitz_draw_picks(blitz, [draw, away], reasons)
 
-    assert filtered == [away]
-    assert filtered[0].to_dict() == before
-    assert reasons == [BLITZ_DRAW_DISABLED_REASON]
+    assert filtered == [draw, away]
+    assert [p.to_dict() for p in filtered] == before
+    assert reasons == []
 
 
-def test_blitz_draw_filter_does_not_promote_replacements():
+def test_blitz_draw_filter_keeps_draw_only_selection():
     blitz = get_profile("blitz")
     reasons: list[str] = []
 
     filtered = suppress_blitz_draw_picks(blitz, [_pick("draw", "draw")], reasons)
 
-    assert filtered == []
-    assert reasons == [BLITZ_DRAW_DISABLED_REASON]
+    assert filtered == [_pick("draw", "draw")]
+    assert reasons == []
 
 
-def test_blitz_draw_filter_supports_draw_code_representations():
+def test_blitz_draw_filter_allows_draw_code_representations():
     blitz = get_profile("blitz")
     reasons: list[str] = []
 
     filtered = suppress_blitz_draw_picks(blitz, [_pick("home", "X"), _pick("away", "BBB")], reasons)
 
-    assert [p.code for p in filtered] == ["BBB"]
+    assert [p.code for p in filtered] == ["X", "BBB"]
     assert is_draw_outcome(code="tie")
-    assert reasons == [BLITZ_DRAW_DISABLED_REASON]
+    assert reasons == []
 
 
 def test_non_blitz_profiles_are_not_draw_filtered():
@@ -79,11 +78,11 @@ def test_non_blitz_profiles_are_not_draw_filtered():
 
 def test_blitz_profile_core_configuration_is_unchanged():
     blitz = get_profile("blitz")
-    assert blitz.min_edge_vs_fair == pytest.approx(0.02)
-    assert blitz.min_confidence == pytest.approx(0.35)
-    assert blitz.kelly_fraction == pytest.approx(0.65)
+    assert blitz.min_edge_vs_fair == pytest.approx(0.01)
+    assert blitz.min_confidence == pytest.approx(0.30)
+    assert blitz.kelly_fraction == pytest.approx(0.85)
     assert blitz.max_bet_usd == pytest.approx(5.0)
-    assert blitz.max_bets_per_window == 2
+    assert blitz.max_bets_per_window == 3
     assert blitz.skip_on_high_scout_flag is False
     assert blitz.apply_confidence_multiplier is False
 
@@ -227,4 +226,3 @@ def test_fill_report_extracts_actual_fill_accounting():
     assert report["unfilled_usdc"] == pytest.approx(2.5)
     assert report["fees_usdc"] == pytest.approx(0.03)
     assert report["partial_fill_state"] == "partial"
-
