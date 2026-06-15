@@ -82,7 +82,7 @@ def test_blitz_profile_core_configuration_is_unchanged():
     assert blitz.min_confidence == pytest.approx(0.30)
     assert blitz.kelly_fraction == pytest.approx(0.85)
     assert blitz.max_bet_usd == pytest.approx(5.0)
-    assert blitz.max_bets_per_window == 3
+    assert blitz.max_bets_per_window == 1
     assert blitz.skip_on_high_scout_flag is False
     assert blitz.apply_confidence_multiplier is False
 
@@ -195,7 +195,7 @@ def _recommendation(agent: str, key: str, stake: float = 0.01) -> AgentRecommend
     )
 
 
-def test_portfolio_deduplicates_coordinated_agents_but_only_observes_blitz():
+def test_portfolio_deduplicates_identical_common_contract_signals():
     result = allocate_recommendations([
         _recommendation("anchor", "same-signal"),
         _recommendation("hunter", "same-signal"),
@@ -203,9 +203,9 @@ def test_portfolio_deduplicates_coordinated_agents_but_only_observes_blitz():
     ])
 
     assert [r.agent_name for r in result.accepted] == ["anchor"]
-    assert result.duplicate_recommendations == 1
+    assert result.duplicate_recommendations == 2
     assert result.rejected[0]["reason"] == "duplicate_signal"
-    assert [r.agent_name for r in result.observed_only] == ["blitz"]
+    assert result.observed_only == []
 
 
 def test_fill_report_extracts_actual_fill_accounting():

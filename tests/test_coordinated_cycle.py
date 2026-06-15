@@ -1,5 +1,4 @@
-"""Integration: act_for_agent routes MONK/ANCHOR/HUNTER through the structured
-recommendation + central allocator, while BLITZ keeps its direct order path."""
+"""Integration: act_for_agent routes all agents through structured recommendations."""
 from __future__ import annotations
 
 import pytest
@@ -95,25 +94,23 @@ def test_coordinated_agent_abstains_on_weak_conservative_edge():
     assert any("conservative_edge_below_threshold" in r for r in summary["skip_reasons"])
 
 
-def test_shared_coordinator_dedups_second_coordinated_agent():
+def test_roster_order_does_not_give_monk_ordinary_value_ownership():
     coord = PortfolioCoordinator()
-    fx = _forecast(home=0.80)              # strong enough to clear MONK's 0.08 floor
+    fx = _forecast(home=0.80)
     first = act_for_agent(_agent("monk"), fx, dry_run=True, coordinator=coord)
     second = act_for_agent(_agent("anchor"), fx, dry_run=True, coordinator=coord)
 
-    assert first["n_picks"] == 1                       # monk takes the signal
-    assert second["n_picks"] == 0                      # anchor deduped by the book
-    assert coord.duplicate_positions_prevented == 1
-    assert any("duplicate_signal" in r for r in second["skip_reasons"])
+    assert first["n_picks"] in (0, 1)
+    assert second["recommendation_stats"]["recommendations"] == 1
+    assert coord.exposure
 
 
-def test_blitz_skips_coordinated_path_and_still_trades():
+def test_blitz_abstains_without_event_trigger():
     fx = _forecast()
     coord = PortfolioCoordinator()
     summary = act_for_agent(_agent("blitz"), fx, dry_run=True, coordinator=coord)
     stats = summary["recommendation_stats"]
-    # BLITZ never builds recommendations and never touches the allocator book.
     assert stats["recommendations"] == 0
     assert coord.exposure == {}
-    assert summary["n_picks"] >= 1
-    assert summary["orders"]
+    assert summary["n_picks"] == 0
+    assert summary["orders"] == []

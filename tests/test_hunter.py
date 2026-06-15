@@ -27,14 +27,13 @@ def test_hunter_uses_shared_council_forecast_when_present():
     assert round(fc.away_probability, 2) == 0.18
 
 
-def test_hunter_backs_the_favorite_when_it_is_the_value():
+def test_hunter_rejects_the_favorite_even_when_it_is_value():
     # Council loves the home favorite; market underprices it → HUNTER buys it.
     ff = make_football_context(council={"home": 0.62, "draw": 0.22, "away": 0.16})
     h, view, fc = _forecast_and_view(ff)
     market = make_market(home=0.50, draw=0.27, away=0.23)
     cands = h.generate_candidates(fc, view, market)
-    assert cands, "HUNTER should back the favorite when it carries the edge"
-    assert cands[0].outcome == "home"
+    assert all(c.outcome != "home" for c in cands)
 
 
 def test_hunter_honours_the_conviction_probability_floor():

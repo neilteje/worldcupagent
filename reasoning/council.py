@@ -19,6 +19,8 @@ from typing import Any
 
 import config
 from reasoning import llm, grounding
+from models.forecast_layers import build_forecast_layers
+from models.market_calibration import normalize_market_probabilities
 from reasoning.prompts import (
     SOCIAL_PULSE_SYS, social_pulse_input,
     SCOUT_SYS, scout_input,
@@ -29,6 +31,34 @@ from reasoning.prompts import (
 
 # International-football base rates, used only as a last-resort fallback.
 _BASE_RATE = {"home": 0.40, "draw": 0.28, "away": 0.32}
+
+
+def _slot_probs_from_codes(probs: dict | None, home_code: str, away_code: str) -> dict[str, float] | None:
+    if not probs:
+        return None
+    raw = {
+        "home": probs.get("home", probs.get(home_code)),
+        "draw": probs.get("draw"),
+        "away": probs.get("away", probs.get(away_code)),
+    }
+    if any(not isinstance(v, (int, float)) for v in raw.values()):
+        return None
+    total = sum(float(v) for v in raw.values())
+    if total <= 0:
+        return None
+    return {k: float(v) / total for k, v in raw.items()}
+
+
+def _code_probs_from_slots(probs: dict, home_code: str, away_code: str) -> dict:
+    return {home_code: probs["home"], "draw": probs["draw"], away_code: probs["away"]}
+
+
+def _market_probs_from_digest(polymarket_digest: dict | None, home_code: str, away_code: str) -> dict | None:
+    digest = polymarket_digest or {}
+    return (
+        _slot_probs_from_codes(digest.get("implied_win_prob"), home_code, away_code)
+        or _slot_probs_from_codes(digest.get("probabilities"), home_code, away_code)
+    )
 
 
 @dataclass
@@ -117,7 +147,11 @@ def run_council(
         model=config.SCOUT_MODEL,
         thinking_budget=config.SCOUT_THINKING_BUDGET,
     )
-    scout_flags = (scout.parsed or {}).get("flags") or []
+    scout_parsed = scout.parsed or {}
+    market_blind_evidence = scout_parsed.get("market_blind_evidence")
+    if market_blind_evidence is None:
+        market_blind_evidence = {"flags": scout_parsed.get("flags") or []}
+    scout_flags = market_blind_evidence.get("flags") or []
 
     # 2 — Analyst: market-blind base probability (TRULY market-blind, no anchor).
     # The raw digests carry bookmaker consensus / odds; scrub those before the
@@ -131,7 +165,7 @@ def run_council(
         llm.call_claude,
         ANALYST_SYS,
         analyst_input(fixture_name, home_code, away_code,
-                      analyst_sm, supabase_digest, scout.parsed,
+                      analyst_sm, supabase_digest, market_blind_evidence,
                       deterministic_context=analyst_det, bz_digest=analyst_bz),
         model=config.ANALYST_MODEL,
         thinking_budget=config.THINKING_BUDGET,
@@ -160,13 +194,29 @@ def run_council(
         thinking_budget=config.THINKING_BUDGET,
     )
 
-    # Resolve the final view: prefer Judge, fall back to Analyst, then base rate.
     j = judge.parsed or {}
-    a = analyst.parsed or {}
-    probs = j.get("probabilities") or a.get("probabilities") or {
-        home_code: _BASE_RATE["home"], "draw": _BASE_RATE["draw"], away_code: _BASE_RATE["away"]
-    }
-    confidence = j.get("confidence") or a.get("confidence") or "low"
+    independent = (
+        _slot_probs_from_codes((deterministic_context or {}).get("probabilities_hda"), home_code, away_code)
+        or _slot_probs_from_codes((deterministic_context or {}).get("probabilities_by_code"), home_code, away_code)
+        or _BASE_RATE
+    )
+    evidence_ids = tuple(
+        str(x.get("evidence_id") or x.get("id") or x.get("signal") or "")
+        for x in (market_blind_evidence.get("flags") or [])
+        if isinstance(x, dict)
+    )
+    layers = build_forecast_layers(
+        independent,
+        analyst_output=analyst.parsed,
+        devil_output=devil.parsed,
+        judge_output=j,
+        market_probabilities=_market_probs_from_digest(polymarket_digest, home_code, away_code),
+        evidence_ids=tuple(x for x in evidence_ids if x),
+        data_coverage_score=1.0,
+        confidence={"low": 0.4, "medium": 0.6, "high": 0.8}.get(str(j.get("confidence") or "medium").lower(), 0.6),
+    )
+    probs = _code_probs_from_slots(layers.scored_probabilities, home_code, away_code)
+    confidence = j.get("confidence") or (analyst.parsed or {}).get("confidence") or "low"
 
     # ── Grounding pass: sanity-check, cap confidence on thin data, and apply
     # the documented low-confidence shrink toward the anchor. Nothing hidden —
@@ -190,12 +240,12 @@ def run_council(
         outcome=outcome,
         probability=float(probability),
         confidence=confidence,
-        council_summary=j.get("council_summary") or a.get("rationale") or "",
+        council_summary=j.get("summary") or j.get("council_summary") or (analyst.parsed or {}).get("rationale") or "",
         probabilities=probs,
         scout_flags=scout_flags,
-        market_alignment=j.get("market_alignment", "unknown"),
+        market_alignment=j.get("market_efficiency_assessment", j.get("market_alignment", "unknown")),
         social_pulse=social_pulse,
-        grounding=g,
+        grounding={**g, "forecast_layers": layers.__dict__},
         pulse=pulse,
         scout=scout,
         analyst=analyst,

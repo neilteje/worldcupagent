@@ -28,9 +28,9 @@ class EnsembleConfig:
     # forecaster, so it carries the prior; the repo-local statistical layer
     # (Elo + Poisson, built from 2018 + in-tournament data) adds an independent
     # tilt. These are round, a-priori weights — NOT tuned to 2022 outcomes.
-    w_elo: float = 0.10
-    w_poisson: float = 0.10
-    w_market: float = 0.80
+    w_elo: float = 0.50
+    w_poisson: float = 0.50
+    w_market: float = 0.0
     w_bzzoiro: float = 0.15
     rho: float = DEFAULT_RHO
     # Calibration is done by base-rate shrinkage (temperature held at 1.0); a WC2022
@@ -48,7 +48,7 @@ class EnsembleConfig:
     # ablation toggles
     use_elo: bool = True
     use_poisson: bool = True
-    use_market: bool = True
+    use_market: bool = False
     use_bzzoiro: bool = True
 
 
@@ -159,7 +159,7 @@ def ablation_configs(base: EnsembleConfig | None = None) -> dict[str, EnsembleCo
         "full": base,
         "elo_only": replace(base, use_elo=True, use_poisson=False, use_market=False, use_bzzoiro=False),
         "poisson_only": replace(base, use_elo=False, use_poisson=True, use_market=False, use_bzzoiro=False),
-        "market_only": replace(base, use_elo=False, use_poisson=False, use_market=True, use_bzzoiro=False),
+        "market_only": replace(base, use_elo=False, use_poisson=False, use_market=True, use_bzzoiro=False, w_market=1.0),
         "bzzoiro_only": replace(base, use_elo=False, use_poisson=False, use_market=False, use_bzzoiro=True),
         "stats_only_no_market": replace(base, use_elo=True, use_poisson=True, use_market=False, use_bzzoiro=True),
         "no_calibration": replace(base, temperature=1.0, base_rate_shrink=0.0, knockout_draw_boost=0.0, mw3_temperature_boost=0.0),

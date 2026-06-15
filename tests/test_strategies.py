@@ -7,8 +7,6 @@ from agents.monk import MonkStrategy
 from agents.anchor import AnchorStrategy
 from agents.hunter import HunterStrategy
 from agents.blitz import BlitzStrategy
-from models.forecast_contracts import MatchForecast
-
 from conftest import make_football_context, make_snapshot
 
 
@@ -20,19 +18,6 @@ def test_four_distinct_strategy_classes():
     classes = {type(s) for s in _all_strategies()}
     assert len(classes) == 4
     assert {s.name for s in _all_strategies()} == {"monk", "anchor", "hunter", "blitz"}
-
-
-def _blitz_view(strategy, snapshot):
-    view = strategy.build_data_view(snapshot, None)
-    view.legacy_forecast = MatchForecast(
-        fixture_id="900", as_of_timestamp=datetime.now(timezone.utc),
-        home_probability=0.6, draw_probability=0.22, away_probability=0.18,
-        home_lower_bound=0.6, draw_lower_bound=0.22, away_lower_bound=0.18,
-        home_upper_bound=0.6, draw_upper_bound=0.22, away_upper_bound=0.18,
-        confidence=0.7, data_coverage_score=0.8, model_version="legacy",
-        feature_snapshot_hash="", evidence_ids=[], warnings=[],
-    )
-    return view
 
 
 def test_four_distinct_data_view_hashes():
@@ -49,19 +34,15 @@ def test_four_distinct_forecast_ids_and_not_one_shared_probability():
     forecasts = {}
     for s in _all_strategies():
         view = s.build_data_view(snap, None)
-        if s.name == "blitz":
-            view = _blitz_view(s, snap)
         fc = s.build_forecast(view)
         forecasts[s.name] = fc
 
     ids = [fc.forecast_id for fc in forecasts.values()]
     assert len(set(ids)) == 4, "four agents must produce four distinct forecast ids"
 
-    # OFFLINE (no shared council forecast) the agents fall back to their own
-    # models: MONK/ANCHOR share the independent foundation, HUNTER uses a Poisson
-    # fallback, BLITZ uses the legacy stub.
     assert forecasts["monk"].forecast_type == "independent_deterministic"
     assert forecasts["hunter"].forecast_type == "poisson_fallback"
+    assert forecasts["blitz"].forecast_type == "event_triggered_common"
 
 
 def test_conviction_all_agents_share_the_council_belief():

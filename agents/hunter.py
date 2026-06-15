@@ -15,7 +15,7 @@ from harness.profiles import get_profile
 import config
 from agents.monk import _coverage_from_features
 from agents._reco import reco_from_candidate
-from agents._conviction import build_council_forecast, conviction_candidates
+from agents._conviction import build_council_forecast, skew_candidates
 from models.calibration import normalize_probs
 from models.poisson_model import poisson_1x2
 
@@ -114,9 +114,7 @@ class HunterStrategy(AgentStrategy):
         view: AgentDataView,
         market: MarketContext | None,
     ) -> list[TradeCandidate]:
-        # Conviction: HUNTER backs the best-EV council outcome (favorite
-        # included) on thin edges — the loosest bar of the coordinated three.
-        return conviction_candidates(forecast, view, market, self.profile, self.name)
+        return skew_candidates(forecast, view, market, self.profile, self.name)
 
     def generate_recommendations(
         self,

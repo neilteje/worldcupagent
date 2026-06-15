@@ -1,23 +1,73 @@
-from typing import Any
+from __future__ import annotations
+
 import hashlib
-from datetime import datetime, timezone
 import json
+from datetime import datetime, timezone
+
 from agents.base import AgentStrategy, ExecutionPlan, AgentRecommendation
 from agents.contracts import (
-    FixtureDataSnapshot,
     AgentDataView,
     AgentForecast,
+    DirectionalSignal,
+    FixtureDataSnapshot,
     MarketContext,
     TradeCandidate,
 )
+from agents._conviction import build_council_forecast, conviction_candidates
+from agents._reco import reco_from_candidate
 from harness.profiles import get_profile
-import config
-from models.forecast_contracts import MatchForecast # the legacy forecast
-from betting.policy import select_picks, suppress_blitz_draw_picks
 
-class BlitzLegacyDataView(AgentDataView):
-    # Specialized subclass to hold legacy objects
-    legacy_forecast: MatchForecast | None = None
+VALID_EVENT_TRIGGERS = {
+    "confirmed_lineup_surprise",
+    "late_injury_or_rotation",
+    "stale_market_after_news",
+    "cross_market_divergence",
+    "dead_rubber_motivation",
+    "halftime_xg_reversion",
+    "red_card",
+    "material_live_state_change",
+}
+
+
+def _parse_dt(value) -> datetime | None:
+    if isinstance(value, datetime):
+        return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+    if isinstance(value, str) and value:
+        try:
+            out = datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return out if out.tzinfo else out.replace(tzinfo=timezone.utc)
+        except ValueError:
+            return None
+    return None
+
+
+def valid_blitz_signals(view: AgentDataView, *, now: datetime | None = None) -> dict[str, list[DirectionalSignal]]:
+    now = now or datetime.now(timezone.utc)
+    out: dict[str, list[DirectionalSignal]] = {}
+    for raw in (view.football_features or {}).get("event_signals") or ():
+        trigger = str(raw.get("event_type") or raw.get("trigger") or "")
+        observed = _parse_dt(raw.get("observed_at"))
+        expires = _parse_dt(raw.get("expires_at"))
+        outcome = str(raw.get("outcome") or raw.get("direction") or "")
+        if trigger not in VALID_EVENT_TRIGGERS or not observed or not expires or expires <= now:
+            continue
+        signal = DirectionalSignal(
+            signal_id=str(raw.get("signal_id") or raw.get("evidence_id") or hashlib.sha256(json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest()),
+            fixture_id=view.fixture_id,
+            outcome=outcome,
+            source=str(raw.get("source") or "event_signal"),
+            source_group=trigger,
+            direction=outcome,
+            strength=max(0.0, min(1.0, float(raw.get("strength", 0.5) or 0.5))),
+            confidence=max(0.0, min(1.0, float(raw.get("confidence", 0.5) or 0.5))),
+            observed_at=observed,
+            expires_at=expires,
+            evidence_hash=hashlib.sha256(json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest(),
+            summary=str(raw.get("summary") or trigger),
+        )
+        out.setdefault(outcome, []).append(signal)
+    return out
+
 
 class BlitzStrategy(AgentStrategy):
     name = "blitz"
@@ -30,15 +80,15 @@ class BlitzStrategy(AgentStrategy):
         snapshot: FixtureDataSnapshot,
         prior_agent_forecast: AgentForecast | None = None,
     ) -> AgentDataView:
-        
+        coverage = float(((snapshot.football_context or {}).get("independent_forecast") or {}).get("data_coverage_score", 0.0))
         view_state = {
             "agent": self.name,
             "fixture_id": snapshot.fixture_id,
             "window": snapshot.window,
+            "event_signals": (snapshot.football_context or {}).get("event_signals") or [],
         }
-        view_hash = hashlib.sha256(json.dumps(view_state, sort_keys=True).encode()).hexdigest()
-
-        view = BlitzLegacyDataView(
+        view_hash = hashlib.sha256(json.dumps(view_state, sort_keys=True, default=str).encode()).hexdigest()
+        return AgentDataView(
             agent_name=self.name,
             fixture_id=snapshot.fixture_id,
             window=snapshot.window,
@@ -47,41 +97,47 @@ class BlitzStrategy(AgentStrategy):
             live_features=snapshot.live_context,
             external_model_predictions={},
             evidence=tuple(),
-            market_features=None, 
-            data_coverage={"overall": 1.0},
+            market_features=None,
+            data_coverage={"overall": coverage},
             prohibited_fields_removed=tuple(),
             warnings=tuple(),
             data_view_hash=view_hash,
         )
-        
-        # We will populate view.legacy_forecast externally in the cycle.py adapter
-        return view
 
-    def build_forecast(
-        self,
-        view: AgentDataView,
-    ) -> AgentForecast:
-        forecast_id = hashlib.sha256(f"{view.data_view_hash}_blitz_v1".encode()).hexdigest()
-
+    def build_forecast(self, view: AgentDataView) -> AgentForecast:
+        council = build_council_forecast(view, self.name, "blitz_v1_event")
+        if council is not None:
+            return council
+        ff = view.football_features or {}
+        snap = ff.get("independent_forecast") or {}
+        probs = snap.get("probabilities_by_code") or {}
+        home = ff.get("home_code", "home")
+        away = ff.get("away_code", "away")
+        p = {
+            "home": float(probs.get(home, 0.40)),
+            "draw": float(probs.get("draw", 0.28)),
+            "away": float(probs.get(away, 0.32)),
+        }
+        total = sum(p.values()) or 1.0
+        p = {k: v / total for k, v in p.items()}
+        forecast_id = hashlib.sha256(f"{view.data_view_hash}_blitz_v1_event".encode()).hexdigest()
         return AgentForecast(
             agent_name=self.name,
             fixture_id=view.fixture_id,
             window=view.window,
             as_of_timestamp=view.as_of_timestamp,
-            home_probability=0.45,
-            draw_probability=0.25,
-            away_probability=0.30,
-            home_lower_bound=0.40,
-            draw_lower_bound=0.20,
-            away_lower_bound=0.25,
-            home_upper_bound=0.50,
-            draw_upper_bound=0.30,
-            away_upper_bound=0.35,
-            confidence=0.8,
-            data_coverage_score=view.data_coverage.get("overall", 1.0),
-            forecast_type="legacy",
-            model_version="legacy_v1",
-            components={},
+            home_probability=p["home"], draw_probability=p["draw"], away_probability=p["away"],
+            home_lower_bound=max(0.0, p["home"] - 0.10),
+            draw_lower_bound=max(0.0, p["draw"] - 0.10),
+            away_lower_bound=max(0.0, p["away"] - 0.10),
+            home_upper_bound=min(1.0, p["home"] + 0.10),
+            draw_upper_bound=min(1.0, p["draw"] + 0.10),
+            away_upper_bound=min(1.0, p["away"] + 0.10),
+            confidence=float((ff.get("council_forecast") or {}).get("confidence", 0.5)),
+            data_coverage_score=float(view.data_coverage.get("overall", 0.0)),
+            forecast_type="event_triggered_common",
+            model_version="blitz_v1_event",
+            components={"source": "shared_forecast_contract"},
             evidence_ids=tuple(),
             warnings=tuple(),
             data_view_hash=view.data_view_hash,
@@ -94,76 +150,35 @@ class BlitzStrategy(AgentStrategy):
         view: AgentDataView,
         market: MarketContext | None,
     ) -> list[TradeCandidate]:
-        if not market or not isinstance(view, BlitzLegacyDataView) or not view.legacy_forecast:
+        signals = valid_blitz_signals(view, now=view.as_of_timestamp)
+        if not signals:
             return []
-
-        # mock moneyline using market_midpoint for legacy compatibility
-        moneyline = None
-        if market and market.midpoint:
-            moneyline = {
-                "market_source": "polymarket",
-                "outcomes": {
-                    "home": {"current_mid_yes": market.midpoint.get("home")},
-                    "draw": {"current_mid_yes": market.midpoint.get("draw")},
-                    "away": {"current_mid_yes": market.midpoint.get("away")}
-                }
-            }
-
-        probabilities = {
-            "home": view.legacy_forecast.home_probability,
-            "draw": view.legacy_forecast.draw_probability,
-            "away": view.legacy_forecast.away_probability
-        }
-        
-        home_code = view.football_features.get("home_code", "home") if view.football_features else "home"
-        away_code = view.football_features.get("away_code", "away") if view.football_features else "away"
-
-        self.skip_reasons: list[str] = []
-        legacy_picks = select_picks(
-            profile=self.profile,
-            probabilities=probabilities,
-            moneyline=moneyline,
-            home_code=home_code,
-            away_code=away_code,
-            bankroll=100.0,
-            window=view.window,
-            confidence_num=view.legacy_forecast.confidence,
-            skip_reasons=self.skip_reasons,
-        )
-
-        # Draw removal runs AFTER BLITZ's existing candidate selection (spec §11),
-        # via the canonical suppressor — it never promotes a replacement and
-        # records ``blitz_draw_disabled`` per removed draw.
-        kept = suppress_blitz_draw_picks(self.profile, legacy_picks, self.skip_reasons)
-        self.draws_removed = 0
-
-        candidates = []
-        for pick in kept:
-            candidates.append(
-                TradeCandidate(
-                    agent_name=self.name,
-                    fixture_id=forecast.fixture_id,
-                    outcome=pick.slot,
-                    probability_mean=pick.our_prob,
-                    probability_lower_bound=pick.our_prob,  # Legacy uses point estimate
-                    probability_upper_bound=pick.our_prob,
-                    market_midpoint=pick.fair_prob,
-                    best_ask=pick.limit_price,
-                    expected_fill_price=pick.entry_price,
-                    gross_edge=pick.edge_vs_fair,
-                    conservative_edge=pick.edge_vs_fair,
-                    expected_value_after_costs=pick.ev_per_dollar,
-                    signal_type="blitz_legacy",
-                    signals=tuple(),
-                    candidate_created_at=datetime.now(timezone.utc),
-                    candidate_expires_at=None,
-                    forecast_id=forecast.forecast_id,
-                    correlation_key=f"{self.name}_{forecast.fixture_id}_{pick.slot}",
-                )
+        candidates = conviction_candidates(forecast, view, market, self.profile, self.name, signals)
+        valid_outcomes = set(signals)
+        return [
+            TradeCandidate(
+                agent_name=c.agent_name,
+                fixture_id=c.fixture_id,
+                outcome=c.outcome,
+                probability_mean=c.probability_mean,
+                probability_lower_bound=c.probability_lower_bound,
+                probability_upper_bound=c.probability_upper_bound,
+                market_midpoint=c.market_midpoint,
+                best_ask=c.best_ask,
+                expected_fill_price=c.expected_fill_price,
+                gross_edge=c.gross_edge,
+                conservative_edge=c.conservative_edge,
+                expected_value_after_costs=c.expected_value_after_costs,
+                signal_type="event_trigger",
+                signals=c.signals,
+                candidate_created_at=c.candidate_created_at,
+                candidate_expires_at=min((s.expires_at for s in c.signals if s.expires_at), default=None),
+                forecast_id=c.forecast_id,
+                correlation_key=f"{forecast.fixture_id}:{c.outcome}:event:{','.join(sorted(s.signal_id for s in c.signals))}",
             )
-        # Stash the sized picks so the legacy execution path can use exact stakes.
-        self.legacy_picks = kept
-        return candidates
+            for c in candidates
+            if c.outcome in valid_outcomes
+        ]
 
     def generate_recommendations(
         self,
@@ -173,16 +188,14 @@ class BlitzStrategy(AgentStrategy):
         market: MarketContext | None,
         bankroll: float,
     ) -> list[AgentRecommendation]:
-        recs = []
-        # Convert back to legacy recommendations
-        for cand in candidates:
-            # We preserve the legacy path, so we don't go through the central portfolio coordinator
-            # But we still return recommendations if needed by the runner.
-            pass
-        return recs
+        ranked = sorted(candidates, key=lambda c: c.expected_value_after_costs or -1, reverse=True)
+        return [
+            reco_from_candidate(self.name, cand, view, forecast, bankroll, self.profile)
+            for cand in ranked[: self.profile.max_bets_per_window]
+        ]
 
-    def create_execution_plan(
-        self,
-        recommendations: list[AgentRecommendation],
-    ) -> ExecutionPlan:
-        return ExecutionPlan()
+    def create_execution_plan(self, recommendations: list[AgentRecommendation]) -> ExecutionPlan:
+        return ExecutionPlan(recommendations=tuple(recommendations))
+
+
+__all__ = ["BlitzStrategy", "VALID_EVENT_TRIGGERS", "valid_blitz_signals"]

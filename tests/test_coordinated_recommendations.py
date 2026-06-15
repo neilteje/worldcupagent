@@ -1,5 +1,4 @@
-"""Coordinated-agent redesign: recommendations, conservative-edge gating, and
-central portfolio allocation for MONK/ANCHOR/HUNTER (BLITZ stays direct)."""
+"""Agent recommendation contracts, conservative-edge gating, and allocation."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
@@ -87,14 +86,13 @@ def test_monk_anchor_recommendation_creation(agent):
     assert rec.correlation_key
 
 
-def test_hunter_recommendation_creation_conviction():
-    # Conviction HUNTER backs a favorite: mean 0.60 / lower 0.55 / entry 0.45.
+def test_hunter_recommendation_creation_skew():
     snap = _snap(mean=0.60, lower=0.55, upper=0.65)
-    rec = _build("hunter", _pick(entry=0.45, our_prob=0.60), snap)
+    rec = _build("hunter", _pick(entry=0.35, our_prob=0.60), snap)
     assert rec.should_trade is True
-    assert rec.signal_type == "aggressive_value"
-    assert rec.conservative_edge == pytest.approx(0.06)        # 0.55 - 0.45 - 0.04
-    assert rec.expected_value_after_costs == pytest.approx(0.11)  # 0.60 - 0.45 - 0.04
+    assert rec.signal_type == "skew_tail"
+    assert rec.conservative_edge == pytest.approx(0.16)
+    assert rec.expected_value_after_costs == pytest.approx(0.21)
 
 
 # ── conservative-edge thresholding ───────────────────────────────────────────
@@ -139,12 +137,11 @@ def test_optional_ultra_tail_gate_via_explicit_thresholds():
     assert rec.abstain_reason == REASON_ULTRA_TAIL_VALIDATION
 
 
-def test_hunter_default_thresholds_have_no_signal_requirement():
-    # Conviction HUNTER backs a single-evidence pick — no independent-signal gate.
-    snap = _snap(mean=0.60, lower=0.55, upper=0.65, evidence=("only_one",))
+def test_hunter_default_thresholds_require_signal():
+    snap = _snap(mean=0.60, lower=0.55, upper=0.65, evidence=())
     rec = _build("hunter", _pick(entry=0.45, our_prob=0.60), snap)
-    assert rec.should_trade is True
-    assert rec.abstain_reason is None
+    assert rec.should_trade is False
+    assert rec.abstain_reason == REASON_INSUFFICIENT_SIGNALS
 
 
 # ── portfolio dedup + coordinator threading ──────────────────────────────────
@@ -152,21 +149,21 @@ def test_hunter_default_thresholds_have_no_signal_requirement():
 def test_coordinator_prevents_duplicate_positions_across_agents():
     coord = PortfolioCoordinator(limits=PortfolioLimits())
     monk = _build("monk", _pick(), _snap(**_STRONG))
-    anchor = _build("anchor", _pick(), _snap(**_STRONG))   # same fixture/outcome/forecast/evidence
-    assert monk.correlation_key == anchor.correlation_key
+    anchor = _build("anchor", _pick(), _snap(**_STRONG))
+    assert monk.correlation_key != anchor.correlation_key
 
     first = coord.allocate([monk])
     second = coord.allocate([anchor])
 
     assert [r.agent_name for r in first.accepted] == ["monk"]
     assert second.accepted == []
-    assert second.rejected[0]["reason"] == "duplicate_signal"
-    assert coord.duplicate_positions_prevented == 1
+    assert second.rejected[0]["reason"] == "outcome_exposure_limit"
+    assert coord.duplicate_positions_prevented == 0
 
 
 # ── allocator cannot veto BLITZ ──────────────────────────────────────────────
 
-def test_allocator_cannot_veto_blitz():
+def test_allocator_can_gate_blitz_exposure_like_other_agents():
     blitz = AgentRecommendation(
         agent_name="blitz", fixture_id="fixture-1", outcome="AAA",
         should_trade=True, abstain_reason=None,
@@ -181,15 +178,14 @@ def test_allocator_cannot_veto_blitz():
         correlation_key="blitz-key", forecast_id="fc-1",
     )
     result = allocate_recommendations([blitz], limits=PortfolioLimits())
-    assert [r.agent_name for r in result.observed_only] == ["blitz"]
     assert result.accepted == []
-    assert result.rejected == []   # never vetoed, just observed
+    assert result.rejected[0]["reason"] == "fixture_exposure_limit"
 
 
 # ── BLITZ stays off the coordinated path; non-draw picks are untouched ───────
 
-def test_blitz_is_not_a_coordinated_agent():
-    assert "blitz" not in bet_reco.COORDINATED_AGENTS
+def test_blitz_is_a_coordinated_agent():
+    assert "blitz" in bet_reco.COORDINATED_AGENTS
 
 
 def test_blitz_non_draw_pick_payload_is_unchanged():

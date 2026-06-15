@@ -1,9 +1,4 @@
-"""Portfolio coordination for MONK, ANCHOR, and HUNTER recommendations.
-
-The live BLITZ path is intentionally not controlled here.  BLITZ recommendations
-may be included for aggregate exposure reporting, but allocator rejections are
-only applied to non-BLITZ agents.
-"""
+"""Order-invariant portfolio coordination for all agent recommendations."""
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -11,13 +6,25 @@ from dataclasses import dataclass, field
 from models.forecast_contracts import AgentRecommendation
 
 
-COORDINATED_AGENTS = {"monk", "anchor", "hunter"}
-OBSERVED_ONLY_AGENTS = {"blitz"}
+COORDINATED_AGENTS = {"monk", "anchor", "hunter", "blitz"}
+OBSERVED_ONLY_AGENTS: set[str] = set()
 
 # Mandate-fit ownership order used to break ties when two agents back the same
 # correlation key (spec §22): the higher conservative edge wins; on a tie the
 # agent whose mandate best fits leads. Lower rank = preferred owner.
-_MANDATE_RANK = {"monk": 0, "anchor": 1, "hunter": 2}
+_MANDATE_RANK = {"anchor": 0, "hunter": 1, "monk": 2, "blitz": 3}
+
+
+def _mandate_rank(rec: "AgentRecommendation") -> int:
+    signal = (rec.signal_type or "").lower()
+    agent = (rec.agent_name or "").lower()
+    if "event" in signal:
+        return 0 if agent == "blitz" else 8
+    if "draw" in signal or "underdog" in signal or "skew" in signal:
+        return 0 if agent == "hunter" else 7
+    if "forecast" in signal or (rec.conservative_edge is not None and rec.conservative_edge >= 0.12):
+        return 0 if agent == "monk" else 6
+    return _MANDATE_RANK.get(agent, 9)
 
 
 def _joint_sort_key(rec: "AgentRecommendation"):
@@ -26,7 +33,7 @@ def _joint_sort_key(rec: "AgentRecommendation"):
     edge = rec.conservative_edge if rec.conservative_edge is not None else -1.0
     return (
         -float(edge),
-        _MANDATE_RANK.get((rec.agent_name or "").lower(), 9),
+        _mandate_rank(rec),
         rec.correlation_key or f"{rec.fixture_id}:{rec.outcome}",
     )
 

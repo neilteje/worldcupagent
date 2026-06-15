@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 import config
 from agents.contracts import AgentForecast, AgentDataView, MarketContext, TradeCandidate
 from models.calibration import normalize_probs
+from models.market_calibration import information_edge
 
 _SLOTS = ("home", "draw", "away")
 
@@ -70,7 +71,7 @@ def build_council_forecast(
         forecast_type="council_conviction",
         model_version=model_version,
         components={"source": "council", "confidence": confidence},
-        evidence_ids=tuple(),
+        evidence_ids=tuple(cf.get("evidence_ids") or (view.football_features or {}).get("evidence_ids") or ()),
         warnings=tuple(),
         data_view_hash=view.data_view_hash,
         forecast_id=forecast_id,
@@ -113,7 +114,7 @@ def conviction_candidates(
         if not fill:
             continue
 
-        gross_edge = prob - float(fill)
+        gross_edge = information_edge(prob, float(fill))
         if gross_edge <= 0:
             continue
 
@@ -137,12 +138,58 @@ def conviction_candidates(
             gross_edge=gross_edge,
             conservative_edge=conservative_edge,
             expected_value_after_costs=ev_after_costs,
-            signal_type="council_conviction",
+            signal_type=f"{agent_name}_value",
             signals=tuple(signals_by_outcome.get(outcome, ())),
             candidate_created_at=datetime.now(timezone.utc),
             candidate_expires_at=None,
             forecast_id=forecast.forecast_id,
-            correlation_key=f"{agent_name}_{forecast.fixture_id}_{outcome}",
+            correlation_key=f"{forecast.fixture_id}:{outcome}:value:{forecast.forecast_id}",
         ))
 
+    return sorted(out, key=lambda c: c.expected_value_after_costs or -1, reverse=True)
+
+
+def favorite_outcome(market: MarketContext | None) -> str | None:
+    if not market or not market.expected_fill_price:
+        return None
+    vals = {k: v for k, v in market.expected_fill_price.items() if isinstance(v, (int, float))}
+    return max(vals, key=vals.get) if vals else None
+
+
+def skew_candidates(
+    forecast: AgentForecast,
+    view: AgentDataView,
+    market: MarketContext | None,
+    profile,
+    agent_name: str = "hunter",
+) -> list[TradeCandidate]:
+    """Draw/underdog candidates only; reject favorites and entry prices over 0.40."""
+    fav = favorite_outcome(market)
+    out: list[TradeCandidate] = []
+    for cand in conviction_candidates(forecast, view, market, profile, agent_name):
+        if cand.outcome == fav:
+            continue
+        if cand.expected_fill_price is None or cand.expected_fill_price > 0.40:
+            continue
+        signal_type = "draw_skew" if cand.outcome == "draw" else "underdog_skew"
+        out.append(TradeCandidate(
+            agent_name=cand.agent_name,
+            fixture_id=cand.fixture_id,
+            outcome=cand.outcome,
+            probability_mean=cand.probability_mean,
+            probability_lower_bound=cand.probability_lower_bound,
+            probability_upper_bound=cand.probability_upper_bound,
+            market_midpoint=cand.market_midpoint,
+            best_ask=cand.best_ask,
+            expected_fill_price=cand.expected_fill_price,
+            gross_edge=cand.gross_edge,
+            conservative_edge=cand.conservative_edge,
+            expected_value_after_costs=cand.expected_value_after_costs,
+            signal_type=signal_type,
+            signals=cand.signals,
+            candidate_created_at=cand.candidate_created_at,
+            candidate_expires_at=cand.candidate_expires_at,
+            forecast_id=cand.forecast_id,
+            correlation_key=f"{forecast.fixture_id}:{cand.outcome}:{signal_type}:{forecast.forecast_id}",
+        ))
     return sorted(out, key=lambda c: c.expected_value_after_costs or -1, reverse=True)

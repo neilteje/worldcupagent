@@ -647,3 +647,27 @@ def judge_input(
         "devils_advocate_counter": devil_output,
         "polymarket": polymarket_digest,
     }, default=str)
+
+
+# P0/P1 architecture contract: the Python pipeline validates and applies these
+# shapes, so prompt drift cannot bypass the forecast-layer rules.
+SCOUT_SYS += (
+    "\n\nArchitecture contract: split output into market_blind_evidence and "
+    "market_observations. Only market_blind_evidence is sent to Analyst."
+)
+ANALYST_SYS += (
+    "\n\nArchitecture contract: return JSON with adjustments keyed by home/draw/away, "
+    "evidence_ids_by_adjustment, unknowns, confidence, and rationale. Do not return "
+    "a replacement probability map."
+)
+DEVIL_SYS += (
+    "\n\nArchitecture contract: return two or three weighted scenarios in a "
+    "scenarios array. Each scenario has scenario_id, plausibility, probabilities "
+    "keyed by home/draw/away, and evidence_ids."
+)
+JUDGE_SYS += (
+    "\n\nArchitecture contract: select calibration policy only. Return evidence_quality, "
+    "market_efficiency_assessment, recommended_market_weight, "
+    "supported_divergence_evidence_ids, confidence, and summary. Do not invent "
+    "a final probability map."
+)

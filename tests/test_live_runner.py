@@ -59,15 +59,13 @@ def _ml(home=0.55, draw=0.26, away=0.25, source="polymarket"):
     }
 
 
-def test_policy_saw_backs_the_favorite_under_conviction():
-    # Conviction: SAW no longer bans favorites — it backs the best-EV pick.
+def test_policy_saw_has_skew_price_cap():
     saw = get_profile("hunter")
-    assert saw.max_entry_price is None
+    assert saw.max_entry_price == pytest.approx(0.40)
     probs = {"AAA": 0.70, "draw": 0.18, "BBB": 0.12}   # strong favorite, underpriced
     picks = select_picks(saw, probs, _ml(), "AAA", "BBB", 100.0,
                          confidence_num=0.6)
-    assert picks, "SAW should back the favorite when it carries the edge"
-    assert picks[0].code == "AAA"
+    assert picks == []
 
 
 def test_policy_keel_takes_clear_edge():
@@ -151,7 +149,7 @@ def test_live_prematch_builds_deterministic_context_for_council():
     assert set(ctx["probabilities_by_code"]) == {"AAA", "draw", "BBB"}
     assert sum(ctx["probabilities_by_code"].values()) == pytest.approx(1.0, abs=0.001)
     assert "components" in ctx and "expected_goals" in ctx
-    assert ctx["component_weights"]["market"] == pytest.approx(0.8)
+    assert "market" not in ctx["component_weights"]
 
 
 # ── Ledger: schema v0.3 shapes ───────────────────────────────────────────────

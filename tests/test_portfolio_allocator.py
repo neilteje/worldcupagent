@@ -86,12 +86,12 @@ def test_ultra_tail_exposure_limit():
     assert any(r["reason"] == "ultra_tail_exposure_limit" for r in res.rejected)
 
 
-def test_blitz_observed_never_vetoed():
+def test_blitz_common_contract_is_exposure_gated():
     recs = [_rec("blitz", "AAA", stake=0.5, corr="b1")]  # huge stake
     res = allocate_recommendations(recs)
     assert res.accepted == []
-    assert len(res.observed_only) == 1
-    assert not res.rejected, "BLITZ must be observed, never rejected/vetoed"
+    assert len(res.observed_only) == 0
+    assert res.rejected[0]["reason"] == "fixture_exposure_limit"
 
 
 def test_gates_evaluated_per_recommendation():

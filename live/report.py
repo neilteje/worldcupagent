@@ -92,6 +92,33 @@ def build_report() -> str:
     settlements = {str(e["fixture_id"]): e for e in events if e["type"] == "settlement"}
     agent_settle = [e for e in events if e["type"] == "agent_settlement"]
     errors = [e for e in events if e["type"] == "error"]
+    version_keys = {
+        (
+            e.get("strategy_version"),
+            e.get("forecast_pipeline_version"),
+            e.get("model_version"),
+            e.get("profile_configuration_hash"),
+        )
+        for e in events
+        if e.get("strategy_version") or e.get("model_version")
+    }
+    if len(version_keys) > 1:
+        latest = sorted(version_keys, key=str)[-1]
+        events = [
+            e for e in events
+            if not (e.get("strategy_version") or e.get("model_version"))
+            or (
+                e.get("strategy_version"),
+                e.get("forecast_pipeline_version"),
+                e.get("model_version"),
+                e.get("profile_configuration_hash"),
+            ) == latest
+        ]
+        forecasts = [e for e in events if e["type"] == "forecast"]
+        coverage_events = [e for e in events if e["type"] == "signal_coverage"]
+        agent_windows = [e for e in events if e["type"] == "agent_window"]
+        agent_settle = [e for e in events if e["type"] == "agent_settlement"]
+        errors = [e for e in events if e["type"] == "error"]
 
     # ── forecast quality vs market (M-1, M-2) ─────────────────────────────
     briers_us, briers_mkt, divergences = [], [], []
@@ -176,6 +203,10 @@ def build_report() -> str:
     # ── render ────────────────────────────────────────────────────────────
     L: list[str] = []
     L.append("# Live run — retrospective report\n")
+    if version_keys:
+        L.append("Version scope: aggregates use one compatible strategy, forecast "
+                 "pipeline, model, and profile hash; incompatible historical runs "
+                 "are not combined.\n")
     st = state.summary()
     L.append(f"Windows processed: {st['windows_total']}  ({st['by_status']})  "
              f"| fixtures settled: {st['settled']}  | errors logged: {len(errors)}\n")

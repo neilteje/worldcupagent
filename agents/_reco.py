@@ -67,11 +67,16 @@ def reco_from_candidate(agent_name, cand, view, forecast, bankroll, profile) -> 
     )
     snap = shared_snapshot(view, forecast)
     fid = (view.football_features or {}).get("forecast_snapshot_id") or forecast.forecast_id
+    evidence_ids = [s.signal_id for s in cand.signals]
+    if not evidence_ids:
+        evidence_ids = list(getattr(forecast, "evidence_ids", ()) or [])
+    if not evidence_ids:
+        evidence_ids = list(((view.football_features or {}).get("evidence_ids") or []))
     return build_recommendation(
         agent_name, pick,
         fixture_id=cand.fixture_id, bankroll=bankroll,
         forecast_snapshot=snap, forecast_id=fid,
-        evidence_ids=[s.signal_id for s in cand.signals],
+        evidence_ids=evidence_ids,
         data_coverage_score=forecast.data_coverage_score,
         confidence=forecast.confidence,
     )

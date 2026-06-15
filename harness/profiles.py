@@ -14,9 +14,8 @@ there is no drift between rehearsal and production.
            tournament is the *design*, not paralysis.
   anchor → KEEL    — disciplined all-outcome EV accumulator. The control arm
            and risk-adjusted P&L play. ~20–40% of games.
-  hunter → SAW     — aggressive conviction. Backs the council's best-EV pick
-           (favorites included) on the thinnest edges of the coordinated three,
-           at near-max size. Activity + drift is the product.
+  hunter → SAW     — draw and underdog skew. Rejects favorites and prices over
+           0.40, with larger size only after independent evidence filters pass.
   blitz  → SURGE   — event-driven aggression: both windows, scout veto off,
            thin-but-positive edges vs FAIR price. Endgame escalation vehicle.
 
@@ -107,13 +106,13 @@ class AgentProfile:
 
 MONK = AgentProfile(
     name="monk", label="oracle — forecast specialist",
-    min_edge_vs_fair=0.08,      # still selective, but no longer tournament-paralyzed
-    min_ev_per_dollar=0.05,     # and a real EV cushion
+    min_edge_vs_fair=0.12,
+    min_ev_per_dollar=0.08,
     min_confidence=0.50,        # medium-ish council confidence
     kelly_fraction=0.30,
     max_bet_usd=3.0,
     stake_cap_fraction=0.06,
-    max_bets_per_window=2,
+    max_bets_per_window=1,
     floor_to_min_order=False,
     skip_on_high_scout_flag=True,
 )
@@ -126,21 +125,21 @@ ANCHOR = AgentProfile(
     kelly_fraction=0.50,
     max_bet_usd=5.0,
     stake_cap_fraction=0.10,
-    max_bets_per_window=2,
+    max_bets_per_window=1,
     floor_to_min_order=False,
     skip_on_high_scout_flag=True,
 )
 
 HUNTER = AgentProfile(
-    name="hunter", label="saw — aggressive conviction (thin edges, big size)",
-    min_edge_vs_fair=0.02,      # loosest of the coordinated three → most active
-    min_ev_per_dollar=0.005,
+    name="hunter", label="saw — draw and underdog skew",
+    min_edge_vs_fair=0.04,
+    min_ev_per_dollar=0.01,
     min_confidence=0.35,
-    max_entry_price=None,       # conviction: backs the best-EV pick, favorites included
-    kelly_fraction=0.90,        # when it fires, fire near the cap
+    max_entry_price=0.40,
+    kelly_fraction=0.90,
     max_bet_usd=5.0,
     stake_cap_fraction=0.15,
-    max_bets_per_window=3,
+    max_bets_per_window=1,
     floor_to_min_order=False,
     skip_on_high_scout_flag=True,
     apply_confidence_multiplier=False,   # aggression: size at the cap on +EV picks
@@ -154,7 +153,7 @@ BLITZ = AgentProfile(
     kelly_fraction=0.85,
     max_bet_usd=5.0,
     stake_cap_fraction=0.20,
-    max_bets_per_window=3,
+    max_bets_per_window=1,
     floor_to_min_order=True,
     skip_on_high_scout_flag=False,
     apply_confidence_multiplier=False,   # fires at the cap on +EV skew (STRATEGY §5)
@@ -194,7 +193,7 @@ _BLITZ_FROZEN = {
     "min_confidence": 0.30,
     "kelly_fraction": 0.85,
     "max_bet_usd": 5.0,
-    "max_bets_per_window": 3,
+    "max_bets_per_window": 1,
     "skip_on_high_scout_flag": False,
     "apply_confidence_multiplier": False,
     "floor_to_min_order": True,

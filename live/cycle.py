@@ -753,6 +753,12 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
             "independent_forecast": fx.independent_forecast,
             "forecast_snapshot_id": fx.forecast_snapshot_id,
             "scout_flags": fx.scout_flags,
+            "evidence_ids": _evidence_ids(fx),
+            "event_signals": [
+                flag for flag in (fx.scout_flags or [])
+                if isinstance(flag, dict)
+                and (flag.get("event_type") or flag.get("trigger"))
+            ],
             # The SHARED goated council belief — all agents bet conviction off
             # this (BZZOIRO + web + Reddit + Grok), differing only by risk.
             "council_forecast": {
@@ -762,6 +768,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
                     "away": float(fx.probabilities.get(fx.away_code, 0.0) or 0.0),
                 },
                 "confidence": confidence_to_num(fx.confidence),
+                "evidence_ids": _evidence_ids(fx),
             },
         },
         live_context=fx.ht_context,
@@ -773,34 +780,6 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
     # 2. Build Agent Data View
     view = strategy.build_data_view(snapshot, None)
     
-    # Adapter for BlitzLegacyDataView
-    if agent.name.lower() == "blitz":
-        from models.forecast_contracts import MatchForecast
-        from harness.profiles import get_profile
-        # Blitz uses the legacy forecast contract
-        lf = MatchForecast(
-            fixture_id=str(fx.fixture_id),
-            as_of_timestamp=datetime.now(timezone.utc),
-            home_probability=fx.probabilities.get(fx.home_code, 0.40),
-            draw_probability=fx.probabilities.get("draw", 0.28),
-            away_probability=fx.probabilities.get(fx.away_code, 0.32),
-            home_lower_bound=fx.probabilities.get(fx.home_code, 0.40),
-            draw_lower_bound=fx.probabilities.get("draw", 0.28),
-            away_lower_bound=fx.probabilities.get(fx.away_code, 0.32),
-            home_upper_bound=fx.probabilities.get(fx.home_code, 0.40),
-            draw_upper_bound=fx.probabilities.get("draw", 0.28),
-            away_upper_bound=fx.probabilities.get(fx.away_code, 0.32),
-            confidence=confidence_to_num(fx.confidence),
-            data_coverage_score=_coverage_score(fx),
-            model_version=fx.engine,
-            feature_snapshot_hash="",
-            evidence_ids=_evidence_ids(fx),
-            warnings=[],
-        )
-        lf.active_components = []
-        lf.component_weights = {}
-        view.legacy_forecast = lf
-
     # 3. Build Forecast
     agent_forecast = strategy.build_forecast(view)
 
@@ -841,11 +820,11 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
             return "draw"
         return "home" if code == fx.home_code else "away"
 
-    if agent.name.lower() in ["monk", "anchor", "hunter"]:
-        # MONK/ANCHOR/HUNTER route through the central allocator. The allocator
+    if agent.name.lower() in ["monk", "anchor", "hunter", "blitz"]:
+        # All agents route through the central allocator. The allocator
         # only accepts should_trade recommendations; abstentions are surfaced as
         # rejections carrying the structured abstain reason.
-        alloc = coordinator.allocate(recs) if coordinator else None
+        alloc = coordinator.allocate(recs) if coordinator else PortfolioCoordinator().allocate(recs)
         if alloc:
             reco_stats["duplicate_recommendations"] = alloc.duplicate_recommendations
             reco_stats["rejected"] = len(alloc.rejected)
@@ -867,25 +846,6 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
                 p.entry_price = rec.expected_fill_price
                 p.to_dict = lambda self=p: {"code": self.code, "stake": self.stake_usd}
                 picks.append(p)
-    elif agent.name.lower() == "blitz":
-        # BLITZ keeps its direct order path: it is NEVER routed through the
-        # allocator. Stakes come straight from its sized legacy picks.
-        legacy_by_slot = {pk.slot: pk for pk in getattr(strategy, "legacy_picks", [])}
-        for cand in candidates:
-            class PickAdapter:
-                pass
-            p = PickAdapter()
-            slot = cand.outcome.split("_")[0]
-            p.code = "draw" if slot == "draw" else (fx.home_code if slot == "home" else fx.away_code)
-            p.slot = slot
-            sized = legacy_by_slot.get(slot)
-            p.stake_usd = round(min(sized.stake_usd if sized else profile.max_bet_usd,
-                                    max(0.0, available)), 2)
-            p.limit_price = sized.limit_price if sized else round((cand.expected_fill_price or 0.5) + 0.02, 2)
-            p.our_prob = cand.probability_mean
-            p.entry_price = cand.expected_fill_price
-            p.to_dict = lambda self=p: {"code": self.code, "stake": self.stake_usd}
-            picks.append(p)
 
     # Per-cycle wallet cap: min($5, available − 5¢) across ALL orders.
     cycle_cap = min(

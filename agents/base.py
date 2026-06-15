@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from typing import Protocol
 
 from agents.contracts import (
@@ -8,18 +9,12 @@ from agents.contracts import (
     TradeCandidate,
 )
 
-class AgentRecommendation:
-    # We will likely use the existing betting.recommendation.AgentRecommendation,
-    # but the interface requires this type. For now, we'll just import it or type hint it as Any if needed.
-    pass
-
-# We will import the real AgentRecommendation and ExecutionPlan 
 from betting.recommendation import AgentRecommendation
 
+@dataclass(frozen=True)
 class ExecutionPlan:
-    # A placeholder if not defined in the current architecture.
-    # The requirement says "create_execution_plan(self, recommendations: list['AgentRecommendation']) -> 'ExecutionPlan'"
-    pass
+    recommendations: tuple[AgentRecommendation, ...] = field(default_factory=tuple)
+    orders: tuple[dict, ...] = field(default_factory=tuple)
 
 class AgentStrategy(Protocol):
     name: str

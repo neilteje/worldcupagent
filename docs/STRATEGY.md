@@ -382,3 +382,21 @@ volumes. We are running a prize portfolio — a forecaster (ORACLE), a control
 an endgame clause (SURGE) — on one shared, grounded brain, with a written
 observation protocol so the first 48 hours produce decisions instead of
 vibes. And we write it all up, because the writeup is a prize too.*
+
+## Implementation addendum: P0/P1 architecture
+
+The current implementation enforces the architecture in code:
+
+- Forecasts are layered as market-blind independent, bounded evidence-adjusted,
+  deterministic stress-adjusted, pre-market, and final scored probabilities.
+- Market probabilities enter once through `models.market_calibration`; trading
+  edge is always `pre_market_probability - expected_fill_price`.
+- Scout splits market-blind evidence from market observations; Analyst returns
+  bounded adjustments; Devil returns weighted scenarios; Judge returns market
+  calibration policy.
+- BLITZ/SURGE is no longer a legacy path. It uses the same data view, forecast,
+  candidate, recommendation, allocation, and execution contracts as the other
+  agents, and it abstains without a valid unexpired event trigger.
+- HUNTER/SAW rejects favorites and entries above `0.40`.
+- Reports and metrics include strategy/model/pipeline/profile metadata so
+  incompatible runs are not combined silently.

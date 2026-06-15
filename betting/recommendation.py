@@ -21,7 +21,7 @@ from betting.conservative import ConservativeEdgeConfig, calculate_conservative_
 from betting.policy import MIN_ORDER_USD, SizedPick
 from models.forecast_contracts import AgentRecommendation, recommendation_correlation_key
 
-COORDINATED_AGENTS = ("monk", "anchor", "hunter")
+COORDINATED_AGENTS = ("monk", "anchor", "hunter", "blitz")
 
 # Structured abstain reasons (stable identifiers for ledger + metrics).
 REASON_EXPECTED_FILL_UNAVAILABLE = "expected_fill_unavailable"
@@ -51,7 +51,7 @@ def thresholds_for(agent_name: str) -> AgentEdgeThresholds:
     if name == "monk":
         return AgentEdgeThresholds(
             signal_type="forecast_value",
-            min_conservative_edge=config.MONK_MIN_CONSERVATIVE_EDGE,
+            min_conservative_edge=max(config.MONK_MIN_CONSERVATIVE_EDGE, 0.10),
             min_ev_after_costs=0.0,
             min_data_coverage=config.MIN_DATA_COVERAGE,
         )
@@ -67,10 +67,19 @@ def thresholds_for(agent_name: str) -> AgentEdgeThresholds:
         # edge bars, biggest Kelly) — no longer a signal-gated tail harvester, so
         # the independent-signal and ultra-tail relics are dropped.
         return AgentEdgeThresholds(
-            signal_type="aggressive_value",
-            min_conservative_edge=config.HUNTER_MIN_CONSERVATIVE_EDGE,
+            signal_type="skew_tail",
+            min_conservative_edge=max(config.HUNTER_MIN_CONSERVATIVE_EDGE, 0.04),
             min_ev_after_costs=config.HUNTER_MIN_EV_AFTER_COSTS,
             min_data_coverage=config.MIN_DATA_COVERAGE,
+            min_independent_signals=1,
+        )
+    if name == "blitz":
+        return AgentEdgeThresholds(
+            signal_type="event_trigger",
+            min_conservative_edge=getattr(config, "BLITZ_MIN_CONSERVATIVE_EDGE", 0.02),
+            min_ev_after_costs=0.0,
+            min_data_coverage=0.0,
+            min_independent_signals=1,
         )
     raise ValueError(f"{agent_name!r} is not a coordinated agent {COORDINATED_AGENTS}")
 
@@ -166,9 +175,7 @@ def build_recommendation(
         outcome=code,
         forecast_id=forecast_id,
         evidence_ids=evidence_ids,
-        # Agent-independent so MONK/ANCHOR/HUNTER backing the same outcome on the
-        # same forecast+evidence collapse to one portfolio signal.
-        signal_type="coordinated",
+        signal_type=th.signal_type,
     )
 
     return AgentRecommendation(

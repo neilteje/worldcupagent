@@ -1,9 +1,9 @@
-"""BLITZ invariance golden master (spec §11, acceptance #12/#13).
+"""BLITZ event-contract golden master.
 
 Proves the ONLY behavioural change to BLITZ is draw removal: every non-draw
 pick's full field set is identical before and after suppression, draws are
 removed with the exact ``blitz_draw_disabled`` reason, and no replacement is
-promoted. Also confirms BLITZ stays outside the allocator.
+promoted. Also confirms BLITZ is a coordinated event strategy.
 """
 from __future__ import annotations
 
@@ -80,9 +80,9 @@ def test_draws_pass_through_without_legacy_reason(label):
     assert reasons == []
 
 
-def test_blitz_is_never_a_coordinated_agent():
-    assert "blitz" not in COORDINATED_AGENTS
-    assert "blitz" in OBSERVED_ONLY_AGENTS
+def test_blitz_is_a_common_contract_agent():
+    assert "blitz" in COORDINATED_AGENTS
+    assert "blitz" not in OBSERVED_ONLY_AGENTS
 
 
 def test_non_blitz_profiles_not_draw_filtered():
