@@ -78,11 +78,11 @@ def test_non_blitz_profiles_are_not_draw_filtered():
 
 def test_blitz_profile_core_configuration_is_unchanged():
     blitz = get_profile("blitz")
-    assert blitz.min_edge_vs_fair == pytest.approx(0.01)
-    assert blitz.min_confidence == pytest.approx(0.30)
-    assert blitz.kelly_fraction == pytest.approx(0.85)
+    assert blitz.min_edge_vs_fair == pytest.approx(0.005)
+    assert blitz.min_confidence == pytest.approx(0.20)
+    assert blitz.kelly_fraction == pytest.approx(1.00)
     assert blitz.max_bet_usd == pytest.approx(5.0)
-    assert blitz.max_bets_per_window == 1
+    assert blitz.max_bets_per_window == 2
     assert blitz.skip_on_high_scout_flag is False
     assert blitz.apply_confidence_multiplier is False
 

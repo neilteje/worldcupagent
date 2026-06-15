@@ -99,11 +99,11 @@ def test_hunter_recommendation_creation_skew():
 
 def test_conservative_edge_threshold_abstains():
     # lower bound only 0.50 → conservative edge 0.50-0.45-0.04 = 0.01 < anchor 0.05
-    rec = _build("anchor", _pick(), _snap(lower=0.50))
+    rec = _build("anchor", _pick(), _snap(lower=0.48))
     assert rec.should_trade is False
     assert rec.abstain_reason == REASON_CONSERVATIVE_EDGE
     # the edge accounting is still populated for the ledger
-    assert rec.conservative_edge == pytest.approx(0.01)
+    assert rec.conservative_edge == pytest.approx(-0.01)
 
 
 # ── below-minimum stake abstention ───────────────────────────────────────────

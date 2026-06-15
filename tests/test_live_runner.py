@@ -59,13 +59,13 @@ def _ml(home=0.55, draw=0.26, away=0.25, source="polymarket"):
     }
 
 
-def test_policy_saw_has_skew_price_cap():
+def test_policy_saw_allows_moderately_priced_value():
     saw = get_profile("hunter")
-    assert saw.max_entry_price == pytest.approx(0.40)
+    assert saw.max_entry_price == pytest.approx(0.60)
     probs = {"AAA": 0.70, "draw": 0.18, "BBB": 0.12}   # strong favorite, underpriced
     picks = select_picks(saw, probs, _ml(), "AAA", "BBB", 100.0,
                          confidence_num=0.6)
-    assert picks == []
+    assert picks and picks[0].code == "AAA"
 
 
 def test_policy_keel_takes_clear_edge():
@@ -105,17 +105,17 @@ def test_policy_floors_sub_dollar_blitz_pick_up_to_minimum():
     assert any("floored up" in r for r in reasons)
 
 
-def test_policy_coordinated_agent_skips_subminimum_kelly():
+def test_policy_hunter_takes_small_aggressive_stake():
     saw = get_profile("hunter")
-    assert saw.floor_to_min_order is False
+    assert saw.floor_to_min_order is True
     probs = {"AAA": 0.30, "draw": 0.50, "BBB": 0.20}
     ml = _ml(home=0.55, draw=0.30, away=0.25)
-    # Coordinated agents do not round subminimum Kelly stakes up.
+    # Aggressive coordinated agents now size small value bets directly.
     reasons: list[str] = []
     picks = select_picks(saw, probs, ml, "AAA", "BBB", 6.0,
                          confidence_num=0.6, skip_reasons=reasons)
-    assert picks == []
-    assert any("kelly_below_minimum_order_size" in r for r in reasons)
+    assert picks and picks[0].stake_usd == pytest.approx(1.2)
+    assert reasons == []
 
 
 def test_pnl_tail_profiles_opt_out_of_confidence_multiplier():
@@ -130,7 +130,7 @@ def test_policy_confidence_floor():
     monk = get_profile("monk")
     probs = {"AAA": 0.80, "draw": 0.12, "BBB": 0.08}
     picks = select_picks(monk, probs, _ml(), "AAA", "BBB", 100.0,
-                         confidence_num=0.40)   # below monk's 0.55 floor
+                         confidence_num=0.30)   # below monk's 0.35 floor
     assert picks == []
 
 

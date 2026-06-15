@@ -128,38 +128,38 @@ FEE_BUFFER: float = _env_float("FEE_BUFFER", 0.01)
 SLIPPAGE_BUFFER: float = _env_float("SLIPPAGE_BUFFER", 0.01)
 MODEL_RISK_BUFFER: float = _env_float("MODEL_RISK_BUFFER", 0.02)
 
-MONK_MIN_CONSERVATIVE_EDGE: float = _env_float("MONK_MIN_CONSERVATIVE_EDGE", 0.06)
-MONK_MIN_CONFIDENCE: float = _env_float("MONK_MIN_CONFIDENCE", 0.65)
-MONK_KELLY_FRACTION: float = _env_float("MONK_KELLY_FRACTION", 0.10)
-MONK_MAX_BANKROLL_FRACTION: float = _env_float("MONK_MAX_BANKROLL_FRACTION", 0.015)
+MONK_MIN_CONSERVATIVE_EDGE: float = _env_float("MONK_MIN_CONSERVATIVE_EDGE", 0.025)
+MONK_MIN_CONFIDENCE: float = _env_float("MONK_MIN_CONFIDENCE", 0.40)
+MONK_KELLY_FRACTION: float = _env_float("MONK_KELLY_FRACTION", 0.20)
+MONK_MAX_BANKROLL_FRACTION: float = _env_float("MONK_MAX_BANKROLL_FRACTION", 0.03)
 MONK_MAX_BETS_PER_FIXTURE: int = _env_int("MONK_MAX_BETS_PER_FIXTURE", 1)
 
-ANCHOR_MIN_CONSERVATIVE_EDGE: float = _env_float("ANCHOR_MIN_CONSERVATIVE_EDGE", 0.035)
-ANCHOR_MIN_EV_AFTER_COSTS: float = _env_float("ANCHOR_MIN_EV_AFTER_COSTS", 0.015)
+ANCHOR_MIN_CONSERVATIVE_EDGE: float = _env_float("ANCHOR_MIN_CONSERVATIVE_EDGE", 0.01)
+ANCHOR_MIN_EV_AFTER_COSTS: float = _env_float("ANCHOR_MIN_EV_AFTER_COSTS", 0.003)
 ANCHOR_MIN_ENTRY_PRICE: float = _env_float("ANCHOR_MIN_ENTRY_PRICE", 0.10)
 ANCHOR_MAX_ENTRY_PRICE: float = _env_float("ANCHOR_MAX_ENTRY_PRICE", 0.80)
-ANCHOR_KELLY_FRACTION: float = _env_float("ANCHOR_KELLY_FRACTION", 0.20)
-ANCHOR_MAX_BANKROLL_FRACTION: float = _env_float("ANCHOR_MAX_BANKROLL_FRACTION", 0.025)
+ANCHOR_KELLY_FRACTION: float = _env_float("ANCHOR_KELLY_FRACTION", 0.35)
+ANCHOR_MAX_BANKROLL_FRACTION: float = _env_float("ANCHOR_MAX_BANKROLL_FRACTION", 0.05)
 ANCHOR_MAX_BETS_PER_FIXTURE: int = _env_int("ANCHOR_MAX_BETS_PER_FIXTURE", 1)
 
 # HUNTER is the AGGRESSIVE conviction agent: the loosest edge bars of the
 # coordinated three (monk strictest → anchor → hunter), paired with the biggest
 # Kelly in the profile. It backs the council's best-EV pick like the others, just
 # on thinner edges and at larger size.
-HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", 0.02)
-HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.005)
+HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", -0.02)
+HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.0)
 HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE: int = _env_int("HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE", 3)
 BLITZ_MIN_CONSERVATIVE_EDGE: float = _env_float("BLITZ_MIN_CONSERVATIVE_EDGE", -1.0)
-BLITZ_MIN_EV_AFTER_COSTS: float = _env_float("BLITZ_MIN_EV_AFTER_COSTS", 0.005)
+BLITZ_MIN_EV_AFTER_COSTS: float = _env_float("BLITZ_MIN_EV_AFTER_COSTS", 0.0)
 
 # Minimum independent-forecast data coverage a coordinated recommendation needs.
-MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.25)
+MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.10)
 
 # Conviction betting: all agents trade off the SHARED council forecast and back
 # the genuine best-EV outcome. No outcome the council gives below this real
 # probability is ever backed — kills payout-chasing on ~10x longshots, no matter
 # how cheap. (User directive: bet the prediction, not the lottery ticket.)
-CONVICTION_MIN_PROB: float = _env_float("CONVICTION_MIN_PROB", 0.10)
+CONVICTION_MIN_PROB: float = _env_float("CONVICTION_MIN_PROB", 0.08)
 
 # Supplemental bookmaker calibration. odds2prob de-vigs raw 1X2 decimal odds
 # with calibrated Power/Shin models. It supports the deterministic engine and
@@ -174,10 +174,10 @@ ODDS2PROB_TIMEOUT_SECONDS: int = _env_int("ODDS2PROB_TIMEOUT_SECONDS", 8)
 # full-size single bet on a small (~$100) arena wallet: ANCHOR maxes at $4 (4%)
 # and HUNTER at $5 (5%). Caps below those would silently zero those agents; we
 # set fixture 10% / outcome 6% so a full bet passes while stacking is still held.
-MAX_FIXTURE_EXPOSURE: float = _env_float("MAX_FIXTURE_EXPOSURE", 0.10)
-MAX_OUTCOME_EXPOSURE: float = _env_float("MAX_OUTCOME_EXPOSURE", 0.06)
-MAX_ULTRA_TAIL_EXPOSURE: float = _env_float("MAX_ULTRA_TAIL_EXPOSURE", 0.02)
-MAX_DAILY_DRAWDOWN: float = _env_float("MAX_DAILY_DRAWDOWN", 0.05)
+MAX_FIXTURE_EXPOSURE: float = _env_float("MAX_FIXTURE_EXPOSURE", 0.18)
+MAX_OUTCOME_EXPOSURE: float = _env_float("MAX_OUTCOME_EXPOSURE", 0.12)
+MAX_ULTRA_TAIL_EXPOSURE: float = _env_float("MAX_ULTRA_TAIL_EXPOSURE", 0.05)
+MAX_DAILY_DRAWDOWN: float = _env_float("MAX_DAILY_DRAWDOWN", 0.10)
 
 # ── Council-confidence size scaling (risk overlay in reasoning/gates.py) ─────
 CONFIDENCE_LOW_MULTIPLIER: float = 0.50
