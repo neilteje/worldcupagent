@@ -86,6 +86,37 @@ def _first_id(label: str):
     return None
 
 
+def _upcoming_from_predictions():
+    """Return (event_id, home_team_id, prediction_embed) from the upcoming
+    predictions feed — guaranteed to carry a `markets` block."""
+    try:
+        body = _client.get("v2/predictions/", params={"limit": 5, "upcoming": "true"}).json()
+        for row in body.get("results", []):
+            ev = row.get("event") or {}
+            eid = ev.get("id") or ev.get("event_id")
+            tid = ev.get("home_team_id")
+            if eid:
+                return eid, tid, row
+    except Exception:
+        pass
+    return None, None, None
+
+
+def _probe_polymarket():
+    """Polymarket reference exists only for some events — scan up to 8 until one
+    returns 200, so we capture the real shape rather than a spurious 404."""
+    try:
+        body = _client.get("v2/events/", params={"limit": 8}).json()
+        ids = [e.get("id") for e in body.get("results", []) if isinstance(e, dict)]
+    except Exception:
+        ids = []
+    for eid in ids:
+        row = probe("event.polymarket", f"/v2/events/{eid}/polymarket/")
+        if row.get("status") == 200:
+            return
+    # leave the last (likely 404) row; it documents "not all events have PM"
+
+
 def main() -> int:
     if not config.BZZOIRO_KEY:
         print("[probe] no BZZOIRO_KEY in env — aborting (set BZZOIRO_KEY / BZZOIRO_API_KEY)")
@@ -106,26 +137,37 @@ def main() -> int:
     event_id = _first_id("events.list")
     team_id = _first_id("teams.list")
     league_id = _first_id("leagues.list")
-    print(f"\n[probe] resolved event_id={event_id} team_id={team_id} league_id={league_id}\n")
+    # Prediction only exists for UPCOMING events — pull one (+ its home team,
+    # which has fixture history) from the predictions feed.
+    upcoming_event_id, pred_team_id, pred_embed = _upcoming_from_predictions()
+    if pred_team_id:
+        team_id = pred_team_id
+    print(f"\n[probe] resolved event_id={event_id} upcoming_event_id={upcoming_event_id} "
+          f"team_id={team_id} league_id={league_id}\n")
 
     # ── Event sub-resources (inline schemas captured here) ────────────────
     if event_id:
         print("[probe] event sub-resources:")
         probe("event.detail", f"/v2/events/{event_id}/")
-        probe("event.prediction", f"/v2/events/{event_id}/prediction/")
         probe("event.stats", f"/v2/events/{event_id}/stats/")
         probe("event.lineups", f"/v2/events/{event_id}/lineups/")
         probe("event.incidents", f"/v2/events/{event_id}/incidents/")
         probe("event.h2h", f"/v2/events/{event_id}/h2h/")
         probe("event.odds", f"/v2/events/{event_id}/odds/")
         probe("event.odds_comparison", f"/v2/events/{event_id}/odds/comparison/")
-        probe("event.polymarket", f"/v2/events/{event_id}/polymarket/")
         probe("event.player_stats", f"/v2/events/{event_id}/player-stats/")
+    # Prediction on an UPCOMING event (finished events 404 on /prediction/).
+    if upcoming_event_id:
+        probe("event.prediction", f"/v2/events/{upcoming_event_id}/prediction/")
+    # Polymarket exists only for some events — scan a few until one has it.
+    _probe_polymarket()
 
     if team_id:
         print("\n[probe] team sub-resources:")
         probe("team.detail", f"/v2/teams/{team_id}/")
-        probe("team.fixtures", f"/v2/teams/{team_id}/fixtures/", {"limit": 5})
+        # Finished fixtures carry scores (feeds Elo/form). Wide date window.
+        probe("team.fixtures", f"/v2/teams/{team_id}/fixtures/",
+              {"limit": 10, "status": "finished", "date_from": "2018-01-01"})
         probe("team.squad", f"/v2/teams/{team_id}/squad/")
     if league_id:
         probe("league.standings", f"/v2/leagues/{league_id}/standings/")
@@ -133,13 +175,14 @@ def main() -> int:
     # ── Extractor validation against the REAL prediction payload ──────────
     print("\n[probe] extractor + compatibility checks:")
     checks: dict = {}
-    pred_row = REPORT["endpoints"].get("event.prediction", {})
     pred_body = None
-    if event_id:
+    if upcoming_event_id:
         try:
-            pred_body = _client.get(f"v2/events/{event_id}/prediction/").json()
+            pred_body = _client.get(f"v2/events/{upcoming_event_id}/prediction/").json()
         except Exception:
             pred_body = None
+    if not (pred_body and "markets" in pred_body):
+        pred_body = pred_embed  # embed from the predictions feed (has `markets`)
     checks["legacy_extractor"] = bzzoiro.extract_ml_probabilities(pred_body or {})
     checks["corrected_extractor"] = _corrected_ml(pred_body or {})
     print(f"  legacy extract_ml_probabilities -> {checks['legacy_extractor']}")
@@ -167,7 +210,9 @@ def main() -> int:
     # ProviderSnapshot contract + home_state mapping demo from a team fixture.
     if team_id:
         try:
-            fixtures = _client.get(f"v2/teams/{team_id}/fixtures/", params={"limit": 5}).json()
+            fixtures = _client.get(f"v2/teams/{team_id}/fixtures/",
+                                   params={"limit": 10, "status": "finished",
+                                           "date_from": "2018-01-01"}).json()
             rows = fixtures.get("results", fixtures if isinstance(fixtures, list) else [])
             snap = create_bzzoiro_snapshot("team_fixtures", str(team_id), rows, success=bool(rows))
             checks["provider_snapshot"] = {"provider": snap.provider, "hash": snap.payload_hash[:12],
