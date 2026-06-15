@@ -20,11 +20,26 @@ from dataclasses import replace
 import config
 from models.calibration import OUTCOMES, normalize_probs
 from models.deterministic_v2 import EnsembleConfig, predict_v2
+from models.team_strength import StrengthConfig
 
 # How wide the uncertainty band is at full coverage vs. zero coverage. The band
 # half-width scales linearly between these as data_coverage_score moves 1 -> 0.
 _MIN_HALF_WIDTH = 0.04   # full coverage, confident
 _MAX_HALF_WIDTH = 0.18   # no coverage, very uncertain
+
+# Tuned market-blind parameters from the chronological walk-forward sweep over
+# StatsBomb WC2018+2022 (harness/walk_forward.py -> walk_forward_report.json).
+# On this SPARSE two-tournament sample the elo-dominant calibrated config is the
+# only family that beats a base-rate prior on BOTH log loss and Brier; the Poisson
+# goal model is too noisy with so little history, so its weight is ~0. These are
+# knobs to re-tune once richer history (friendlies/qualifiers/xG) is available.
+TUNED = {
+    "w_elo": 1.0,
+    "w_poisson": 0.0,
+    "temperature": 0.9,
+    "base_rate_shrink": 0.2,
+    "rating_weight": 0.6,
+}
 
 
 def _coverage_scaled_bounds(probs: dict, coverage: float) -> tuple[dict, dict]:
@@ -62,8 +77,11 @@ def build_independent_forecast(
     football_features: dict | None,
     *,
     data_coverage_score: float = 1.0,
-    w_elo: float = 0.5,
-    w_poisson: float = 0.5,
+    w_elo: float | None = None,
+    w_poisson: float | None = None,
+    temperature: float | None = None,
+    base_rate_shrink: float | None = None,
+    rating_weight: float | None = None,
     include_bzzoiro_shadow: bool = True,
     is_knockout: bool = False,
     match_week: int = 0,
@@ -74,6 +92,13 @@ def build_independent_forecast(
     expected_goals, forecast_type, warnings}`` with keys home/draw/away. Never
     consults any market field; ``use_market=False`` is hard-wired.
     """
+    # Default to the walk-forward-tuned parameters.
+    w_elo = TUNED["w_elo"] if w_elo is None else w_elo
+    w_poisson = TUNED["w_poisson"] if w_poisson is None else w_poisson
+    temperature = TUNED["temperature"] if temperature is None else temperature
+    base_rate_shrink = TUNED["base_rate_shrink"] if base_rate_shrink is None else base_rate_shrink
+    rating_weight = TUNED["rating_weight"] if rating_weight is None else rating_weight
+
     warnings: list[str] = []
     home_state, away_state = _states_from_features(football_features)
 
@@ -117,8 +142,11 @@ def build_independent_forecast(
         w_poisson=w_poisson,
         w_market=0.0,          # MARKET-BLIND: hard zero
         w_bzzoiro=w_bz,
+        temperature=temperature,
+        base_rate_shrink=base_rate_shrink,
         use_market=False,      # never form the independent forecast from market
         use_bzzoiro=bool(bz_probs),
+        strength=StrengthConfig(rating_weight=rating_weight),
     )
 
     out = predict_v2(

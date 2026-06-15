@@ -64,8 +64,7 @@ class AnchorStrategy(AgentStrategy):
         coverage = float(view.data_coverage.get("overall", 1.0))
         ind = build_independent_forecast(
             view.football_features, data_coverage_score=coverage,
-            w_elo=0.5, w_poisson=0.5,
-        )
+        )  # uses walk-forward-tuned params (models.independent_forecast.TUNED)
         p = ind["probabilities"]
         lo = ind["lower_bounds"]
         hi = ind["upper_bounds"]
