@@ -208,22 +208,38 @@ def _confidence_label(value: float) -> str:
 def _deterministic_v2_model(fx: Forecast, fixture: dict) -> dict:
     from models.deterministic_v2 import EnsembleConfig, predict_v2
 
-    prior, prior_source = _market_prior(fx, fixture)
-    cfg = EnsembleConfig()
+    prior = None
+    prior_source = "market_blind"
+    cfg = EnsembleConfig(
+        w_elo=0.50,
+        w_poisson=0.50,
+        w_market=0.0,
+        use_market=False,
+    )
     stage = str((fixture.get("stage") or {}).get("name") or fixture.get("stage") or "").lower()
     is_knockout = bool(stage) and "group" not in stage
-    home_state = _state_from_prior(prior, "home")
-    away_state = _state_from_prior(prior, "away")
+    home_state = _state_from_independent_context(fx, "home")
+    away_state = _state_from_independent_context(fx, "away")
     
     bzzoiro_probs = (fx.bz_digest or {}).get("ml_prediction")
     
-    out = predict_v2(home_state, away_state, market_probs=prior, bzzoiro_probs=bzzoiro_probs, cfg=cfg, is_knockout=is_knockout)
+    out = predict_v2(
+        home_state,
+        away_state,
+        market_probs=None,
+        bzzoiro_probs=bzzoiro_probs,
+        cfg=cfg,
+        is_knockout=is_knockout,
+    )
     confidence = float(out.get("confidence", 0.5) or 0.5)
+    risk_flags = ["market_inputs_excluded"]
+    if _coverage_score(fx) < 0.5:
+        risk_flags.append("deterministic_v2_low_independent_data_coverage")
     return {
         "probabilities": out["probabilities"],
         "confidence": confidence,
         "uncertainty": max(0.12, min(0.70, 1.0 - confidence)),
-        "risk_flags": [] if prior else ["deterministic_v2_neutral_cold_start"],
+        "risk_flags": risk_flags,
         "steps": [{
             "name": "deterministic_v2",
             "prior_source": prior_source,
@@ -252,7 +268,6 @@ def _coverage_score(fx: Forecast) -> float:
         bool(fx.sm_digest),
         bool(fx.sb_digest),
         bool(fx.bz_digest),
-        bool((fx.odds2prob_digest or {}).get("available")),
         bool((fx.web_research or {}).get("total_results")),
         bool((fx.reddit_bundle or {}).get("threads_found")),
     ]
@@ -288,8 +303,6 @@ def _evidence_ids(fx: Forecast) -> list[str]:
         ids.append("supabase_digest")
     if fx.bz_digest:
         ids.append("bzzoiro_digest")
-    if (fx.odds2prob_digest or {}).get("available"):
-        ids.append("odds2prob_calibrated_bookmaker")
     for source in (fx.web_research or {}).get("sources") or []:
         ids.append(f"web:{source}")
     if (fx.reddit_bundle or {}).get("threads_found"):
@@ -401,7 +414,6 @@ def _build_independent_forecast_snapshot(fx: Forecast, fixture: dict) -> dict:
         "away_code": fx.away_code,
         "sm_digest": fx.sm_digest,
         "sb_digest": fx.sb_digest,
-        "odds2prob_digest": fx.odds2prob_digest,
         "web_sources": (fx.web_research or {}).get("sources") or [],
         "reddit_threads": (fx.reddit_bundle or {}).get("threads_found", 0),
         "home_state": home_state,
@@ -461,6 +473,7 @@ def _deterministic_context_for_council(fx: Forecast, fixture: dict) -> dict:
         "prior_hda": det["prior_hda"],
         "home_state": det["home_state"],
         "away_state": det["away_state"],
+        "data_coverage_score": (fx.independent_forecast or {}).get("data_coverage_score", _coverage_score(fx)),
         "steps": det["steps"],
         "config": det["config"],
         "instruction": (
@@ -668,9 +681,8 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
     Run one agent's distinct decision pathway using its Strategy class.
     Returns a summary dict for state/metrics. Never raises (logs + degrades).
 
-    MONK/ANCHOR/HUNTER route their picks through the structured recommendation +
-    central portfolio allocator (``coordinator``); BLITZ keeps its existing
-    direct order path and is never gated by the allocator.
+    Every strategy uses the common forecast, recommendation, and portfolio
+    allocation contracts before any order placement.
     """
     profile = agent.profile
     client = ArenaClient(agent.api_key, agent.name)
@@ -1182,8 +1194,7 @@ def run_window_cycle(fixture_id: int, window: str, agents: list[LiveAgent],
         market_source=fx.market_source, mids=fx.mids, grounding=fx.grounding,
         scout_flags=fx.scout_flags, summary=fx.summary)
 
-    # One central allocation book per window, shared by the coordinated agents
-    # (MONK/ANCHOR/HUNTER) as they run in sequence. BLITZ ignores it.
+    # One central allocation book per window, shared by all coordinated agents.
     coordinator = PortfolioCoordinator(limits=PortfolioLimits(
         max_fixture_exposure=config.MAX_FIXTURE_EXPOSURE,
         max_outcome_exposure=config.MAX_OUTCOME_EXPOSURE,

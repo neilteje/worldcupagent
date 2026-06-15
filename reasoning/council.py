@@ -212,7 +212,13 @@ def run_council(
         judge_output=j,
         market_probabilities=_market_probs_from_digest(polymarket_digest, home_code, away_code),
         evidence_ids=tuple(x for x in evidence_ids if x),
-        data_coverage_score=1.0,
+        data_coverage_score=max(
+            0.0,
+            min(
+                1.0,
+                float((deterministic_context or {}).get("data_coverage_score", 0.0) or 0.0),
+            ),
+        ),
         confidence={"low": 0.4, "medium": 0.6, "high": 0.8}.get(str(j.get("confidence") or "medium").lower(), 0.6),
     )
     probs = _code_probs_from_slots(layers.scored_probabilities, home_code, away_code)
