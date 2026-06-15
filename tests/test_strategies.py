@@ -57,17 +57,28 @@ def test_four_distinct_forecast_ids_and_not_one_shared_probability():
     ids = [fc.forecast_id for fc in forecasts.values()]
     assert len(set(ids)) == 4, "four agents must produce four distinct forecast ids"
 
-    # The agents must not all submit ONE shared probability vector. MONK and
-    # ANCHOR legitimately share the independent foundation; HUNTER (tail-focused)
-    # and BLITZ (legacy) must differ from it.
+    # OFFLINE (no shared council forecast) the agents fall back to their own
+    # models: MONK/ANCHOR share the independent foundation, HUNTER uses a Poisson
+    # fallback, BLITZ uses the legacy stub.
+    assert forecasts["monk"].forecast_type == "independent_deterministic"
+    assert forecasts["hunter"].forecast_type == "poisson_fallback"
+
+
+def test_conviction_all_agents_share_the_council_belief():
+    # WITH the shared goated council forecast attached, MONK/ANCHOR/HUNTER all
+    # adopt the SAME belief (conviction). They differ only by risk downstream.
+    ff = make_football_context(council={"home": 0.57, "draw": 0.25, "away": 0.18})
+    snap = make_snapshot(ff)
+
     def vec(fc):
         return (round(fc.home_probability, 3), round(fc.draw_probability, 3),
                 round(fc.away_probability, 3))
-    vectors = {name: vec(fc) for name, fc in forecasts.items()}
-    assert len(set(vectors.values())) >= 3
-    assert vectors["hunter"] != vectors["monk"]
-    assert forecasts["monk"].forecast_type == "independent_deterministic"
-    assert forecasts["hunter"].forecast_type == "tail_focused"
+
+    for cls in (MonkStrategy, AnchorStrategy, HunterStrategy):
+        s = cls()
+        fc = s.build_forecast(s.build_data_view(snap, None))
+        assert fc.forecast_type == "council_conviction"
+        assert vec(fc) == (0.57, 0.25, 0.18)
 
 
 def test_monk_forecast_sums_to_one_and_has_widened_bounds_on_low_coverage():

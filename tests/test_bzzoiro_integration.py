@@ -37,30 +37,59 @@ def test_bzzoiro_api_extract_event_stats_summary():
     # Empty stats
     assert bzzoiro.extract_event_stats_summary({}) == {}
 
-    # Valid stats
+    # Real v2 schema: stats.stats.{home,away}.{xg,...} + momentum time series.
     stats = {
-        "teams": {
-            "home": {
-                "expected_goals": 1.75,
-                "possession_time": 55,
-                "momentum_score": 60
-            },
-            "away": {
-                "expected_goals": 1.10,
-                "possession_time": 45,
-                "momentum_score": 40
-            }
-        }
+        "event_id": 1,
+        "stats": {
+            "home": {"xg": 1.75, "possession": 55, "shots": 14},
+            "away": {"xg": 1.10, "possession": 45, "shots": 9},
+        },
+        "momentum": [{"minute": 90, "home": 60.0, "away": 40.0}],
     }
     res = bzzoiro.extract_event_stats_summary(stats)
-    assert res == {
-        "home_xg": 1.75,
-        "away_xg": 1.10,
-        "home_possession": 55,
-        "away_possession": 45,
-        "home_momentum": 60,
-        "away_momentum": 40
+    assert res["home_xg"] == 1.75
+    assert res["away_xg"] == 1.10
+    assert res["home_possession"] == 55
+    assert res["away_possession"] == 45
+    assert res["home_shots"] == 14
+    assert res["away_shots"] == 9
+    assert res["home_momentum"] == 60.0
+    assert res["away_momentum"] == 40.0
+
+    # Upcoming match: only xG present (often null) — must not raise.
+    upcoming = {"event_id": 2, "stats": {"home": {"xg": None}, "away": {"xg": None}},
+                "momentum": []}
+    res2 = bzzoiro.extract_event_stats_summary(upcoming)
+    assert res2["home_xg"] == 0.0 and res2["home_momentum"] == 0.0
+
+
+def test_bzzoiro_api_extract_ml_probabilities_real_schema():
+    # Real v2 schema: markets.match_result.prob_* in PERCENT — renormalised to 1.
+    pred = {"markets": {"match_result": {"prob_home": 43.14, "prob_draw": 29.03,
+                                         "prob_away": 27.83, "predicted": "H"}}}
+    res = bzzoiro.extract_ml_probabilities(pred)
+    assert res is not None
+    assert abs(res["home_win"] + res["draw"] + res["away_win"] - 1.0) < 1e-6
+    assert res["home_win"] > res["draw"] > res["away_win"]
+
+
+def test_bzzoiro_api_extract_prediction_summary():
+    pred = {
+        "markets": {
+            "match_result": {"prob_home": 43.1, "prob_draw": 29.0, "prob_away": 27.8},
+            "expected_goals": {"home": 1.85, "away": 1.65},
+            "over_under": {"prob_over_25": 63.9},
+            "btts": {"prob_yes": 62.0},
+            "score": {"most_likely": "1-1"},
+        },
+        "recommendations": {"favorite": "H", "favorite_prob": 43.1},
+        "model": {"confidence": 0.43, "version": "v5.0"},
     }
+    summ = bzzoiro.extract_prediction_summary(pred)
+    assert summ["expected_goals"] == {"home": 1.85, "away": 1.65}
+    assert summ["most_likely_score"] == "1-1"
+    assert summ["model_version"] == "v5.0"
+    assert summ["model_favorite"] == "H"
 
 
 def test_bzzoiro_mapper_event_resolution(monkeypatch):
@@ -68,8 +97,11 @@ def test_bzzoiro_mapper_event_resolution(monkeypatch):
     mock_search = MagicMock()
     monkeypatch.setattr(bzzoiro, "search_events", mock_search)
 
-    # Case 1: Direct match found
-    mock_search.return_value = [{"id": 12345, "away_team": {"name": "South Africa"}, "start_time": "2026-06-15T12:00:00Z"}]
+    # Case 1: Direct match found. Real v2 schema: home_team/away_team are plain
+    # strings and the kickoff field is `event_date`.
+    mock_search.return_value = [{"id": 12345, "home_team": "Mexico",
+                                 "away_team": "South Africa",
+                                 "event_date": "2026-06-15T12:00:00Z"}]
     event_id = bzzoiro_mapper.get_bzzoiro_event_id("Mexico", "South Africa", "2026-06-15")
     assert event_id == 12345
     mock_search.assert_called_with("Mexico", "South Africa", "2026-06-13", "2026-06-17")
@@ -81,8 +113,10 @@ def test_bzzoiro_mapper_event_resolution(monkeypatch):
             return []
         elif away == "":
             return [
-                {"id": 99999, "away_team": {"name": "South Africa"}, "start_time": "2026-06-15T12:00:00Z"},
-                {"id": 88888, "away_team": {"name": "France"}, "start_time": "2026-06-15T12:00:00Z"}
+                {"id": 99999, "home_team": "Mexico", "away_team": "South Africa",
+                 "event_date": "2026-06-15T12:00:00Z"},
+                {"id": 88888, "home_team": "Mexico", "away_team": "France",
+                 "event_date": "2026-06-15T12:00:00Z"},
             ]
         return []
     mock_search.side_effect = search_side_effect
@@ -150,14 +184,18 @@ def test_bzzoiro_fixture_bundle_build_context(monkeypatch):
     # Mock bzzoiro_mapper and bzzoiro
     monkeypatch.setattr(bzzoiro_mapper, "get_bzzoiro_event_id", lambda h, a, d: 123)
     
-    mock_stats = {"teams": {"home": {"expected_goals": 1.5}, "away": {"expected_goals": 1.0}}}
-    mock_pred = {"match_result": {"home_win_probability": 0.5, "draw_probability": 0.3, "away_win_probability": 0.2}}
-    mock_lineups = {"lineups": [{"player": "A"}]}
-    
+    mock_stats = {"event_id": 123,
+                  "stats": {"home": {"xg": 1.5}, "away": {"xg": 1.0}},
+                  "momentum": []}
+    mock_pred = {"markets": {"match_result": {"prob_home": 50.0, "prob_draw": 30.0,
+                                              "prob_away": 20.0}}}
+    mock_lineups = {"lineups": [{"player": "A"}], "lineup_status": "confirmed",
+                    "unavailable_players": {"home": [], "away": []}}
+
     monkeypatch.setattr(bzzoiro, "get_event_stats", lambda eid: mock_stats)
     monkeypatch.setattr(bzzoiro, "get_event_prediction", lambda eid: mock_pred)
     monkeypatch.setattr(bzzoiro, "get_event_lineups", lambda eid: mock_lineups)
-    
+
     # Build digest
     digest = fixture_bundle.build_bzzoiro_digest("Mexico", "South Africa", "2026-06-15")
     assert digest is not None

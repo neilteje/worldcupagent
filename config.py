@@ -94,7 +94,6 @@ GROK_TIMEOUT_SECONDS: int = 60
 
 # ── External research keys (optional — graceful degradation if absent) ──────
 SERPER_API_KEY: str = os.environ.get("SERPER_API_KEY", "")   # serper.dev Google search
-KALSHI_API_KEY: str = os.environ.get("KALSHI_API_KEY", "")   # reads work without it
 RESEARCH_TIMEOUT_SECONDS: int = 12
 
 # ── Betting parameters ─────────────────────────────────────────────────────
@@ -133,23 +132,22 @@ ANCHOR_KELLY_FRACTION: float = _env_float("ANCHOR_KELLY_FRACTION", 0.20)
 ANCHOR_MAX_BANKROLL_FRACTION: float = _env_float("ANCHOR_MAX_BANKROLL_FRACTION", 0.025)
 ANCHOR_MAX_BETS_PER_FIXTURE: int = _env_int("ANCHOR_MAX_BETS_PER_FIXTURE", 1)
 
-HUNTER_MIN_ENTRY_PRICE: float = _env_float("HUNTER_MIN_ENTRY_PRICE", 0.05)
-HUNTER_MAX_ENTRY_PRICE: float = _env_float("HUNTER_MAX_ENTRY_PRICE", 0.35)
-HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", 0.08)
-HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.12)
-HUNTER_MIN_INDEPENDENT_SIGNALS: int = _env_int("HUNTER_MIN_INDEPENDENT_SIGNALS", 2)
-HUNTER_KELLY_FRACTION: float = _env_float("HUNTER_KELLY_FRACTION", 0.10)
-HUNTER_MAX_BANKROLL_FRACTION: float = _env_float("HUNTER_MAX_BANKROLL_FRACTION", 0.015)
+# HUNTER is the AGGRESSIVE conviction agent: the loosest edge bars of the
+# coordinated three (monk strictest → anchor → hunter), paired with the biggest
+# Kelly in the profile. It backs the council's best-EV pick like the others, just
+# on thinner edges and at larger size.
+HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", 0.03)
+HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.01)
 HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE: int = _env_int("HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE", 1)
-# Sub-HUNTER_MIN_ENTRY_PRICE ("ultra tail") buys require a dedicated validation
-# pass that is not built yet, so they are rejected unless explicitly enabled.
-HUNTER_ULTRA_TAIL_VALIDATION_ENABLED: bool = (
-    os.environ.get("HUNTER_ULTRA_TAIL_VALIDATION_ENABLED", "").strip().lower()
-    in ("1", "true", "yes", "on")
-)
 
 # Minimum independent-forecast data coverage a coordinated recommendation needs.
 MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.25)
+
+# Conviction betting: all agents trade off the SHARED council forecast and back
+# the genuine best-EV outcome. No outcome the council gives below this real
+# probability is ever backed — kills payout-chasing on ~10x longshots, no matter
+# how cheap. (User directive: bet the prediction, not the lottery ticket.)
+CONVICTION_MIN_PROB: float = _env_float("CONVICTION_MIN_PROB", 0.12)
 
 # Portfolio exposure caps as a fraction of bankroll. The allocator REJECTS (does
 # not shrink) a coordinated bet that would breach a cap, so these must clear a
@@ -161,11 +159,7 @@ MAX_OUTCOME_EXPOSURE: float = _env_float("MAX_OUTCOME_EXPOSURE", 0.06)
 MAX_ULTRA_TAIL_EXPOSURE: float = _env_float("MAX_ULTRA_TAIL_EXPOSURE", 0.02)
 MAX_DAILY_DRAWDOWN: float = _env_float("MAX_DAILY_DRAWDOWN", 0.05)
 
-# ── Cross-market (Polymarket vs Kalshi) gate thresholds ─────────────────────
-MARKET_CONSENSUS_SPREAD: float = 0.03   # both markets agree within 3pp → boost
-MARKET_CONTESTED_SPREAD: float = 0.08   # markets diverge >8pp → size down
-CONSENSUS_MULTIPLIER: float = 1.25      # size-up when markets agree with us
-CONTESTED_MULTIPLIER: float = 0.50      # size-down when markets disagree
+# ── Council-confidence size scaling (risk overlay in reasoning/gates.py) ─────
 CONFIDENCE_LOW_MULTIPLIER: float = 0.50
 CONFIDENCE_HIGH_MULTIPLIER: float = 1.20
 

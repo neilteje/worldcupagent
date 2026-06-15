@@ -47,7 +47,7 @@ import httpx
 import config
 from data.team_codes import fifa_code
 from data import sportmonks, supabase_client, polymarket as pm
-from data import web_search, reddit_sentiment, kalshi
+from data import web_search, reddit_sentiment
 from reasoning import llm, council, gates
 from reasoning.prompts import (
     sportmonks_digest_input, supabase_digest_input,
@@ -133,15 +133,6 @@ def _pm_mid_for(moneyline: dict | None, outcome: str,
     return (moneyline.get("outcomes", {}).get(key) or {}).get("current_mid_yes")
 
 
-def _kalshi_mid_for(kalshi_ml: dict | None, outcome: str,
-                    home_code: str, away_code: str) -> float | None:
-    """Kalshi YES mid for our predicted outcome."""
-    if not kalshi_ml:
-        return None
-    key = _outcome_key(outcome, home_code, away_code)
-    return kalshi_ml.get(key) if key else None
-
-
 def _print_decision_table(decision: ev_decision.GameDecision) -> None:
     """Render the per-outcome EV / payout table so every game shows its math."""
     t = Table(title="Per-outcome EV (de-vigged)")
@@ -190,7 +181,7 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
              f"place at most one +EV buy-YES order under the {profile.name} policy",
         steps=[
             "Fetch Sportmonks fixture data (predictions, odds, xG) and digest",
-            "Fetch Polymarket moneyline + mids and Kalshi cross-market view",
+            "Fetch Polymarket moneyline + mids",
             "Gather web research, Reddit sentiment, and Grok social pulse",
             "Run the council: Scout triage → Analyst → Devil → Judge, then ground the output",
             "Submit the prediction; rank all outcomes by EV vs the de-vigged fair price",
@@ -378,21 +369,6 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
         upstream_ids=[rec_pm_event["record_id"], rec_pm_mids["record_id"]],
     )
 
-    # ── (6b) Kalshi cross-market odds ──────────────────────────────────────
-    console.print("[dim]  Fetching Kalshi cross-market odds…[/dim]")
-    kalshi_ml = kalshi.get_moneyline(home_name, away_name)
-    rec_kalshi = session.tool_call(
-        name="kalshi",
-        endpoint="/trade-api/v2/markets",
-        description="Fetch Kalshi moneyline to triangulate against Polymarket",
-        input_payload={"home": home_name, "away": away_name},
-        output_payload=kalshi_ml,
-        via="external.kalshi",
-        success=kalshi_ml.get("markets_found", 0) > 0,
-        upstream_ids=[rec_pm_mids["record_id"]],
-    )
-    console.print(f"  Kalshi: {kalshi_ml.get('markets_found',0)} markets matched")
-
     # ── (7) Supabase priors + digest ───────────────────────────────────────
     console.print("[dim][5/7] Fetching Supabase historical priors…[/dim]")
 
@@ -460,7 +436,7 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
         fixture_name, home_code, away_code,
         home_name, away_name, str(fixture.get("starting_at", "")),
         sm_digest_result.parsed, sb_digest_result.parsed,
-        pm_digest_result.parsed, kalshi_ml,
+        pm_digest_result.parsed,
         web_research, reddit_bundle,
     )
 
@@ -538,7 +514,6 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
             {"record_id": rec_analyst["record_id"], "payload": cr.analyst.parsed if cr.analyst else {}},
             {"record_id": rec_devil["record_id"], "payload": cr.devil.parsed if cr.devil else {}},
             {"record_id": rec_th_polymarket["record_id"], "payload": pm_digest_result.parsed},
-            {"record_id": rec_kalshi["record_id"], "payload": kalshi_ml},
         ],
         output_payload=cr.judge.parsed if cr.judge else {},
         provider=cr.judge.provider if cr.judge else "",
@@ -547,7 +522,7 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
         tokens_in=cr.judge.tokens_in if cr.judge else 0,
         tokens_out=cr.judge.tokens_out if cr.judge else 0,
         upstream_ids=[rec_analyst["record_id"], rec_devil["record_id"],
-                      rec_th_polymarket["record_id"], rec_kalshi["record_id"]],
+                      rec_th_polymarket["record_id"]],
     )
 
     pred_outcome = cr.outcome
@@ -591,13 +566,11 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
     trade_outcome = best.code if best else pred_outcome
     pm_mid = best.raw_mid if best else None
     trade_prob = best.our_prob if best else pred_prob
-    kalshi_mid = _kalshi_mid_for(kalshi_ml, trade_outcome, home_code, away_code)
 
     gate = gates.evaluate_gates(
         outcome=trade_outcome,
         model_prob=trade_prob,
         pm_mid=pm_mid,
-        kalshi_mid=kalshi_mid,
         scout_flags=cr.scout_flags,
         confidence=cr.confidence,
         wallet_balance=wallet,
@@ -649,7 +622,7 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
             {"record_id": rec_judge["record_id"],
              "payload": {"probabilities": cr.probabilities, "confidence": cr.confidence}},
             {"record_id": rec_th_polymarket["record_id"],
-             "payload": {"pm_mid": pm_mid, "kalshi_mid": kalshi_mid}},
+             "payload": {"pm_mid": pm_mid}},
         ],
         output_payload={
             "profile": profile.name,
@@ -680,11 +653,10 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
             "veto_reason": gate.veto_reason,
             "reasons": gate.reasons,
             "pm_mid": pm_mid,
-            "kalshi_mid": kalshi_mid,
             "size_usdc": size_usdc,
             "limit_price": limit_price,
         },
-        upstream_ids=[rec_judge["record_id"], rec_kalshi["record_id"]],
+        upstream_ids=[rec_judge["record_id"]],
     )
     ev_str = f"  EV={best.ev_per_dollar*100:+.1f}%/$" if best else ""
     console.print(f"  Decision: should_trade={should_trade}  "
@@ -764,7 +736,6 @@ def run_prematch(fixture_id: int, profile: AgentProfile | None = None) -> dict |
                 "web_results": web_research.get("total_results", 0),
                 "web_sources": len(web_research.get("sources", [])),
                 "reddit_comments": len(reddit_bundle.get("top_comments", [])),
-                "kalshi_markets": kalshi_ml.get("markets_found", 0),
                 "grok_pulse": bool(cr.social_pulse),
             },
         },
@@ -1116,13 +1087,6 @@ def test_connection() -> None:
                       f"via {wr['backend']}")
     except Exception as e:
         console.print(f"  Web search: [red]{e}[/red]")
-
-    # Kalshi
-    try:
-        km = kalshi.get_moneyline("Mexico", "South Africa")
-        console.print(f"  Kalshi: [green]{km['markets_found']} markets[/green]")
-    except Exception as e:
-        console.print(f"  Kalshi: [red]{e}[/red]")
 
     # LLM providers
     providers = []

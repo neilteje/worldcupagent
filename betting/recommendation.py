@@ -63,14 +63,14 @@ def thresholds_for(agent_name: str) -> AgentEdgeThresholds:
             min_data_coverage=config.MIN_DATA_COVERAGE,
         )
     if name == "hunter":
+        # Conviction mode: HUNTER is the AGGRESSIVE conviction agent (loosest
+        # edge bars, biggest Kelly) — no longer a signal-gated tail harvester, so
+        # the independent-signal and ultra-tail relics are dropped.
         return AgentEdgeThresholds(
-            signal_type="skew_tail",
+            signal_type="aggressive_value",
             min_conservative_edge=config.HUNTER_MIN_CONSERVATIVE_EDGE,
             min_ev_after_costs=config.HUNTER_MIN_EV_AFTER_COSTS,
             min_data_coverage=config.MIN_DATA_COVERAGE,
-            min_independent_signals=config.HUNTER_MIN_INDEPENDENT_SIGNALS,
-            ultra_tail_price=config.HUNTER_MIN_ENTRY_PRICE,
-            ultra_tail_validation_enabled=config.HUNTER_ULTRA_TAIL_VALIDATION_ENABLED,
         )
     raise ValueError(f"{agent_name!r} is not a coordinated agent {COORDINATED_AGENTS}")
 

@@ -334,7 +334,7 @@ def ht_predict_input(
 # ═══════════════════════════════════════════════════════════════════════════
 #
 # Four roles, four distinct models. The Analyst is deliberately market-blind;
-# market prices (Polymarket + Kalshi) only reach the Judge. This prevents the
+# market prices (Polymarket) only reach the Judge. This prevents the
 # independent statistical view from anchoring to the crowd.
 
 # ── 0. SOCIAL PULSE (Grok — live X/Twitter sentiment & breaking news) ──────
@@ -394,6 +394,18 @@ SCOUT_SYS = (
     "and the crowd narrative. Treat headlines skeptically; note when a signal is "
     "rumour vs confirmed.\n\n"
 
+    "## Weigh the structured priors against the live human read\n"
+    "  - `sportmonks_digest`, `bzzoiro_digest`, and `deterministic_context` are "
+    "STRUCTURED MODEL PRIORS. BZZOIRO is ONE provider among several — never treat "
+    "it as ground truth on its own.\n"
+    "  - `web_research`, `reddit_sentiment`, and `social_pulse_grok` are the "
+    "INDEPENDENT REAL-WORLD READ — what reporters, fans, and X are saying right "
+    "now. They often carry breaking news (late injuries, lineup leaks, motivation) "
+    "the structured models cannot see yet.\n"
+    "  - Your highest-value flags are where the live human read DIVERGES from the "
+    "model priors (e.g. BZZOIRO likes the favorite but beat reporters confirm its "
+    "key striker is out). Surface every such divergence explicitly.\n\n"
+
     "## Output (return ONLY valid JSON — no prose, no code fences)\n"
     "{\n"
     "  'flags': [\n"
@@ -444,7 +456,7 @@ ANALYST_SYS = (
     "You are a senior football probability analyst. Produce an INDEPENDENT, "
     "market-blind probability over the three outcomes (home win / draw / away "
     "win). You are deliberately NOT shown any tradable market prices "
-    "(Polymarket/Kalshi) — anchoring to them defeats the purpose.\n\n"
+    "(Polymarket) — anchoring to them defeats the purpose.\n\n"
 
     "## Method (follow IN ORDER)\n"
     "  1. BASE RATE FIRST. Start from international base rates "
@@ -576,7 +588,7 @@ def devil_input(
 JUDGE_SYS = (
     "You are the final judge of a football betting desk. You synthesize the "
     "lead analyst's market-blind view and the devil's-advocate counter, and ONLY "
-    "NOW are you allowed to see the tradable markets (Polymarket and Kalshi). "
+    "NOW are you allowed to see the tradable market (Polymarket). "
     "Produce the desk's FINAL calibrated 3-way distribution — every decision "
     "downstream consumes the full map, not just the headline pick.\n\n"
 
@@ -584,16 +596,18 @@ JUDGE_SYS = (
     "  1. Start from the analyst's probabilities.\n"
     "  2. Move toward the devil's counter-map in proportion to how plausible its "
     "     weakest-assumption attack is — especially shrink an inflated favorite.\n"
-    "  3. Compare that synthesis to `deterministic_context`; treat its component "
-    "     signals and risk flags as a required quantitative cross-check.\n"
+    "  3. Compare that synthesis to `deterministic_context` (which blends BZZOIRO, "
+    "     Elo, Poisson and market priors); treat its component signals and risk "
+    "     flags as ONE required quantitative cross-check — not the final word. Give "
+    "     real weight to the scout/analyst flags that came from the live human read "
+    "     (web headlines, Reddit crowd, Grok X-pulse); breaking lineup/injury news "
+    "     beats a stale model prior.\n"
     "  4. MOVE vs HOLD rules against the market:\n"
     "     - HOLD near your synthesis when you can name concrete evidence the "
     "       market may not price (confirmed lineup news, scout flags, xG signal).\n"
-    "     - MOVE toward the market when both markets agree, your divergence is "
-    "       >10pp on any outcome, and neither analyst nor devil cites concrete "
-    "       evidence for the divergence — the crowd likely knows something.\n"
-    "     - When the two markets disagree with each other, trust your analysis "
-    "       and label the signal contested.\n"
+    "     - MOVE toward the market when your divergence is >10pp on any outcome "
+    "       and neither analyst nor devil cites concrete evidence for the "
+    "       divergence — the crowd likely knows something.\n"
     "  5. Calibration discipline: probabilities sum to 1.0; no outcome <0.02 or "
     "     >0.92 unless you cite the concrete evidence; if the inputs' "
     "     data_availability is thin, confidence MUST be 'low' (low = thin "
@@ -607,8 +621,8 @@ JUDGE_SYS = (
     "  'probability': float,      // probability of that outcome\n"
     "  'confidence': 'high'|'medium'|'low',\n"
     "  'market_alignment': 'aligned'|'mild_edge'|'strong_edge'|'fading_market',\n"
-    "  'move_or_hold': 'moved_to_market'|'held_view'|'contested_markets'|'no_market',\n"
-    "  'council_summary': str,    // 2-4 sentences: how analyst+devil+markets resolved\n"
+    "  'move_or_hold': 'moved_to_market'|'held_view'|'no_market',\n"
+    "  'council_summary': str,    // 2-4 sentences: how analyst+devil+markets resolved; NAME which sources you leaned on (deterministic/bzzoiro, web/news, reddit, grok pulse, market)\n"
     "  'changed_from_analyst': bool\n"
     "}"
 )
@@ -621,7 +635,6 @@ def judge_input(
     analyst_output: dict | None,
     devil_output: dict | None,
     polymarket_digest: dict | None,
-    kalshi_moneyline: dict | None,
     deterministic_context: dict | None = None,
 ) -> str:
     import json
@@ -633,5 +646,4 @@ def judge_input(
         "lead_analyst_prediction": analyst_output,
         "devils_advocate_counter": devil_output,
         "polymarket": polymarket_digest,
-        "kalshi_moneyline": kalshi_moneyline,
     }, default=str)

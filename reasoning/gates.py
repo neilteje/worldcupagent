@@ -16,7 +16,6 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import config
-from data.kalshi import cross_market_signal
 
 
 @dataclass
@@ -33,7 +32,6 @@ def evaluate_gates(
     outcome: str,
     model_prob: float,
     pm_mid: float | None,
-    kalshi_mid: float | None,
     scout_flags: list[dict] | None,
     confidence: str,
     wallet_balance: float,
@@ -71,19 +69,7 @@ def evaluate_gates(
     else:
         reasons.append("edge bar handled by EV engine (vs fair price)")
 
-    # Gate 3 — cross-market consensus (Polymarket vs Kalshi).
-    signal = cross_market_signal(pm_mid, kalshi_mid)
-    agreement = signal["agreement"]
-    if agreement == "consensus":
-        multiplier *= config.CONSENSUS_MULTIPLIER
-        reasons.append(f"markets agree (spread {signal['spread']:.3f}) "
-                       f"→ ×{config.CONSENSUS_MULTIPLIER}")
-    elif agreement == "contested":
-        multiplier *= config.CONTESTED_MULTIPLIER
-        reasons.append(f"markets contested (spread {signal['spread']:.3f}) "
-                       f"→ ×{config.CONTESTED_MULTIPLIER}")
-    elif agreement == "n/a":
-        reasons.append("no Kalshi cross-check available")
+    agreement = "n/a"  # single-market (Polymarket-only) since Kalshi was retired
 
     # Gate 4 — a high-severity scout flag on our predicted side is a hard veto
     # (profile-configurable: blitz runs with scout_veto=False).

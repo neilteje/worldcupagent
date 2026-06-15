@@ -31,6 +31,18 @@ def canonicalize_team_name(name: str) -> str:
     lower_name = name.strip().lower()
     return TEAM_ALIASES.get(lower_name, lower_name)
 
+
+def _team_name(value) -> str:
+    """The v2 events feed returns `home_team`/`away_team` as plain strings, but
+    some embeds nest `{name: ...}`. Accept either shape."""
+    if isinstance(value, dict):
+        return value.get("name", "") or value.get("short_name", "") or ""
+    return value or ""
+
+
+def _event_kickoff(event: dict) -> str | None:
+    return event.get("event_date") or event.get("start_time") or event.get("date")
+
 def map_event(
     internal_fixture_id: str,
     home_name: str,
@@ -70,14 +82,14 @@ def map_event(
         if "error" in event:
             continue
             
-        b_home = canonicalize_team_name(event.get("home_team", {}).get("name", ""))
-        b_away = canonicalize_team_name(event.get("away_team", {}).get("name", ""))
-        
-        home_match = (target_home in b_home or b_home in target_home)
-        away_match = (target_away in b_away or b_away in target_away)
-        
+        b_home = canonicalize_team_name(_team_name(event.get("home_team")))
+        b_away = canonicalize_team_name(_team_name(event.get("away_team")))
+
+        home_match = bool(b_home) and (target_home in b_home or b_home in target_home)
+        away_match = bool(b_away) and (target_away in b_away or b_away in target_away)
+
         # Calculate kickoff difference
-        b_kickoff_str = event.get("start_time")
+        b_kickoff_str = _event_kickoff(event)
         diff_seconds = None
         if b_kickoff_str:
             try:

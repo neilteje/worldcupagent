@@ -101,12 +101,16 @@ def build_bzzoiro_digest(home_name: str, away_name: str, match_date: str) -> dic
         prediction = bzzoiro.get_event_prediction(event_id)
         lineups = bzzoiro.get_event_lineups(event_id)
         
+        unavailable = (lineups or {}).get("unavailable_players") or []
         return {
             "event_id": event_id,
             "stats_summary": bzzoiro.extract_event_stats_summary(stats),
             "ml_prediction": bzzoiro.extract_ml_probabilities(prediction),
+            "prediction_summary": bzzoiro.extract_prediction_summary(prediction),
             "has_lineups": bool(lineups and lineups.get("lineups")),
-            "raw_stats": stats
+            "lineup_status": (lineups or {}).get("lineup_status"),
+            "unavailable_players": unavailable,
+            "raw_stats": stats,
         }
     except Exception as exc:
         _warn(f"BZZOIRO digest failed for {home_name} vs {away_name}: {exc!r}")

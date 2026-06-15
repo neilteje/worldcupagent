@@ -6,7 +6,7 @@ Engine selection, in order of fidelity, with automatic fallback so a live window
 never hard-fails:
 
   council        — the real World Cup brain: Grok pulse → Scout → Analyst → Devil
-                   → Judge (reasoning/council.py), fed best-effort web/Reddit/Kalshi
+                   → Judge (reasoning/council.py), fed best-effort web/Reddit
                    research AND the deterministic_v2 ensemble as grounding. This is
                    what we run during the tournament.
   deterministic  — the deterministic_v2 ensemble alone (Elo + Poisson + market
@@ -83,7 +83,6 @@ def _predict_council(fx, window, moneyline) -> Prediction | None:
     date = fx.date
 
     web = reddit = None
-    kalshi_ml = None
     try:
         from data import web_search
         web = web_search.gather_research(home, away, date)
@@ -94,11 +93,6 @@ def _predict_council(fx, window, moneyline) -> Prediction | None:
         reddit = reddit_sentiment.get_sentiment_bundle(home, away)
     except Exception as exc:
         print(f"  [predictor] reddit sentiment failed: {exc!r}")
-    try:
-        from data import kalshi
-        kalshi_ml = kalshi.get_moneyline(home, away)
-    except Exception as exc:
-        print(f"  [predictor] kalshi failed: {exc!r}")
 
     # Structured grounding — the same Sportmonks + Supabase digests agent.py
     # feeds the council. Supabase priors resolve by team NAME, so friendlies
@@ -131,7 +125,7 @@ def _predict_council(fx, window, moneyline) -> Prediction | None:
             f"{home} vs {away}", home_code, away_code, home, away,
             f"{date} ({window})",
             sm_digest, sb_digest,
-            pm_digest, kalshi_ml, web, reddit,
+            pm_digest, web, reddit,
         )
     except Exception as exc:
         print(f"  [predictor] council run failed: {exc!r}")

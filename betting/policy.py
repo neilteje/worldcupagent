@@ -19,6 +19,7 @@ Layering (no double-gating):
 from __future__ import annotations
 from dataclasses import dataclass
 
+import config
 from betting import decision as ev_decision
 from harness.profiles import AgentProfile
 
@@ -138,6 +139,12 @@ def select_picks(
     picks: list[SizedPick] = []
     for ev in game.ranked:
         if ev.raw_mid is None or ev.ev_per_dollar <= 0:
+            continue
+        # Conviction floor: never back an outcome we give < CONVICTION_MIN_PROB
+        # real chance, no matter how cheap the price (no 10x-longshot chasing).
+        if ev.our_prob < config.CONVICTION_MIN_PROB:
+            reasons.append(f"{ev.slot}: prob {ev.our_prob:.2f} < conviction floor "
+                           f"{config.CONVICTION_MIN_PROB:.2f}")
             continue
         if ev.edge_vs_fair < profile.min_edge_vs_fair:
             continue

@@ -18,7 +18,7 @@ from typing import Any
 
 import config
 from data import sportmonks, supabase_client, polymarket as pm
-from data import web_search, reddit_sentiment, kalshi
+from data import web_search, reddit_sentiment
 from data import fixture_bundle
 from data.team_codes import fifa_code, normalize_probabilities
 from reasoning import llm, council, gates
@@ -79,9 +79,9 @@ class Forecast:
     sb_digest: dict | None = None
     bz_digest: dict | None = None
     pm_digest_result: Any = None     # LLM result obj (parsed/provider/model/…)
-    kalshi_ml: dict = field(default_factory=dict)
     web_research: dict = field(default_factory=dict)
     reddit_bundle: dict = field(default_factory=dict)
+    social_pulse: dict = field(default_factory=dict)  # Grok live X/news pulse (post-council)
     # PRE_MATCH: council result. HT: ht_pred result + dict.
     cr: Any = None
     ht_pred_result: Any = None
@@ -239,13 +239,38 @@ def _deterministic_v2_model(fx: Forecast, fixture: dict) -> dict:
 
 
 def _coverage_score(fx: Forecast) -> float:
+    # Diversity across BOTH structured model priors (Sportmonks/Supabase/BZZOIRO)
+    # and the independent real-world read (web headlines + Reddit crowd). BZZOIRO
+    # is one source among several here, not the spine — keeping it in the count
+    # stops a single API from silently dominating the coverage signal.
     parts = [
         bool(fx.sm_digest),
         bool(fx.sb_digest),
+        bool(fx.bz_digest),
         bool((fx.web_research or {}).get("total_results")),
         bool((fx.reddit_bundle or {}).get("threads_found")),
     ]
     return round(sum(1 for p in parts if p) / len(parts), 4)
+
+
+def _signal_coverage(fx: Forecast) -> dict:
+    """Per-window map of which inputs actually carried content into the council.
+
+    Logged so reliance on any single source (notably the BZZOIRO API) is
+    auditable after the fact rather than assumed — the council is meant to read
+    structured model priors AND the live real-world chatter, not lean on one API.
+    """
+    pulse = getattr(fx, "social_pulse", None) or {}
+    return {
+        "sportmonks": bool(fx.sm_digest),
+        "supabase": bool(fx.sb_digest),
+        "bzzoiro": bool(fx.bz_digest),
+        "web_search": bool((fx.web_research or {}).get("total_results")),
+        "reddit": bool((fx.reddit_bundle or {}).get("threads_found")),
+        "grok_pulse": bool(pulse.get("summary") or pulse.get("breaking")
+                           or pulse.get("overall_lean")),
+        "polymarket": bool(fx.moneyline),
+    }
 
 
 def _evidence_ids(fx: Forecast) -> list[str]:
@@ -254,10 +279,18 @@ def _evidence_ids(fx: Forecast) -> list[str]:
         ids.append("sportmonks_digest")
     if fx.sb_digest:
         ids.append("supabase_digest")
+    if fx.bz_digest:
+        ids.append("bzzoiro_digest")
     for source in (fx.web_research or {}).get("sources") or []:
         ids.append(f"web:{source}")
     if (fx.reddit_bundle or {}).get("threads_found"):
         ids.append("reddit_sentiment")
+    # Grok live X/news pulse: only populated once the council has run, so it is
+    # absent from the pre-council snapshot and present when recommendations are
+    # built. Counting it keeps the live human read in HUNTER's signal-diversity gate.
+    pulse = getattr(fx, "social_pulse", None) or {}
+    if pulse.get("summary") or pulse.get("breaking") or pulse.get("overall_lean"):
+        ids.append("grok_social_pulse")
     return ids
 
 
@@ -466,11 +499,6 @@ def gather_prematch(fixture_id: int) -> Forecast:
     except Exception as exc:
         print(f"  [live] reddit failed: {exc!r}")
         fx.reddit_bundle = {"threads_found": 0, "top_comments": []}
-    try:
-        fx.kalshi_ml = kalshi.get_moneyline(fx.home_name, fx.away_name)
-    except Exception as exc:
-        print(f"  [live] kalshi failed: {exc!r}")
-        fx.kalshi_ml = {"markets_found": 0}
 
     # Structured digests (Sportmonks via fixture id, Supabase via names)
     ctx = fixture_bundle.build_context(
@@ -512,21 +540,29 @@ def gather_prematch(fixture_id: int) -> Forecast:
     cr = council.run_council(
         fx.fixture_name, fx.home_code, fx.away_code, fx.home_name, fx.away_name,
         fx.kickoff, fx.sm_digest, fx.sb_digest, fx.pm_digest_result.parsed,
-        fx.kalshi_ml, fx.web_research, fx.reddit_bundle,
+        fx.web_research, fx.reddit_bundle,
         deterministic_context=deterministic_context,
         bz_digest=fx.bz_digest,
     )
     fx.cr = cr
+    fx.social_pulse = cr.social_pulse or {}
     fx.probabilities = cr.probabilities
     fx.outcome = cr.outcome
     fx.probability = float(cr.probability)
     fx.confidence = cr.confidence
     fx.scout_flags = cr.scout_flags
     fx.market_adjusted_probabilities = dict(fx.probabilities)
+    signal_coverage = _signal_coverage(fx)
     fx.grounding = {"council": cr.grounding, "deterministic_context": deterministic_context,
                     "independent_forecast": fx.independent_forecast,
                     "market_probabilities": fx.market_probabilities,
-                    "market_adjusted_probabilities": fx.market_adjusted_probabilities}
+                    "market_adjusted_probabilities": fx.market_adjusted_probabilities,
+                    "signal_coverage": signal_coverage}
+    metrics.log_event(
+        "signal_coverage", fixture_id=fixture_id, window=fx.window,
+        fixture_name=fx.fixture_name, **signal_coverage)
+    active = [k for k, v in signal_coverage.items() if v]
+    print(f"  [live] council signals: {', '.join(active) or 'none'}")
     fx.summary = cr.council_summary
     fx.engine = "council_with_deterministic_v2"
     print(f"  [live] council+deterministic_v2: {fx.outcome} @ {fx.probability:.1%} "
@@ -629,7 +665,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         goal=f"[{profile.name}] {fx.window} cycle for {fx.fixture_name}: calibrated "
              f"prediction + at most {profile.max_bets_per_window} +EV buy-YES order(s)",
         steps=[
-            "Ingest shared data bundle (Sportmonks, Polymarket, Kalshi, web, Reddit, Supabase)",
+            "Ingest shared data bundle (Sportmonks, Polymarket, BZZOIRO, web, Reddit, Supabase)",
             "Run council forecast and ground it against the bookmaker anchor"
             if fx.window == "PRE_MATCH" else
             "Run Bayesian HT update from live score + xG",
@@ -698,6 +734,16 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
             "independent_forecast": fx.independent_forecast,
             "forecast_snapshot_id": fx.forecast_snapshot_id,
             "scout_flags": fx.scout_flags,
+            # The SHARED goated council belief — all agents bet conviction off
+            # this (BZZOIRO + web + Reddit + Grok), differing only by risk.
+            "council_forecast": {
+                "probabilities": {
+                    "home": float(fx.probabilities.get(fx.home_code, 0.0) or 0.0),
+                    "draw": float(fx.probabilities.get("draw", 0.0) or 0.0),
+                    "away": float(fx.probabilities.get(fx.away_code, 0.0) or 0.0),
+                },
+                "confidence": confidence_to_num(fx.confidence),
+            },
         },
         live_context=fx.ht_context,
         market_context=None,
@@ -743,7 +789,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
     market = MarketContext(
         observed_at=datetime.now(timezone.utc),
         polymarket=None,
-        kalshi=fx.kalshi_ml,
+        kalshi=None,
         bookmaker_consensus=None,
         bookmaker_comparison=None,
         devigged_probabilities=fx.mids,
@@ -854,14 +900,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         output_payload={"market_source": fx.market_source, "mids": fx.mids},
         success=fx.moneyline is not None,
         upstream_ids=[rec_trigger["record_id"]])
-    rec_kalshi = session.tool_call(
-        name="kalshi", endpoint="/trade-api/v2/markets",
-        description="Kalshi cross-market moneyline",
-        input_payload={"home": fx.home_name, "away": fx.away_name},
-        output_payload=fx.kalshi_ml, via="external.kalshi",
-        success=(fx.kalshi_ml or {}).get("status") != "api_unavailable",
-        upstream_ids=[rec_trigger["record_id"]])
-    upstream_data = [rec_sm["record_id"], rec_pm["record_id"], rec_kalshi["record_id"]]
+    upstream_data = [rec_sm["record_id"], rec_pm["record_id"]]
 
     if fx.window == "PRE_MATCH" and fx.cr is not None:
         rec_det = session.thinking(
@@ -927,8 +966,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
                      "payload": cr.devil.parsed if cr.devil else {}},
                     {"record_id": rec_pm["record_id"],
                      "payload": fx.pm_digest_result.parsed},
-                    {"record_id": rec_det["record_id"], "payload": fx.deterministic_model},
-                    {"record_id": rec_kalshi["record_id"], "payload": fx.kalshi_ml}],
+                    {"record_id": rec_det["record_id"], "payload": fx.deterministic_model}],
             output_payload={"probabilities": fx.probabilities, "outcome": fx.outcome,
                             "probability": fx.probability, "confidence": fx.confidence,
                             "grounding": fx.grounding, "summary": fx.summary},
@@ -936,7 +974,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
             model_name=cr.judge.model if cr.judge else "",
             internal_reasoning=cr.judge.thinking if cr.judge else "",
             upstream_ids=[rec_analyst["record_id"], rec_devil["record_id"],
-                          rec_pm["record_id"], rec_det["record_id"], rec_kalshi["record_id"]])
+                          rec_pm["record_id"], rec_det["record_id"]])
     else:
         # HT trace: one Thinking record for the Bayesian update.
         r = fx.ht_pred_result or _EmptyResult()

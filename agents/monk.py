@@ -14,6 +14,7 @@ import config
 from harness.profiles import get_profile
 from models.independent_forecast import build_independent_forecast
 from agents._reco import reco_from_candidate
+from agents._conviction import build_council_forecast, conviction_candidates
 
 
 def _coverage_from_features(football_features: dict) -> dict:
@@ -90,8 +91,12 @@ class MonkStrategy(AgentStrategy):
         self,
         view: AgentDataView,
     ) -> AgentForecast:
-        # MONK's purest forecast: market-blind Elo + Poisson (+ BZZOIRO shadow),
-        # NEVER any market term. Bounds widen as data coverage drops.
+        # Conviction: MONK bets off the SHARED goated council forecast when it is
+        # present (live path). Falls back to its own market-blind Elo + Poisson
+        # model offline / in unit tests.
+        council = build_council_forecast(view, self.name, "monk_v2_conviction")
+        if council is not None:
+            return council
         coverage = float(view.data_coverage.get("overall", 1.0))
         ind = build_independent_forecast(
             view.football_features, data_coverage_score=coverage,
@@ -133,39 +138,9 @@ class MonkStrategy(AgentStrategy):
         view: AgentDataView,
         market: MarketContext | None,
     ) -> list[TradeCandidate]:
-        if not market:
-            return []
-
-        candidates = []
-        for outcome in ("home", "draw", "away"):
-            # MONK evaluates exceptional edges
-            prob = getattr(forecast, f"{outcome}_probability")
-            midpoint = market.midpoint.get(outcome)
-            
-            if midpoint is not None and (prob - midpoint) >= self.profile.min_edge_vs_fair:
-                candidates.append(
-                    TradeCandidate(
-                        agent_name=self.name,
-                        fixture_id=forecast.fixture_id,
-                        outcome=outcome,
-                        probability_mean=prob,
-                        probability_lower_bound=getattr(forecast, f"{outcome}_lower_bound"),
-                        probability_upper_bound=getattr(forecast, f"{outcome}_upper_bound"),
-                        market_midpoint=midpoint,
-                        best_ask=market.best_ask.get(outcome),
-                        expected_fill_price=market.expected_fill_price.get(outcome) or midpoint,
-                        gross_edge=prob - midpoint,
-                        conservative_edge=getattr(forecast, f"{outcome}_lower_bound") - midpoint,
-                        expected_value_after_costs=prob - midpoint - 0.01, # Simplified
-                        signal_type="exceptional_value",
-                        signals=tuple(),
-                        candidate_created_at=datetime.now(timezone.utc),
-                        candidate_expires_at=None,
-                        forecast_id=forecast.forecast_id,
-                        correlation_key=f"{self.name}_{forecast.fixture_id}_{outcome}",
-                    )
-                )
-        return candidates
+        # Conviction: back the best-EV council outcome (favorite included) that
+        # clears MONK's strict edge bar and the 12% probability floor.
+        return conviction_candidates(forecast, view, market, self.profile, self.name)
 
     def generate_recommendations(
         self,
@@ -175,8 +150,8 @@ class MonkStrategy(AgentStrategy):
         market: MarketContext | None,
         bankroll: float,
     ) -> list[AgentRecommendation]:
-        # MONK is prediction-first: at most one exceptional-value trade per fixture.
-        ranked = sorted(candidates, key=lambda c: c.gross_edge or -1, reverse=True)
+        # MONK is prediction-first: at most one trade per fixture, the highest-EV.
+        ranked = sorted(candidates, key=lambda c: c.expected_value_after_costs or -1, reverse=True)
         return [
             reco_from_candidate(self.name, cand, view, forecast, bankroll, self.profile)
             for cand in ranked[: self.profile.max_bets_per_window]

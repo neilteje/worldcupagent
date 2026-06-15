@@ -8,7 +8,8 @@ if str(ROOT) not in sys.path:
 from datetime import datetime, timezone
 
 
-def make_football_context(*, strong_home=True, with_market=False, scout_flags=None):
+def make_football_context(*, strong_home=True, with_market=False, scout_flags=None,
+                          council=None):
     """Build a football_context dict with real deterministic team-states so the
     agents produce genuine (non-stub) forecasts. ``with_market`` injects a
     market-derived field to exercise the scrubber / leakage tests."""
@@ -48,6 +49,13 @@ def make_football_context(*, strong_home=True, with_market=False, scout_flags=No
         ff["sportmonks_digest"]["bookmaker_consensus_win_prob"] = {"AAA": 0.7}
         ff["polymarket_mid"] = 0.55
         ff["deterministic_model"]["components"]["market"] = {"home": 0.7, "draw": 0.2, "away": 0.1}
+    if council is not None:
+        # council is {"home":p,"draw":p,"away":p, optional "confidence":num}
+        conf = council.get("confidence", 0.6)
+        ff["council_forecast"] = {
+            "probabilities": {k: float(council.get(k, 0.0)) for k in ("home", "draw", "away")},
+            "confidence": conf,
+        }
     return ff
 
 

@@ -14,9 +14,9 @@ there is no drift between rehearsal and production.
            tournament is the *design*, not paralysis.
   anchor → KEEL    — disciplined all-outcome EV accumulator. The control arm
            and risk-adjusted P&L play. ~20–40% of games.
-  hunter → SAW     — skew harvester. Only buys outcomes priced ≤ 0.40 (draws
-           and underdogs); near-max size when it fires. Variance with positive
-           drift is the product.
+  hunter → SAW     — aggressive conviction. Backs the council's best-EV pick
+           (favorites included) on the thinnest edges of the coordinated three,
+           at near-max size. Activity + drift is the product.
   blitz  → SURGE   — event-driven aggression: both windows, scout veto off,
            thin-but-positive edges vs FAIR price. Endgame escalation vehicle.
 
@@ -132,18 +132,18 @@ ANCHOR = AgentProfile(
 )
 
 HUNTER = AgentProfile(
-    name="hunter", label="saw — skew harvester (draws + dogs only)",
-    min_edge_vs_fair=0.03,
+    name="hunter", label="saw — aggressive conviction (thin edges, big size)",
+    min_edge_vs_fair=0.03,      # loosest of the coordinated three → most active
     min_ev_per_dollar=0.01,
     min_confidence=0.40,
-    max_entry_price=0.40,       # never buys favorites — payout asymmetry is the product
+    max_entry_price=None,       # conviction: backs the best-EV pick, favorites included
     kelly_fraction=0.75,        # when it fires, fire near the cap
     max_bet_usd=5.0,
     stake_cap_fraction=0.10,
     max_bets_per_window=2,
     floor_to_min_order=False,
     skip_on_high_scout_flag=True,
-    apply_confidence_multiplier=False,   # skew is the edge, not conviction (STRATEGY §5)
+    apply_confidence_multiplier=False,   # aggression: size at the cap on +EV picks
 )
 
 BLITZ = AgentProfile(
@@ -235,8 +235,6 @@ def validate_profile_config() -> list[str]:
 
     if config.ANCHOR_MIN_ENTRY_PRICE > config.ANCHOR_MAX_ENTRY_PRICE:
         issues.append("ANCHOR_MIN_ENTRY_PRICE > ANCHOR_MAX_ENTRY_PRICE")
-    if config.HUNTER_MIN_ENTRY_PRICE > config.HUNTER_MAX_ENTRY_PRICE:
-        issues.append("HUNTER_MIN_ENTRY_PRICE > HUNTER_MAX_ENTRY_PRICE")
 
     if issues:
         raise ValueError("Profile/config drift detected: " + "; ".join(issues))

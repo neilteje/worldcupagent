@@ -8,7 +8,7 @@ wallet. Pure analysis you can run on tonight's fixture before risking anything.
 
 It reuses the production brains:
   - data/web_search   — injuries / lineups / previews across many sources
-  - data/reddit_sentiment, data/kalshi
+  - data/reddit_sentiment
   - reasoning/council — Grok pulse → Scout → Analyst → Devil → Judge
   - reasoning/gates   — deterministic edge / consensus / veto gates
   - betting/kelly     — sizing (hypothetical only)
@@ -43,7 +43,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 import config
-from data import web_search, reddit_sentiment, kalshi
+from data import web_search, reddit_sentiment
 from data import polymarket as pm
 from reasoning import council, gates
 from betting.kelly import kelly_usd
@@ -159,10 +159,6 @@ def run(args: argparse.Namespace) -> None:
     console.print(f"  Reddit/social: {len(reddit['top_comments'])} comments "
                   f"({reddit['source']})")
 
-    console.print("[dim]Checking Kalshi cross-market…[/dim]")
-    kalshi_ml = kalshi.get_moneyline(home, away)
-    console.print(f"  Kalshi: {kalshi_ml['markets_found']} markets")
-
     # ── Structured grounding (Sportmonks if a fixture id was given; Supabase
     # priors resolve by team name, so they work for any international match) ─
     console.print("[dim]Building structured context (Sportmonks + Supabase)…[/dim]")
@@ -181,7 +177,7 @@ def run(args: argparse.Namespace) -> None:
         fixture_name, home_code, away_code,
         home, away, date,
         sm_digest, sb_digest,
-        pm_digest, kalshi_ml,
+        pm_digest,
         web, reddit,
     )
 
@@ -250,10 +246,9 @@ def run(args: argparse.Namespace) -> None:
         size = 0.0
         gate = None
         if best:
-            kalshi_mid = kalshi_ml.get(best.slot)
             gate = gates.evaluate_gates(
                 outcome=best.code, model_prob=best.our_prob,
-                pm_mid=best.raw_mid, kalshi_mid=kalshi_mid,
+                pm_mid=best.raw_mid,
                 scout_flags=cr.scout_flags, confidence=cr.confidence,
                 wallet_balance=args.bankroll,
                 min_edge=None,                       # edge bar lives in decision.py

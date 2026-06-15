@@ -21,12 +21,19 @@ def code_for(view, outcome: str) -> str:
 
 
 def shared_snapshot(view, forecast) -> dict:
-    """Prefer the frozen independent snapshot on the view (carries real, possibly
-    asymmetric, lower/upper bounds); fall back to the agent forecast's own band."""
-    snap = (view.football_features or {}).get("independent_forecast")
-    if snap and snap.get("probabilities_by_code"):
-        return snap
+    """Belief snapshot (mean + lower/upper bands by code) for the conservative-edge gate.
+
+    Conviction mode: when the shared council forecast is attached, the belief IS
+    the council's (already baked into ``forecast``), so we build the snapshot from
+    the agent forecast's own council-derived band — NOT the market-blind
+    independent snapshot. Offline (no council) we prefer the frozen independent
+    snapshot, falling back to the forecast band."""
     ff = view.football_features or {}
+    council_active = bool((ff.get("council_forecast") or {}).get("probabilities"))
+    if not council_active:
+        snap = ff.get("independent_forecast")
+        if snap and snap.get("probabilities_by_code"):
+            return snap
     home = ff.get("home_code", "home")
     away = ff.get("away_code", "away")
     return {

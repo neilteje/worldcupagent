@@ -87,14 +87,14 @@ def test_monk_anchor_recommendation_creation(agent):
     assert rec.correlation_key
 
 
-def test_hunter_recommendation_creation_on_a_tail():
-    # mean 0.35, entry 0.15: gross 0.20, ev 0.16 (≥0.12), conservative 0.11 (≥0.08)
-    snap = _snap(mean=0.35, lower=0.30, upper=0.40)
-    rec = _build("hunter", _pick(entry=0.15, our_prob=0.35), snap)
+def test_hunter_recommendation_creation_conviction():
+    # Conviction HUNTER backs a favorite: mean 0.60 / lower 0.55 / entry 0.45.
+    snap = _snap(mean=0.60, lower=0.55, upper=0.65)
+    rec = _build("hunter", _pick(entry=0.45, our_prob=0.60), snap)
     assert rec.should_trade is True
-    assert rec.signal_type == "skew_tail"
-    assert rec.conservative_edge == pytest.approx(0.11)
-    assert rec.expected_value_after_costs == pytest.approx(0.16)
+    assert rec.signal_type == "aggressive_value"
+    assert rec.conservative_edge == pytest.approx(0.06)        # 0.55 - 0.45 - 0.04
+    assert rec.expected_value_after_costs == pytest.approx(0.11)  # 0.60 - 0.45 - 0.04
 
 
 # ── conservative-edge thresholding ───────────────────────────────────────────
@@ -122,33 +122,29 @@ def test_expected_fill_unavailable_abstains():
     assert rec.abstain_reason == REASON_EXPECTED_FILL_UNAVAILABLE
 
 
-# ── HUNTER tail / signal gates ───────────────────────────────────────────────
+# ── generic optional gates still available via explicit thresholds ──────────
 
-def test_hunter_under_five_cent_rejected_when_validation_disabled():
-    # entry below HUNTER_MIN_ENTRY_PRICE (0.05) with validation off → reject.
-    snap = _snap(mean=0.35, lower=0.30, upper=0.40)
-    rec = _build("hunter", _pick(entry=0.03, our_prob=0.35), snap)
-    assert rec.should_trade is False
-    assert rec.abstain_reason == REASON_ULTRA_TAIL_VALIDATION
-
-
-def test_hunter_under_five_cent_allowed_when_validation_enabled():
+def test_optional_ultra_tail_gate_via_explicit_thresholds():
+    # The generic ultra-tail / signal gates are no longer part of any agent's
+    # DEFAULT thresholds (conviction HUNTER dropped them), but the mechanism is
+    # still available when a caller passes them explicitly.
     snap = _snap(mean=0.35, lower=0.30, upper=0.40)
     th = AgentEdgeThresholds(
         signal_type="skew_tail", min_conservative_edge=0.08,
         min_ev_after_costs=0.12, min_data_coverage=0.25,
         min_independent_signals=2, ultra_tail_price=0.05,
-        ultra_tail_validation_enabled=True,
+        ultra_tail_validation_enabled=False,
     )
     rec = _build("hunter", _pick(entry=0.03, our_prob=0.35), snap, thresholds=th)
-    assert rec.abstain_reason != REASON_ULTRA_TAIL_VALIDATION
+    assert rec.abstain_reason == REASON_ULTRA_TAIL_VALIDATION
 
 
-def test_hunter_requires_independent_signals():
-    snap = _snap(mean=0.35, lower=0.30, upper=0.40, evidence=("only_one",))
-    rec = _build("hunter", _pick(entry=0.15, our_prob=0.35), snap)
-    assert rec.should_trade is False
-    assert rec.abstain_reason == REASON_INSUFFICIENT_SIGNALS
+def test_hunter_default_thresholds_have_no_signal_requirement():
+    # Conviction HUNTER backs a single-evidence pick — no independent-signal gate.
+    snap = _snap(mean=0.60, lower=0.55, upper=0.65, evidence=("only_one",))
+    rec = _build("hunter", _pick(entry=0.45, our_prob=0.60), snap)
+    assert rec.should_trade is True
+    assert rec.abstain_reason is None
 
 
 # ── portfolio dedup + coordinator threading ──────────────────────────────────

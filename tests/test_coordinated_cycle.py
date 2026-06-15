@@ -46,16 +46,19 @@ def _snapshot(lower_home=0.66):
     }
 
 
-def _forecast(lower_home=0.66):
+def _forecast(home=0.75, draw=0.13, away=0.12, confidence="high"):
+    # Conviction: agents bet off the council belief carried on fx.probabilities,
+    # so the strength of the bet is controlled by these probs (the injected
+    # independent snapshot is retained only for metrics / fallback).
     fx = Forecast(
         fixture_id=900, window="PRE_MATCH", fixture_name="AAA vs BBB",
         home_code="AAA", away_code="BBB", home_name="Alpha", away_name="Beta",
         moneyline=_ml(), mids={"home": 0.55, "draw": 0.26, "away": 0.25},
         market_source="polymarket",
-        probabilities={"AAA": 0.75, "draw": 0.13, "BBB": 0.12},
-        outcome="AAA", probability=0.75, confidence="high",
+        probabilities={"AAA": home, "draw": draw, "BBB": away},
+        outcome="AAA", probability=home, confidence=confidence,
     )
-    fx.independent_forecast = _snapshot(lower_home)
+    fx.independent_forecast = _snapshot()
     fx.forecast_snapshot_id = "fc-int-1"
     pm = _EmptyResult()
     pm.parsed = {"data_availability": "no_market"}
@@ -68,7 +71,7 @@ def _agent(name):
 
 
 def test_coordinated_agent_emits_recommendation_and_trades():
-    fx = _forecast(lower_home=0.66)        # strong conservative edge on AAA
+    fx = _forecast()                       # strong council conviction on AAA (0.75)
     summary = act_for_agent(_agent("anchor"), fx, dry_run=True,
                             coordinator=PortfolioCoordinator())
     stats = summary["recommendation_stats"]
@@ -79,8 +82,9 @@ def test_coordinated_agent_emits_recommendation_and_trades():
 
 
 def test_coordinated_agent_abstains_on_weak_conservative_edge():
-    # lower bound barely above the fill ⇒ conservative edge under ANCHOR's floor.
-    fx = _forecast(lower_home=0.57)
+    # Council belief only just above the fill ⇒ conservative edge (lower-band
+    # minus fill minus costs) lands under ANCHOR's floor → auditable abstention.
+    fx = _forecast(home=0.62, draw=0.20, away=0.18)
     summary = act_for_agent(_agent("anchor"), fx, dry_run=True,
                             coordinator=PortfolioCoordinator())
     stats = summary["recommendation_stats"]
@@ -93,7 +97,7 @@ def test_coordinated_agent_abstains_on_weak_conservative_edge():
 
 def test_shared_coordinator_dedups_second_coordinated_agent():
     coord = PortfolioCoordinator()
-    fx = _forecast(lower_home=0.68)        # clears MONK's higher 0.08 edge floor
+    fx = _forecast(home=0.80)              # strong enough to clear MONK's 0.08 floor
     first = act_for_agent(_agent("monk"), fx, dry_run=True, coordinator=coord)
     second = act_for_agent(_agent("anchor"), fx, dry_run=True, coordinator=coord)
 
@@ -104,7 +108,7 @@ def test_shared_coordinator_dedups_second_coordinated_agent():
 
 
 def test_blitz_skips_coordinated_path_and_still_trades():
-    fx = _forecast(lower_home=0.66)
+    fx = _forecast()
     coord = PortfolioCoordinator()
     summary = act_for_agent(_agent("blitz"), fx, dry_run=True, coordinator=coord)
     stats = summary["recommendation_stats"]

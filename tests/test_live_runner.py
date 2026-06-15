@@ -59,16 +59,15 @@ def _ml(home=0.55, draw=0.26, away=0.25, source="polymarket"):
     }
 
 
-def test_policy_saw_never_buys_above_max_entry_price():
+def test_policy_saw_backs_the_favorite_under_conviction():
+    # Conviction: SAW no longer bans favorites — it backs the best-EV pick.
     saw = get_profile("hunter")
-    assert saw.max_entry_price == 0.40
-    # Big edge on the favourite (priced 0.55) — saw must refuse it.
-    probs = {"AAA": 0.70, "draw": 0.18, "BBB": 0.12}
-    reasons: list[str] = []
+    assert saw.max_entry_price is None
+    probs = {"AAA": 0.70, "draw": 0.18, "BBB": 0.12}   # strong favorite, underpriced
     picks = select_picks(saw, probs, _ml(), "AAA", "BBB", 100.0,
-                         confidence_num=0.6, skip_reasons=reasons)
-    assert all(p.entry_price <= 0.40 for p in picks)
-    assert any("skew filter" in r for r in reasons)
+                         confidence_num=0.6)
+    assert picks, "SAW should back the favorite when it carries the edge"
+    assert picks[0].code == "AAA"
 
 
 def test_policy_keel_takes_clear_edge():

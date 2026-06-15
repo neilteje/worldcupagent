@@ -15,6 +15,7 @@ import config
 from models.independent_forecast import build_independent_forecast
 from agents.monk import _coverage_from_features
 from agents._reco import reco_from_candidate
+from agents._conviction import build_council_forecast, conviction_candidates
 
 class AnchorStrategy(AgentStrategy):
     name = "anchor"
@@ -58,9 +59,11 @@ class AnchorStrategy(AgentStrategy):
         self,
         view: AgentDataView,
     ) -> AgentForecast:
-        # ANCHOR starts from the SAME frozen independent foundation as MONK
-        # (spec §9). Market prices are only introduced later, in candidate
-        # generation — never here.
+        # Conviction: ANCHOR bets off the SHARED goated council forecast when
+        # present (live path); falls back to its independent model offline.
+        council = build_council_forecast(view, self.name, "anchor_v2_conviction")
+        if council is not None:
+            return council
         coverage = float(view.data_coverage.get("overall", 1.0))
         ind = build_independent_forecast(
             view.football_features, data_coverage_score=coverage,
@@ -102,56 +105,9 @@ class AnchorStrategy(AgentStrategy):
         view: AgentDataView,
         market: MarketContext | None,
     ) -> list[TradeCandidate]:
-        if not market:
-            return []
-
-        candidates = []
-        for outcome in ("home", "draw", "away"):
-            prob = getattr(forecast, f"{outcome}_probability")
-            lower = getattr(forecast, f"{outcome}_lower_bound")
-            
-            fill_price = market.expected_fill_price.get(outcome) or market.best_ask.get(outcome) or market.midpoint.get(outcome)
-            
-            if not fill_price:
-                continue
-
-            fee_buffer = config.FEE_BUFFER
-            slippage_buffer = config.SLIPPAGE_BUFFER
-            model_risk_buffer = config.MODEL_RISK_BUFFER
-
-            conservative_edge = lower - fill_price - fee_buffer - slippage_buffer - model_risk_buffer
-            ev_after_costs = prob - fill_price - fee_buffer - slippage_buffer
-
-            # ANCHOR searches ALL three outcomes (spec §9). Candidate gen only
-            # enforces the executable price band and a positive raw edge; the
-            # disciplined conservative-edge / EV gates are applied downstream in
-            # build_recommendation so a weak edge produces an auditable
-            # abstention rather than a silent drop.
-            gross_edge = prob - fill_price
-            if gross_edge > 0 and config.ANCHOR_MIN_ENTRY_PRICE <= fill_price <= config.ANCHOR_MAX_ENTRY_PRICE:
-                    candidates.append(
-                        TradeCandidate(
-                            agent_name=self.name,
-                            fixture_id=forecast.fixture_id,
-                            outcome=outcome,
-                            probability_mean=prob,
-                            probability_lower_bound=lower,
-                            probability_upper_bound=getattr(forecast, f"{outcome}_upper_bound"),
-                            market_midpoint=market.midpoint.get(outcome),
-                            best_ask=market.best_ask.get(outcome),
-                            expected_fill_price=fill_price,
-                            gross_edge=prob - fill_price,
-                            conservative_edge=conservative_edge,
-                            expected_value_after_costs=ev_after_costs,
-                            signal_type="disciplined_value",
-                            signals=tuple(),
-                            candidate_created_at=datetime.now(timezone.utc),
-                            candidate_expires_at=None,
-                            forecast_id=forecast.forecast_id,
-                            correlation_key=f"{self.name}_{forecast.fixture_id}_{outcome}",
-                        )
-                    )
-        return candidates
+        # Conviction: ANCHOR backs the best-EV council outcome (favorite
+        # included) clearing its disciplined edge bar and the 12% floor.
+        return conviction_candidates(forecast, view, market, self.profile, self.name)
 
     def generate_recommendations(
         self,
@@ -161,10 +117,8 @@ class AnchorStrategy(AgentStrategy):
         market: MarketContext | None,
         bankroll: float,
     ) -> list[AgentRecommendation]:
-        # ANCHOR selects at most ONE disciplined trade per fixture: its best raw
-        # edge. The conservative-edge / cost / EV gates run inside
-        # build_recommendation, so an undersized edge becomes an abstention.
-        ranked = sorted(candidates, key=lambda c: c.gross_edge or -1, reverse=True)
+        # ANCHOR selects at most ONE disciplined trade per fixture: its best EV.
+        ranked = sorted(candidates, key=lambda c: c.expected_value_after_costs or -1, reverse=True)
         return [
             reco_from_candidate(self.name, cand, view, forecast, bankroll, self.profile)
             for cand in ranked[: self.profile.max_bets_per_window]

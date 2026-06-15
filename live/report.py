@@ -87,6 +87,7 @@ def build_report() -> str:
     state = LiveState()
 
     forecasts = [e for e in events if e["type"] == "forecast"]
+    coverage_events = [e for e in events if e["type"] == "signal_coverage"]
     agent_windows = [e for e in events if e["type"] == "agent_window"]
     settlements = {str(e["fixture_id"]): e for e in events if e["type"] == "settlement"}
     agent_settle = [e for e in events if e["type"] == "agent_settlement"]
@@ -236,6 +237,21 @@ def build_report() -> str:
             L.append(f"| {name} | {a['recommendations']} | {a['abstentions']} | "
                      f"{dups} | {dups} | {other} | "
                      f"{a['blitz_draw_candidates_removed']} |")
+        L.append("")
+
+    # ── signal coverage: which inputs actually fed the council ────────────
+    if coverage_events:
+        sources = ("sportmonks", "supabase", "bzzoiro", "web_search", "reddit",
+                   "grok_pulse", "polymarket")
+        totals = {s: sum(1 for e in coverage_events if e.get(s)) for s in sources}
+        n = len(coverage_events)
+        L.append("## Signal coverage — what actually fed the council\n")
+        L.append(f"Across {n} council windows, share of windows where each source "
+                 f"carried content (BZZOIRO should be one of several, not the spine):\n")
+        L.append("| source | windows used | usage rate |")
+        L.append("|---|---|---|")
+        for s in sources:
+            L.append(f"| {s} | {totals[s]} | {totals[s]/n*100:.0f}% |")
         L.append("")
 
     L.append("## Top skip reasons per agent\n")
