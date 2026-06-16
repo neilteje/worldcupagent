@@ -13,7 +13,13 @@ from betting.policy import (
 from betting.portfolio import allocate_recommendations
 from harness.profiles import get_profile
 from live.arena_client import _fill_report
-from live.cycle import Forecast, _build_independent_forecast_snapshot, _coverage_score, _evidence_ids
+from live.cycle import (
+    Forecast,
+    _build_independent_forecast_snapshot,
+    _coverage_score,
+    _evidence_ids,
+    _signal_coverage,
+)
 from models.forecast_contracts import AgentRecommendation, MatchForecast
 
 
@@ -178,6 +184,29 @@ def test_bookmaker_conversion_does_not_affect_independent_snapshot_or_evidence()
     assert _coverage_score(fx) == first_coverage
     assert _evidence_ids(fx) == first_ids
     assert not any("odds2prob" in evidence_id for evidence_id in second["evidence_ids"])
+
+
+def test_reddit_fallback_comments_count_as_live_signal_and_evidence():
+    fx = Forecast(
+        fixture_id=123,
+        window="PRE_MATCH",
+        fixture_name="AAA vs BBB",
+        kickoff="2026-06-11 18:00:00",
+        home_code="AAA",
+        away_code="BBB",
+        sm_digest={"expected_goals": {"AAA": 1.6, "BBB": 0.8}},
+        web_research={"total_results": 1, "sources": ["example.com"]},
+        reddit_bundle={
+            "source": "web_search",
+            "threads_found": 0,
+            "comments_found": 2,
+            "top_comments": ["AAA fan lineup note", "BBB tactical thread"],
+        },
+    )
+
+    assert _coverage_score(fx) == 0.6
+    assert _signal_coverage(fx)["reddit"] is True
+    assert "reddit_sentiment" in _evidence_ids(fx)
 
 
 def test_conservative_edge_includes_fees_slippage_and_model_risk():

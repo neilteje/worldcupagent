@@ -282,9 +282,18 @@ def _coverage_score(fx: Forecast) -> float:
         bool(fx.sb_digest),
         bool(fx.bz_digest),
         bool((fx.web_research or {}).get("total_results")),
-        bool((fx.reddit_bundle or {}).get("threads_found")),
+        _reddit_has_content(fx.reddit_bundle),
     ]
     return round(sum(1 for p in parts if p) / len(parts), 4)
+
+
+def _reddit_has_content(bundle: dict | None) -> bool:
+    bundle = bundle or {}
+    return bool(
+        bundle.get("threads_found")
+        or bundle.get("comments_found")
+        or bundle.get("top_comments")
+    )
 
 
 def _signal_coverage(fx: Forecast) -> dict:
@@ -301,7 +310,7 @@ def _signal_coverage(fx: Forecast) -> dict:
         "bzzoiro": bool(fx.bz_digest),
         "odds2prob": bool((fx.odds2prob_digest or {}).get("available")),
         "web_search": bool((fx.web_research or {}).get("total_results")),
-        "reddit": bool((fx.reddit_bundle or {}).get("threads_found")),
+        "reddit": _reddit_has_content(fx.reddit_bundle),
         "grok_pulse": bool(pulse.get("summary") or pulse.get("breaking")
                            or pulse.get("overall_lean")),
         "polymarket": bool(fx.moneyline),
@@ -318,7 +327,7 @@ def _evidence_ids(fx: Forecast) -> list[str]:
         ids.append("bzzoiro_digest")
     for source in (fx.web_research or {}).get("sources") or []:
         ids.append(f"web:{source}")
-    if (fx.reddit_bundle or {}).get("threads_found"):
+    if _reddit_has_content(fx.reddit_bundle):
         ids.append("reddit_sentiment")
     # Grok live X/news pulse: only populated once the council has run, so it is
     # absent from the pre-council snapshot and present when recommendations are
