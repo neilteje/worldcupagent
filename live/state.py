@@ -9,7 +9,7 @@ Shape:
 {
   "windows": {
     "19609127:PRE_MATCH": {
-      "status": "done" | "failed" | "missed" | "skipped",
+      "status": "done" | "dry_run" | "failed" | "missed" | "skipped",
       "attempts": 2,
       "ts": "...",                      # last touch
       "fixture_name": "...",
@@ -80,6 +80,10 @@ class LiveState:
 
     def window_done(self, fixture_id: int | str, window: str) -> bool:
         w = self.window(fixture_id, window)
+        if w and w.get("status") == "done":
+            agents = w.get("agents") or {}
+            if agents and all((a.get("ledger") or {}).get("dry_run") for a in agents.values()):
+                return False
         return bool(w and w.get("status") in ("done", "missed", "skipped"))
 
     def window_attempts(self, fixture_id: int | str, window: str) -> int:

@@ -61,7 +61,7 @@ def main() -> None:
             return
         result = run_window_cycle(args.fixture_id, args.window, agents,
                                   dry_run=args.dry_run)
-        state.mark_window(args.fixture_id, args.window, "done",
+        state.mark_window(args.fixture_id, args.window, "dry_run" if args.dry_run else "done",
                           fixture_name=result.get("fixture_name", ""),
                           agents=result.get("agents"))
         print(json.dumps(result, indent=2, default=str)[:4000])

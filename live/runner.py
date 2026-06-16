@@ -249,7 +249,7 @@ class LiveRunner:
                     self.state.mark_window(fid, window, "failed", fixture_name=name,
                                            agents=agent_results)
                 else:
-                    self.state.mark_window(fid, window, "done",
+                    self.state.mark_window(fid, window, "dry_run" if self.dry_run else "done",
                                            fixture_name=result.get("fixture_name", name),
                                            agents=agent_results)
                     ran += 1
