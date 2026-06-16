@@ -32,6 +32,33 @@ def test_state_roundtrip_and_resume(tmp_path):
     assert s2.settlement(1)["winner_code"] == "MEX"
 
 
+def test_state_dry_run_window_is_not_done(tmp_path):
+    s = LiveState(tmp_path / "state.json")
+    s.mark_window(
+        1,
+        "PRE_MATCH",
+        "dry_run",
+        fixture_name="A vs B",
+        agents={"anchor": {"ledger": {"dry_run": True}, "n_picks": 0}},
+    )
+    assert not s.window_done(1, "PRE_MATCH")
+
+
+def test_state_legacy_done_with_only_dry_run_agents_is_not_done(tmp_path):
+    s = LiveState(tmp_path / "state.json")
+    s.mark_window(
+        1,
+        "PRE_MATCH",
+        "done",
+        fixture_name="A vs B",
+        agents={
+            "monk": {"ledger": {"dry_run": True}},
+            "anchor": {"ledger": {"dry_run": True}},
+        },
+    )
+    assert not s.window_done(1, "PRE_MATCH")
+
+
 def test_state_failed_window_exhausts_after_max_attempts(tmp_path):
     s = LiveState(tmp_path / "state.json")
     for _ in range(3):
