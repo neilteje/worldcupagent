@@ -99,7 +99,8 @@ def test_hunter_recommendation_creation_skew():
 
 def test_conservative_edge_threshold_abstains():
     # lower bound only 0.50 → conservative edge 0.50-0.45-0.04 = 0.01 < anchor 0.05
-    rec = _build("anchor", _pick(), _snap(lower=0.48))
+    th = AgentEdgeThresholds(signal_type="value", min_conservative_edge=0.02)
+    rec = _build("anchor", _pick(), _snap(lower=0.48), thresholds=th)
     assert rec.should_trade is False
     assert rec.abstain_reason == REASON_CONSERVATIVE_EDGE
     # the edge accounting is still populated for the ledger
@@ -137,11 +138,11 @@ def test_optional_ultra_tail_gate_via_explicit_thresholds():
     assert rec.abstain_reason == REASON_ULTRA_TAIL_VALIDATION
 
 
-def test_hunter_default_thresholds_require_signal():
+def test_hunter_default_thresholds_do_not_require_signal():
     snap = _snap(mean=0.60, lower=0.55, upper=0.65, evidence=())
     rec = _build("hunter", _pick(entry=0.45, our_prob=0.60), snap)
-    assert rec.should_trade is False
-    assert rec.abstain_reason == REASON_INSUFFICIENT_SIGNALS
+    assert rec.should_trade is True
+    assert rec.abstain_reason is None
 
 
 # ── portfolio dedup + coordinator threading ──────────────────────────────────

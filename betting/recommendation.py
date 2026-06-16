@@ -51,7 +51,7 @@ def thresholds_for(agent_name: str) -> AgentEdgeThresholds:
     if name == "monk":
         return AgentEdgeThresholds(
             signal_type="forecast_value",
-            min_conservative_edge=max(config.MONK_MIN_CONSERVATIVE_EDGE, 0.10),
+            min_conservative_edge=config.MONK_MIN_CONSERVATIVE_EDGE,
             min_ev_after_costs=0.0,
             min_data_coverage=config.MIN_DATA_COVERAGE,
         )
@@ -68,10 +68,10 @@ def thresholds_for(agent_name: str) -> AgentEdgeThresholds:
         # the independent-signal and ultra-tail relics are dropped.
         return AgentEdgeThresholds(
             signal_type="skew_tail",
-            min_conservative_edge=max(config.HUNTER_MIN_CONSERVATIVE_EDGE, 0.04),
+            min_conservative_edge=config.HUNTER_MIN_CONSERVATIVE_EDGE,
             min_ev_after_costs=config.HUNTER_MIN_EV_AFTER_COSTS,
             min_data_coverage=config.MIN_DATA_COVERAGE,
-            min_independent_signals=1,
+            min_independent_signals=0,
         )
     if name == "blitz":
         return AgentEdgeThresholds(
@@ -79,7 +79,7 @@ def thresholds_for(agent_name: str) -> AgentEdgeThresholds:
             min_conservative_edge=getattr(config, "BLITZ_MIN_CONSERVATIVE_EDGE", -1.0),
             min_ev_after_costs=getattr(config, "BLITZ_MIN_EV_AFTER_COSTS", 0.005),
             min_data_coverage=0.0,
-            min_independent_signals=1,
+            min_independent_signals=0,
         )
     raise ValueError(f"{agent_name!r} is not a coordinated agent {COORDINATED_AGENTS}")
 

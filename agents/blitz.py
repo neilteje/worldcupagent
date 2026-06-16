@@ -217,10 +217,8 @@ class BlitzStrategy(AgentStrategy):
         market: MarketContext | None,
     ) -> list[TradeCandidate]:
         signals = valid_blitz_signals(view, now=view.as_of_timestamp)
-        if not signals:
-            return []
         candidates = conviction_candidates(forecast, view, market, self.profile, self.name, signals)
-        valid_outcomes = set(signals)
+        valid_outcomes = set(signals) if signals else {"home", "draw", "away"}
         return [
             TradeCandidate(
                 agent_name=c.agent_name,
@@ -235,12 +233,15 @@ class BlitzStrategy(AgentStrategy):
                 gross_edge=c.gross_edge,
                 conservative_edge=c.conservative_edge,
                 expected_value_after_costs=c.expected_value_after_costs,
-                signal_type="event_trigger",
+                signal_type="event_trigger" if signals else "blitz_value",
                 signals=c.signals,
                 candidate_created_at=c.candidate_created_at,
                 candidate_expires_at=min((s.expires_at for s in c.signals if s.expires_at), default=None),
                 forecast_id=c.forecast_id,
-                correlation_key=f"{forecast.fixture_id}:{c.outcome}:event:{','.join(sorted(s.signal_id for s in c.signals))}",
+                correlation_key=(
+                    f"{forecast.fixture_id}:{c.outcome}:event:{','.join(sorted(s.signal_id for s in c.signals))}"
+                    if signals else f"{forecast.fixture_id}:{c.outcome}:blitz_value:{forecast.forecast_id}"
+                ),
             )
             for c in candidates
             if c.outcome in valid_outcomes

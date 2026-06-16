@@ -128,14 +128,14 @@ FEE_BUFFER: float = _env_float("FEE_BUFFER", 0.01)
 SLIPPAGE_BUFFER: float = _env_float("SLIPPAGE_BUFFER", 0.01)
 MODEL_RISK_BUFFER: float = _env_float("MODEL_RISK_BUFFER", 0.02)
 
-MONK_MIN_CONSERVATIVE_EDGE: float = _env_float("MONK_MIN_CONSERVATIVE_EDGE", 0.025)
+MONK_MIN_CONSERVATIVE_EDGE: float = _env_float("MONK_MIN_CONSERVATIVE_EDGE", -1.0)
 MONK_MIN_CONFIDENCE: float = _env_float("MONK_MIN_CONFIDENCE", 0.40)
 MONK_KELLY_FRACTION: float = _env_float("MONK_KELLY_FRACTION", 0.20)
 MONK_MAX_BANKROLL_FRACTION: float = _env_float("MONK_MAX_BANKROLL_FRACTION", 0.03)
 MONK_MAX_BETS_PER_FIXTURE: int = _env_int("MONK_MAX_BETS_PER_FIXTURE", 1)
 
-ANCHOR_MIN_CONSERVATIVE_EDGE: float = _env_float("ANCHOR_MIN_CONSERVATIVE_EDGE", 0.01)
-ANCHOR_MIN_EV_AFTER_COSTS: float = _env_float("ANCHOR_MIN_EV_AFTER_COSTS", 0.003)
+ANCHOR_MIN_CONSERVATIVE_EDGE: float = _env_float("ANCHOR_MIN_CONSERVATIVE_EDGE", -1.0)
+ANCHOR_MIN_EV_AFTER_COSTS: float = _env_float("ANCHOR_MIN_EV_AFTER_COSTS", 0.0)
 ANCHOR_MIN_ENTRY_PRICE: float = _env_float("ANCHOR_MIN_ENTRY_PRICE", 0.10)
 ANCHOR_MAX_ENTRY_PRICE: float = _env_float("ANCHOR_MAX_ENTRY_PRICE", 0.80)
 ANCHOR_KELLY_FRACTION: float = _env_float("ANCHOR_KELLY_FRACTION", 0.35)
@@ -146,14 +146,14 @@ ANCHOR_MAX_BETS_PER_FIXTURE: int = _env_int("ANCHOR_MAX_BETS_PER_FIXTURE", 1)
 # coordinated three (monk strictest → anchor → hunter), paired with the biggest
 # Kelly in the profile. It backs the council's best-EV pick like the others, just
 # on thinner edges and at larger size.
-HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", -0.02)
+HUNTER_MIN_CONSERVATIVE_EDGE: float = _env_float("HUNTER_MIN_CONSERVATIVE_EDGE", -1.0)
 HUNTER_MIN_EV_AFTER_COSTS: float = _env_float("HUNTER_MIN_EV_AFTER_COSTS", 0.0)
 HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE: int = _env_int("HUNTER_MAX_TAIL_POSITIONS_PER_FIXTURE", 3)
 BLITZ_MIN_CONSERVATIVE_EDGE: float = _env_float("BLITZ_MIN_CONSERVATIVE_EDGE", -1.0)
 BLITZ_MIN_EV_AFTER_COSTS: float = _env_float("BLITZ_MIN_EV_AFTER_COSTS", 0.0)
 
 # Minimum independent-forecast data coverage a coordinated recommendation needs.
-MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.10)
+MIN_DATA_COVERAGE: float = _env_float("MIN_DATA_COVERAGE", 0.0)
 
 # Conviction betting: all agents trade off the SHARED council forecast and back
 # the genuine best-EV outcome. No outcome the council gives below this real

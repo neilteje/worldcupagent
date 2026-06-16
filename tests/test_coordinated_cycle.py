@@ -81,7 +81,7 @@ def test_coordinated_agent_emits_recommendation_and_trades():
     assert summary["orders"] and summary["orders"][0]["status"] == "dry_run"
 
 
-def test_coordinated_agent_abstains_on_weak_conservative_edge():
+def test_coordinated_agent_trades_positive_ev_despite_weak_conservative_edge():
     # Council belief only just above the fill ⇒ conservative edge (lower-band
     # minus fill minus costs) lands under ANCHOR's floor → auditable abstention.
     fx = _forecast(home=0.62, draw=0.20, away=0.18)
@@ -89,10 +89,9 @@ def test_coordinated_agent_abstains_on_weak_conservative_edge():
                             coordinator=PortfolioCoordinator())
     stats = summary["recommendation_stats"]
     assert stats["recommendations"] == 1
-    assert stats["abstentions"] == 1
-    assert summary["n_picks"] == 0
-    assert summary["orders"] == []
-    assert any("conservative_edge_below_threshold" in r for r in summary["skip_reasons"])
+    assert stats["abstentions"] == 0
+    assert summary["n_picks"] == 1
+    assert summary["orders"] and summary["orders"][0]["status"] == "dry_run"
 
 
 def test_roster_order_does_not_give_monk_ordinary_value_ownership():
@@ -106,13 +105,13 @@ def test_roster_order_does_not_give_monk_ordinary_value_ownership():
     assert coord.exposure
 
 
-def test_blitz_abstains_without_event_trigger():
+def test_blitz_trades_value_without_event_trigger():
     fx = _forecast()
     coord = PortfolioCoordinator()
     summary = act_for_agent(_agent("blitz"), fx, dry_run=True, coordinator=coord)
     stats = summary["recommendation_stats"]
-    assert stats["recommendations"] == 0
+    assert stats["recommendations"] == 1
     assert stats["abstentions"] == 0
-    assert not coord.exposure
-    assert summary["n_picks"] == 0
-    assert summary["orders"] == []
+    assert coord.exposure
+    assert summary["n_picks"] == 1
+    assert summary["orders"] and summary["orders"][0]["status"] == "dry_run"

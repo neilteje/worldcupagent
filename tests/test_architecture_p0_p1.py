@@ -75,7 +75,7 @@ def test_evidence_deduplicated():
     assert len(normalize_evidence(raw, now=now)) == 1
 
 
-def test_expired_evidence_cannot_trigger_blitz():
+def test_expired_evidence_falls_back_to_blitz_value():
     now = datetime.now(timezone.utc)
     ff = make_football_context(council={"home": 0.6, "draw": 0.2, "away": 0.2})
     ff["event_signals"] = [{
@@ -87,7 +87,9 @@ def test_expired_evidence_cannot_trigger_blitz():
     blitz = BlitzStrategy()
     view = blitz.build_data_view(snap, None)
     fc = blitz.build_forecast(view)
-    assert blitz.generate_candidates(fc, view, make_market(home=0.45, draw=0.25, away=0.30)) == []
+    candidates = blitz.generate_candidates(fc, view, make_market(home=0.45, draw=0.25, away=0.30))
+    assert candidates
+    assert all(c.signal_type == "blitz_value" for c in candidates)
 
 
 def test_analyst_adjustments_are_capped_and_invalid_zeroes():
@@ -130,7 +132,9 @@ def test_agent_mandates_monk_anchor_hunter_blitz():
     assert all(c.outcome != "home" and c.expected_fill_price <= 0.40 for c in hunter.generate_candidates(hunter_fc, hunter_view, market))
     blitz = BlitzStrategy()
     blitz_view = blitz.build_data_view(snap)
-    assert blitz.generate_candidates(blitz.build_forecast(blitz_view), blitz_view, market) == []
+    blitz_candidates = blitz.generate_candidates(blitz.build_forecast(blitz_view), blitz_view, market)
+    assert blitz_candidates
+    assert all(c.signal_type == "blitz_value" for c in blitz_candidates)
 
 
 def test_blitz_uses_common_contract_with_valid_trigger():
