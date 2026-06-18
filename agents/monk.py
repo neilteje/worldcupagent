@@ -14,7 +14,7 @@ import config
 from harness.profiles import get_profile
 from models.independent_forecast import build_independent_forecast
 from agents._reco import reco_from_candidate
-from agents._conviction import build_council_forecast, conviction_candidates
+from agents._conviction import build_council_forecast, build_engine_forecast, conviction_candidates
 
 
 def _coverage_from_features(football_features: dict) -> dict:
@@ -91,9 +91,10 @@ class MonkStrategy(AgentStrategy):
         self,
         view: AgentDataView,
     ) -> AgentForecast:
-        # Conviction: MONK bets off the SHARED goated council forecast when it is
-        # present (live path). Falls back to its own market-blind Elo + Poisson
-        # model offline / in unit tests.
+        engine = build_engine_forecast(view, self.name)
+        if engine is not None:
+            return engine
+        # Compatibility fallback for snapshots without probability_engine output.
         council = build_council_forecast(view, self.name, "monk_v2_conviction")
         if council is not None:
             return council

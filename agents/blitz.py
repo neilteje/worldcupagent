@@ -13,7 +13,7 @@ from agents.contracts import (
     MarketContext,
     TradeCandidate,
 )
-from agents._conviction import build_council_forecast, conviction_candidates
+from agents._conviction import build_council_forecast, build_engine_forecast, conviction_candidates
 from agents._reco import reco_from_candidate
 from harness.profiles import get_profile
 
@@ -171,6 +171,9 @@ class BlitzStrategy(AgentStrategy):
         )
 
     def build_forecast(self, view: AgentDataView) -> AgentForecast:
+        engine = build_engine_forecast(view, self.name)
+        if engine is not None:
+            return engine
         council = build_council_forecast(view, self.name, "blitz_v1_event")
         if council is not None:
             return council
@@ -217,8 +220,10 @@ class BlitzStrategy(AgentStrategy):
         market: MarketContext | None,
     ) -> list[TradeCandidate]:
         signals = valid_blitz_signals(view, now=view.as_of_timestamp)
+        if not signals:
+            return []
         candidates = conviction_candidates(forecast, view, market, self.profile, self.name, signals)
-        valid_outcomes = set(signals) if signals else {"home", "draw", "away"}
+        valid_outcomes = set(signals)
         return [
             TradeCandidate(
                 agent_name=c.agent_name,
@@ -233,15 +238,12 @@ class BlitzStrategy(AgentStrategy):
                 gross_edge=c.gross_edge,
                 conservative_edge=c.conservative_edge,
                 expected_value_after_costs=c.expected_value_after_costs,
-                signal_type="event_trigger" if signals else "blitz_value",
+                signal_type="event_trigger",
                 signals=c.signals,
                 candidate_created_at=c.candidate_created_at,
                 candidate_expires_at=min((s.expires_at for s in c.signals if s.expires_at), default=None),
                 forecast_id=c.forecast_id,
-                correlation_key=(
-                    f"{forecast.fixture_id}:{c.outcome}:event:{','.join(sorted(s.signal_id for s in c.signals))}"
-                    if signals else f"{forecast.fixture_id}:{c.outcome}:blitz_value:{forecast.forecast_id}"
-                ),
+                correlation_key=f"{forecast.fixture_id}:{c.outcome}:event:{','.join(sorted(s.signal_id for s in c.signals))}",
             )
             for c in candidates
             if c.outcome in valid_outcomes

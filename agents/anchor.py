@@ -15,7 +15,7 @@ import config
 from models.independent_forecast import build_independent_forecast
 from agents.monk import _coverage_from_features
 from agents._reco import reco_from_candidate
-from agents._conviction import build_council_forecast, conviction_candidates
+from agents._conviction import build_council_forecast, build_engine_forecast, conviction_candidates
 
 class AnchorStrategy(AgentStrategy):
     name = "anchor"
@@ -59,8 +59,10 @@ class AnchorStrategy(AgentStrategy):
         self,
         view: AgentDataView,
     ) -> AgentForecast:
-        # Conviction: ANCHOR bets off the SHARED goated council forecast when
-        # present (live path); falls back to its independent model offline.
+        engine = build_engine_forecast(view, self.name)
+        if engine is not None:
+            return engine
+        # Compatibility fallback for snapshots without probability_engine output.
         council = build_council_forecast(view, self.name, "anchor_v2_conviction")
         if council is not None:
             return council

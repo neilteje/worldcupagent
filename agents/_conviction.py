@@ -78,6 +78,47 @@ def build_council_forecast(
     )
 
 
+def build_engine_forecast(view: AgentDataView, agent_name: str) -> AgentForecast | None:
+    """Adapt deterministic probability-engine output to the agent contract."""
+    forecasts = (view.football_features or {}).get("agent_forecasts") or {}
+    raw = forecasts.get(agent_name)
+    if not isinstance(raw, dict):
+        return None
+    submitted = raw.get("submitted") or {}
+    probs = {
+        "home": submitted.get("home"),
+        "draw": submitted.get("draw"),
+        "away": submitted.get("away"),
+    }
+    if any(not isinstance(probs.get(k), (int, float)) for k in _SLOTS):
+        return None
+    p = normalize_probs({k: max(0.0, float(probs[k])) for k in _SLOTS})
+    uncertainty = raw.get("uncertainty") or {}
+    coverage = float(raw.get("data_coverage_score", view.data_coverage.get("overall", 0.0)) or 0.0)
+    return AgentForecast(
+        agent_name=agent_name,
+        fixture_id=view.fixture_id,
+        window=view.window,
+        as_of_timestamp=view.as_of_timestamp,
+        home_probability=p["home"], draw_probability=p["draw"], away_probability=p["away"],
+        home_lower_bound=float(uncertainty.get("home_lower", max(0.0, p["home"] - 0.10))),
+        draw_lower_bound=float(uncertainty.get("draw_lower", max(0.0, p["draw"] - 0.10))),
+        away_lower_bound=float(uncertainty.get("away_lower", max(0.0, p["away"] - 0.10))),
+        home_upper_bound=float(uncertainty.get("home_upper", min(1.0, p["home"] + 0.10))),
+        draw_upper_bound=float(uncertainty.get("draw_upper", min(1.0, p["draw"] + 0.10))),
+        away_upper_bound=float(uncertainty.get("away_upper", min(1.0, p["away"] + 0.10))),
+        confidence=round(max(p.values()), 4),
+        data_coverage_score=coverage,
+        forecast_type=str(raw.get("model_policy") or "deterministic_engine"),
+        model_version=str(submitted.get("model_version") or "probability_engine_v1"),
+        components=raw.get("components") or {},
+        evidence_ids=tuple((raw.get("audit") or {}).get("evidence_ids") or (view.football_features or {}).get("evidence_ids") or ()),
+        warnings=tuple(submitted.get("warnings") or (raw.get("audit") or {}).get("warnings") or ()),
+        data_view_hash=view.data_view_hash,
+        forecast_id=str(raw.get("forecast_id") or submitted.get("forecast_id") or ""),
+    )
+
+
 def conviction_candidates(
     forecast: AgentForecast,
     view: AgentDataView,

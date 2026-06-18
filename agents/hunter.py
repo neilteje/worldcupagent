@@ -15,7 +15,7 @@ from harness.profiles import get_profile
 import config
 from agents.monk import _coverage_from_features
 from agents._reco import reco_from_candidate
-from agents._conviction import build_council_forecast, skew_candidates
+from agents._conviction import build_council_forecast, build_engine_forecast, skew_candidates
 from models.calibration import normalize_probs
 from models.poisson_model import poisson_1x2
 
@@ -62,8 +62,10 @@ class HunterStrategy(AgentStrategy):
         self,
         view: AgentDataView,
     ) -> AgentForecast:
-        # Conviction: HUNTER bets off the SHARED goated council forecast when
-        # present (live path); falls back to a Poisson belief offline.
+        engine = build_engine_forecast(view, self.name)
+        if engine is not None:
+            return engine
+        # Compatibility fallback for snapshots without probability_engine output.
         council = build_council_forecast(view, self.name, "hunter_v2_conviction")
         if council is not None:
             return council

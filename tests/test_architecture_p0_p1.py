@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+import pytest
+
 from agents.anchor import AnchorStrategy
 from agents.blitz import BlitzStrategy
 from agents.hunter import HunterStrategy
@@ -18,6 +20,8 @@ from models.forecast_layers import (
 from models.live_state import LiveMatchState
 from models.live_update import DeterministicHalftimeModel
 from models.market_calibration import information_edge
+from models.probability_engine import DeterministicProbabilityEngine, MarketConsensus
+from betting.kelly import kelly_fraction
 
 from conftest import make_football_context, make_market, make_snapshot
 
@@ -75,7 +79,7 @@ def test_evidence_deduplicated():
     assert len(normalize_evidence(raw, now=now)) == 1
 
 
-def test_expired_evidence_falls_back_to_blitz_value():
+def test_expired_evidence_makes_blitz_abstain():
     now = datetime.now(timezone.utc)
     ff = make_football_context(council={"home": 0.6, "draw": 0.2, "away": 0.2})
     ff["event_signals"] = [{
@@ -88,8 +92,7 @@ def test_expired_evidence_falls_back_to_blitz_value():
     view = blitz.build_data_view(snap, None)
     fc = blitz.build_forecast(view)
     candidates = blitz.generate_candidates(fc, view, make_market(home=0.45, draw=0.25, away=0.30))
-    assert candidates
-    assert all(c.signal_type == "blitz_value" for c in candidates)
+    assert candidates == []
 
 
 def test_analyst_adjustments_are_capped_and_invalid_zeroes():
@@ -133,8 +136,7 @@ def test_agent_mandates_monk_anchor_hunter_blitz():
     blitz = BlitzStrategy()
     blitz_view = blitz.build_data_view(snap)
     blitz_candidates = blitz.generate_candidates(blitz.build_forecast(blitz_view), blitz_view, market)
-    assert blitz_candidates
-    assert all(c.signal_type == "blitz_value" for c in blitz_candidates)
+    assert blitz_candidates == []
 
 
 def test_blitz_uses_common_contract_with_valid_trigger():
@@ -208,3 +210,62 @@ def test_reports_include_strategy_and_model_versions():
         "profile_configuration_hash", "enabled_feature_flags", "active_data_sources", "timestamp",
     ):
         assert key in meta
+
+
+def test_probability_engine_produces_distinct_agent_distributions():
+    engine = DeterministicProbabilityEngine()
+    home = {"live_rating": 0.4, "matches": 5, "xg_for": 8, "xg_against": 4, "realized_goals_missing": True}
+    away = {"live_rating": 0.0, "matches": 5, "xg_for": 5, "xg_against": 7, "realized_goals_missing": True}
+    forecasts = engine.build_agent_forecasts(
+        home, away,
+        analyst_output={"feature_adjustments": [
+            {"feature": "home_attacking_strength", "operation": "increase", "magnitude": 0.10,
+             "evidence_ids": ["e1"], "confidence": 0.8}
+        ]},
+        devil_output={"scenarios": [
+            {"scenario_id": "low_total", "plausibility": 0.20,
+             "feature_overrides": {"expected_total_goals": -0.20}, "evidence_ids": ["e1"]}
+        ]},
+        judge_output={"recommended_calibration_policy": "moderate"},
+        market_consensus=MarketConsensus(datetime.now(timezone.utc), {"home": 0.35, "draw": 0.30, "away": 0.35}, 1),
+        evidence_ids=("e1",),
+        data_coverage_score=0.8,
+    )
+    distributions = {name: tuple(round(v, 6) for v in fc.submitted.values.values())
+                     for name, fc in forecasts.items()}
+    assert len(set(distributions.values())) > 1
+    assert distributions["monk"] != distributions["anchor"]
+    assert distributions["hunter"] != distributions["monk"]
+
+
+def test_shadow_only_bzzoiro_cannot_change_engine_output():
+    engine = DeterministicProbabilityEngine()
+    home = {"live_rating": 0.2, "matches": 4, "xg_for": 6, "xg_against": 4, "realized_goals_missing": True}
+    away = {"live_rating": 0.1, "matches": 4, "xg_for": 4, "xg_against": 5, "realized_goals_missing": True}
+    kwargs = dict(judge_output={"recommended_calibration_policy": "none"}, data_coverage_score=0.6)
+    a = engine.build_agent_forecasts(home, away, bzzoiro_probs={"home": 0.95, "draw": 0.03, "away": 0.02},
+                                     bzzoiro_shadow_only=True, **kwargs)
+    b = engine.build_agent_forecasts(home, away, bzzoiro_probs={"home": 0.02, "draw": 0.03, "away": 0.95},
+                                     bzzoiro_shadow_only=True, **kwargs)
+    assert a["monk"].submitted.values == b["monk"].submitted.values
+
+
+def test_unsupported_feature_adjustment_does_not_change_probabilities():
+    engine = DeterministicProbabilityEngine()
+    home = {"live_rating": 0.2, "matches": 4, "xg_for": 6, "xg_against": 4, "realized_goals_missing": True}
+    away = {"live_rating": 0.1, "matches": 4, "xg_for": 4, "xg_against": 5, "realized_goals_missing": True}
+    layers, audit = engine.build_layers(
+        home, away,
+        analyst_output={"feature_adjustments": [
+            {"feature": "home_probability", "operation": "increase", "magnitude": 0.20,
+             "evidence_ids": [], "confidence": 1.0}
+        ]},
+        judge_output={"recommended_calibration_policy": "none"},
+    )
+    assert layers.base.values == layers.evidence_adjusted.values
+    assert any("unsupported_feature" in w for w in audit["warnings"])
+
+
+def test_kelly_sizing_known_yes_contract_example():
+    assert kelly_fraction(0.60, 0.40) == pytest.approx((0.60 - 0.40) / (1.0 - 0.40))
+    assert kelly_fraction(0.30, 0.40) < 0
