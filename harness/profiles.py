@@ -1,23 +1,17 @@
 """
 Agent aggressiveness profiles — the SINGLE source of truth for trading policy.
 
-A profile is the trading policy layered on top of a shared forecast. The
-forecast (council probabilities + confidence) is identical across agents;
-profiles only change risk appetite. Both the arena agent (`agent.py
+A profile is the trading policy layered on top of each wallet's council
+forecast. All four wallets use identical policy values. Both the arena agent (`agent.py
 --profile` / `AGENT_PROFILE` env) and the harness load profiles from here, so
 there is no drift between rehearsal and production.
 
-## The four agents (mandates per docs/STRATEGY.md §4)
+## The four agents
 
-  monk   → ORACLE  — pure forecast quality (Stair Score track). Predicts every
-           window; trades only enormous (≥10pp) edges. A handful of bets all
-           tournament is the *design*, not paralysis.
-  anchor → KEEL    — disciplined all-outcome EV accumulator. The control arm
-           and risk-adjusted P&L play. ~20–40% of games.
-  hunter → SAW     — draw and underdog skew. Rejects favorites and prices over
-           0.40, with larger size only after independent evidence filters pass.
-  blitz  → SURGE   — event-driven aggression: both windows, scout veto off,
-           thin-but-positive edges vs FAIR price. Endgame escalation vehicle.
+Monk, Anchor, Hunter, and Blitz are independent wallet identities running the
+same legacy Blitz/SURGE policy. Each evaluates home, draw, and away and may take
+the two highest-EV outcomes in a window. A second position is never forced when
+it fails the shared edge and positive-EV requirements.
 
 ## Which knob applies where (no double-gating)
 

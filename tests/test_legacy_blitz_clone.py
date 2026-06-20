@@ -79,6 +79,28 @@ def test_identical_cross_wallet_trades_are_not_deduplicated():
     assert allocation.duplicate_recommendations == 0
 
 
+def test_all_wallets_can_allocate_two_complementary_outcomes():
+    recs = []
+    market = make_market(home=0.35, draw=0.15, away=0.50)
+    for name in AGENTS:
+        strategy = LegacyBlitzStrategy(name)
+        view = strategy.build_data_view(_snapshot())
+        forecast = strategy.build_forecast(view)
+        candidates = strategy.generate_candidates(forecast, view, market)
+        wallet_recs = strategy.generate_recommendations(
+            candidates, forecast, view, market, 100.0
+        )
+        assert len(wallet_recs) == 2
+        recs.extend(wallet_recs)
+
+    allocation = allocate_recommendations(recs)
+    assert len(allocation.accepted) == 8
+    assert allocation.rejected == []
+    for name in AGENTS:
+        accepted = [rec for rec in allocation.accepted if rec.agent_name == name]
+        assert {rec.outcome for rec in accepted} == {"AAA", "draw"}
+
+
 def test_bzzoiro_is_absent_from_council_role_inputs():
     bz = {"event_id": 42, "ml_prediction": {"home": 0.9, "draw": 0.05, "away": 0.05}}
     payloads = [
