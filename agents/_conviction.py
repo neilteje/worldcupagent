@@ -179,12 +179,13 @@ def conviction_candidates(
             gross_edge=gross_edge,
             conservative_edge=conservative_edge,
             expected_value_after_costs=ev_after_costs,
-            signal_type=f"{agent_name}_value",
+            signal_type="legacy_blitz_value",
             signals=tuple(signals_by_outcome.get(outcome, ())),
             candidate_created_at=datetime.now(timezone.utc),
             candidate_expires_at=None,
             forecast_id=forecast.forecast_id,
-            correlation_key=f"{forecast.fixture_id}:{outcome}:value:{forecast.forecast_id}",
+            correlation_key=(f"{agent_name}:{forecast.fixture_id}:{outcome}:"
+                             f"legacy_blitz_value:{forecast.forecast_id}"),
         ))
 
     return sorted(out, key=lambda c: c.expected_value_after_costs or -1, reverse=True)

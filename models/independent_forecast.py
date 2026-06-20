@@ -4,8 +4,7 @@ MONK and ANCHOR both start from the SAME frozen football foundation (spec §8/§
 "ANCHOR should start with the same frozen football foundation as MONK"). This
 module turns the deterministic engine's per-team pre-match states into a 1X2
 distribution with **market weight forced to zero** — no Polymarket, Kalshi,
-bookmaker, or odds term ever enters. The BZZOIRO external model stays shadow-only
-unless ``config.BZZOIRO_MODEL_SHADOW_ONLY`` is disabled and a weight is set.
+bookmaker, odds term, or external BZZOIRO prediction ever enters.
 
 The output also carries calibrated, coverage-scaled uncertainty bounds: the band
 widens as data coverage drops (spec §18 — no single fixed interval width).
@@ -17,7 +16,6 @@ from __future__ import annotations
 
 from dataclasses import replace
 
-import config
 from models.calibration import OUTCOMES, normalize_probs
 from models.deterministic_v2 import EnsembleConfig, predict_v2
 from models.team_strength import StrengthConfig
@@ -82,7 +80,6 @@ def build_independent_forecast(
     temperature: float | None = None,
     base_rate_shrink: float | None = None,
     rating_weight: float | None = None,
-    include_bzzoiro_shadow: bool = True,
     is_knockout: bool = False,
     match_week: int = 0,
 ) -> dict:
@@ -126,33 +123,19 @@ def build_independent_forecast(
             "warnings": tuple(warnings),
         }
 
-    # BZZOIRO external model is shadow-only by default (spec §17): never blended
-    # into the production forecast unless explicitly enabled with a weight.
-    bz_probs = None
-    w_bz = 0.0
-    if include_bzzoiro_shadow and not config.BZZOIRO_MODEL_SHADOW_ONLY and config.BZZOIRO_MODEL_WEIGHT > 0:
-        det = (football_features or {}).get("deterministic_model") or {}
-        bz_probs = (det.get("components") or {}).get("bzzoiro")
-        w_bz = config.BZZOIRO_MODEL_WEIGHT
-    else:
-        warnings.append("bzzoiro_model_shadow_only")
-
     cfg = EnsembleConfig(
         w_elo=w_elo,
         w_poisson=w_poisson,
         w_market=0.0,          # MARKET-BLIND: hard zero
-        w_bzzoiro=w_bz,
         temperature=temperature,
         base_rate_shrink=base_rate_shrink,
         use_market=False,      # never form the independent forecast from market
-        use_bzzoiro=bool(bz_probs),
         strength=StrengthConfig(rating_weight=rating_weight),
     )
 
     out = predict_v2(
         home_state, away_state,
         market_probs=None,         # never pass market
-        bzzoiro_probs=bz_probs,
         cfg=cfg,
         neutral=True,
         is_knockout=is_knockout,

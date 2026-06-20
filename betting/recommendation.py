@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 import config
 from betting.conservative import ConservativeEdgeConfig, calculate_conservative_edge
 from betting.policy import MIN_ORDER_USD, SizedPick
-from models.forecast_contracts import AgentRecommendation, recommendation_correlation_key
+from models.forecast_contracts import AgentRecommendation
 
 COORDINATED_AGENTS = ("monk", "anchor", "hunter", "blitz")
 
@@ -48,36 +48,11 @@ class AgentEdgeThresholds:
 def thresholds_for(agent_name: str) -> AgentEdgeThresholds:
     """Resolve the edge thresholds for one coordinated agent from config."""
     name = (agent_name or "").strip().lower()
-    if name == "monk":
+    if name in COORDINATED_AGENTS:
         return AgentEdgeThresholds(
-            signal_type="forecast_value",
-            min_conservative_edge=config.MONK_MIN_CONSERVATIVE_EDGE,
+            signal_type="legacy_blitz_value",
+            min_conservative_edge=-1.0,
             min_ev_after_costs=0.0,
-            min_data_coverage=config.MIN_DATA_COVERAGE,
-        )
-    if name == "anchor":
-        return AgentEdgeThresholds(
-            signal_type="value",
-            min_conservative_edge=config.ANCHOR_MIN_CONSERVATIVE_EDGE,
-            min_ev_after_costs=config.ANCHOR_MIN_EV_AFTER_COSTS,
-            min_data_coverage=config.MIN_DATA_COVERAGE,
-        )
-    if name == "hunter":
-        # Conviction mode: HUNTER is the AGGRESSIVE conviction agent (loosest
-        # edge bars, biggest Kelly) — no longer a signal-gated tail harvester, so
-        # the independent-signal and ultra-tail relics are dropped.
-        return AgentEdgeThresholds(
-            signal_type="skew_tail",
-            min_conservative_edge=config.HUNTER_MIN_CONSERVATIVE_EDGE,
-            min_ev_after_costs=config.HUNTER_MIN_EV_AFTER_COSTS,
-            min_data_coverage=config.MIN_DATA_COVERAGE,
-            min_independent_signals=0,
-        )
-    if name == "blitz":
-        return AgentEdgeThresholds(
-            signal_type="event_trigger",
-            min_conservative_edge=getattr(config, "BLITZ_MIN_CONSERVATIVE_EDGE", -1.0),
-            min_ev_after_costs=getattr(config, "BLITZ_MIN_EV_AFTER_COSTS", 0.005),
             min_data_coverage=0.0,
             min_independent_signals=0,
         )
@@ -170,13 +145,7 @@ def build_recommendation(
     elif stake_usd < MIN_ORDER_USD:
         abstain_reason = REASON_BELOW_MIN_STAKE
 
-    correlation_key = recommendation_correlation_key(
-        fixture_id=fixture_id,
-        outcome=code,
-        forecast_id=forecast_id,
-        evidence_ids=evidence_ids,
-        signal_type=th.signal_type,
-    )
+    correlation_key = f"{agent_name}:{fixture_id}:{code}:{th.signal_type}:{forecast_id or ''}"
 
     return AgentRecommendation(
         agent_name=agent_name,

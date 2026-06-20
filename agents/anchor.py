@@ -131,3 +131,11 @@ class AnchorStrategy(AgentStrategy):
         recommendations: list[AgentRecommendation],
     ) -> ExecutionPlan:
         return ExecutionPlan()
+
+
+from agents.legacy_blitz import LegacyBlitzStrategy
+
+
+class AnchorStrategy(LegacyBlitzStrategy):
+    def __init__(self):
+        super().__init__("anchor")

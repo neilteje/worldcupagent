@@ -163,3 +163,12 @@ class MonkStrategy(AgentStrategy):
         recommendations: list[AgentRecommendation],
     ) -> ExecutionPlan:
         return ExecutionPlan()
+
+
+# Compatibility name: the live and offline paths now share one Blitz clone.
+from agents.legacy_blitz import LegacyBlitzStrategy
+
+
+class MonkStrategy(LegacyBlitzStrategy):
+    def __init__(self):
+        super().__init__("monk")

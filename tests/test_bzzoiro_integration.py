@@ -158,29 +158,16 @@ def test_bzzoiro_deterministic_v2_predictions():
 
     # Case 1: No Bzzoiro probabilities provided
     out_no_bz = predict_v2(home_state, away_state, bzzoiro_probs=None)
-    assert out_no_bz["components"]["bzzoiro"] is None
+    assert "bzzoiro" not in out_no_bz["components"]
     assert "bzzoiro" not in out_no_bz["active_components"]
 
-    # Case 2: Bzzoiro probabilities provided and use_bzzoiro is True
+    # Compatibility input is ignored: the deterministic output is invariant.
     bz_probs = {"home_win": 0.70, "draw": 0.20, "away_win": 0.10}
     out_with_bz = predict_v2(home_state, away_state, bzzoiro_probs=bz_probs)
-    assert out_with_bz["components"]["bzzoiro"]["home"] == pytest.approx(0.70)
-    assert out_with_bz["components"]["bzzoiro"]["draw"] == pytest.approx(0.20)
-    assert out_with_bz["components"]["bzzoiro"]["away"] == pytest.approx(0.10)
-    assert "bzzoiro" in out_with_bz["active_components"]
-
-    # Case 3: Bzzoiro probabilities provided but use_bzzoiro is False
-    cfg = EnsembleConfig(use_bzzoiro=False)
-    out_disabled = predict_v2(home_state, away_state, bzzoiro_probs=bz_probs, cfg=cfg)
-    assert "bzzoiro" not in out_disabled["active_components"]
-    
-    # Case 4: Check weights influence
-    cfg_high_bz = EnsembleConfig(w_elo=0.0, w_poisson=0.0, w_market=0.0, w_bzzoiro=1.0)
-    out_only_bz = predict_v2(home_state, away_state, bzzoiro_probs=bz_probs, cfg=cfg_high_bz)
-    assert out_only_bz["probabilities"]["home"] > 0.60
+    assert out_with_bz == out_no_bz
 
 
-def test_bzzoiro_team_strength_influence():
+def test_bzzoiro_team_strength_fields_are_ignored():
     cfg = StrengthConfig()
     
     # Check effective rating with bzzoiro_momentum
@@ -190,8 +177,7 @@ def test_bzzoiro_team_strength_influence():
     rating_no = effective_rating(state_no_momentum, cfg)
     rating_with = effective_rating(state_with_momentum, cfg)
     
-    expected_diff = 0.8 * cfg.bz_momentum_weight
-    assert abs(rating_with - rating_no - expected_diff) < 1e-9
+    assert rating_with == rating_no
 
     # Check expected_goals with bzzoiro_xg
     home_state = {"live_rating": 0.0, "matches": 1, "xg_for": 1.0, "xg_against": 1.0, "goals_for": 1.0, "goals_against": 1.0, "bzzoiro_xg": 2.5}
@@ -204,8 +190,7 @@ def test_bzzoiro_team_strength_influence():
     )
     eg_with_bz = expected_goals(home_state, away_state, cfg=cfg)
     
-    # Home team should have a higher lambda_home now since their attack form blends in BZZOIRO xG
-    assert eg_with_bz["lambda_home"] > eg_no_bz["lambda_home"]
+    assert eg_with_bz == eg_no_bz
 
 
 def test_bzzoiro_fixture_bundle_build_context(monkeypatch):

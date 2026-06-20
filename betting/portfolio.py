@@ -10,31 +10,13 @@ from models.forecast_contracts import AgentRecommendation
 COORDINATED_AGENTS = {"monk", "anchor", "hunter", "blitz"}
 OBSERVED_ONLY_AGENTS: set[str] = set()
 
-# Mandate-fit ownership order used to break ties when two agents back the same
-# correlation key (spec §22): the higher conservative edge wins; on a tie the
-# agent whose mandate best fits leads. Lower rank = preferred owner.
-_MANDATE_RANK = {"anchor": 0, "hunter": 1, "monk": 2, "blitz": 3}
-
-
-def _mandate_rank(rec: "AgentRecommendation") -> int:
-    signal = (rec.signal_type or "").lower()
-    agent = (rec.agent_name or "").lower()
-    if "event" in signal:
-        return 0 if agent == "blitz" else 8
-    if "draw" in signal or "underdog" in signal or "skew" in signal:
-        return 0 if agent == "hunter" else 7
-    if "forecast" in signal or (rec.conservative_edge is not None and rec.conservative_edge >= 0.12):
-        return 0 if agent == "monk" else 6
-    return _MANDATE_RANK.get(agent, 9)
-
-
 def _joint_sort_key(rec: "AgentRecommendation"):
     """Total, deterministic ordering so joint allocation is invariant to the
     order recommendations arrive in (acceptance criterion §22/#24)."""
     edge = rec.conservative_edge if rec.conservative_edge is not None else -1.0
     return (
         -float(edge),
-        _mandate_rank(rec),
+        (rec.agent_name or "").lower(),
         rec.correlation_key or f"{rec.fixture_id}:{rec.outcome}",
     )
 
@@ -100,14 +82,14 @@ def allocate_recommendations(
             })
             continue
 
-        key = rec.correlation_key or f"{rec.fixture_id}:{rec.outcome}:{rec.forecast_id}"
+        key = f"{agent}:{rec.correlation_key or f'{rec.fixture_id}:{rec.outcome}:{rec.forecast_id}'}"
         if key in seen:
             result.duplicate_recommendations += 1
             result.rejected.append({"recommendation": rec.to_dict(), "reason": "duplicate_signal"})
             continue
 
-        fixture_key = f"fixture:{rec.fixture_id}"
-        outcome_key = f"outcome:{rec.fixture_id}:{rec.outcome}"
+        fixture_key = f"{agent}:fixture:{rec.fixture_id}"
+        outcome_key = f"{agent}:outcome:{rec.fixture_id}:{rec.outcome}"
         stake = float(rec.recommended_stake or 0.0)
         if exposure.get(fixture_key, 0.0) + stake > limits.max_fixture_exposure:
             result.rejected.append({"recommendation": rec.to_dict(), "reason": "fixture_exposure_limit"})
@@ -116,7 +98,7 @@ def allocate_recommendations(
             result.rejected.append({"recommendation": rec.to_dict(), "reason": "outcome_exposure_limit"})
             continue
         if (rec.expected_fill_price or 1.0) < 0.05:
-            tail_key = f"ultra_tail:{rec.fixture_id}"
+            tail_key = f"{agent}:ultra_tail:{rec.fixture_id}"
             if exposure.get(tail_key, 0.0) + stake > limits.max_ultra_tail_exposure:
                 result.rejected.append({"recommendation": rec.to_dict(), "reason": "ultra_tail_exposure_limit"})
                 continue

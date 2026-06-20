@@ -90,7 +90,7 @@ def test_hunter_recommendation_creation_skew():
     snap = _snap(mean=0.60, lower=0.55, upper=0.65)
     rec = _build("hunter", _pick(entry=0.35, our_prob=0.60), snap)
     assert rec.should_trade is True
-    assert rec.signal_type == "skew_tail"
+    assert rec.signal_type == "legacy_blitz_value"
     assert rec.conservative_edge == pytest.approx(0.16)
     assert rec.expected_value_after_costs == pytest.approx(0.21)
 

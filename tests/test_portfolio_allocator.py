@@ -38,19 +38,17 @@ def test_joint_allocation_invariant_to_input_order():
     assert keys_a == keys_b, "joint allocation must be invariant to input ordering"
 
 
-def test_mandate_and_edge_decide_ownership_on_duplicate():
-    # Same correlation key from two agents: the higher conservative edge owns it.
+def test_identical_cross_wallet_recommendations_are_independent():
     shared = "fixture:900:home"
     recs = [_rec("hunter", "AAA", edge=0.05, corr=shared),
             _rec("monk", "AAA", edge=0.15, corr=shared)]
     res = allocate_jointly(recs)
-    assert len(res.accepted) == 1
-    assert res.accepted[0].agent_name == "monk"
-    assert res.duplicate_recommendations == 1
+    assert {rec.agent_name for rec in res.accepted} == {"monk", "hunter"}
+    assert res.duplicate_recommendations == 0
 
 
 def test_duplicate_signals_rejected():
-    recs = [_rec("monk", "AAA", corr="dup"), _rec("anchor", "AAA", corr="dup")]
+    recs = [_rec("monk", "AAA", corr="dup"), _rec("monk", "AAA", corr="dup")]
     res = allocate_recommendations(recs)
     assert len(res.accepted) == 1
     assert res.duplicate_recommendations == 1
@@ -60,7 +58,7 @@ def test_duplicate_signals_rejected():
 def test_fixture_exposure_limit():
     limits = PortfolioLimits(max_fixture_exposure=0.03)
     recs = [_rec("monk", "AAA", stake=0.02, corr="k1"),
-            _rec("anchor", "BBB", stake=0.02, corr="k2")]
+            _rec("monk", "BBB", stake=0.02, corr="k2")]
     res = allocate_recommendations(recs, limits=limits)
     assert len(res.accepted) == 1
     assert any(r["reason"] == "fixture_exposure_limit" for r in res.rejected)
@@ -70,7 +68,7 @@ def test_outcome_exposure_limit():
     limits = PortfolioLimits(max_fixture_exposure=1.0, max_outcome_exposure=0.03)
     # Same outcome, different forecast ids -> distinct correlation keys, same outcome.
     recs = [_rec("monk", "AAA", stake=0.02, corr="k1"),
-            _rec("anchor", "AAA", stake=0.02, corr="k2")]
+            _rec("monk", "AAA", stake=0.02, corr="k2")]
     res = allocate_recommendations(recs, limits=limits)
     assert len(res.accepted) == 1
     assert any(r["reason"] == "outcome_exposure_limit" for r in res.rejected)
@@ -99,7 +97,7 @@ def test_gates_evaluated_per_recommendation():
     recs = [
         _rec("monk", "AAA", corr="g1"),
         _rec("anchor", "BBB", corr="g2", should_trade=False),
-        _rec("hunter", "AAA", corr="g1"),  # duplicate of g1
+        _rec("monk", "AAA", corr="g1"),  # duplicate within the same wallet
     ]
     res = allocate_recommendations(recs)
     assert len(res.accepted) == 1

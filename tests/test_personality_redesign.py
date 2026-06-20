@@ -84,9 +84,9 @@ def test_non_blitz_profiles_are_not_draw_filtered():
 
 def test_blitz_profile_core_configuration_is_unchanged():
     blitz = get_profile("blitz")
-    assert blitz.min_edge_vs_fair == pytest.approx(0.005)
-    assert blitz.min_confidence == pytest.approx(0.20)
-    assert blitz.kelly_fraction == pytest.approx(1.00)
+    assert blitz.min_edge_vs_fair == pytest.approx(0.02)
+    assert blitz.min_confidence == pytest.approx(0.35)
+    assert blitz.kelly_fraction == pytest.approx(0.65)
     assert blitz.max_bet_usd == pytest.approx(5.0)
     assert blitz.max_bets_per_window == 2
     assert blitz.skip_on_high_scout_flag is False
@@ -204,7 +204,7 @@ def test_reddit_fallback_comments_count_as_live_signal_and_evidence():
         },
     )
 
-    assert _coverage_score(fx) == 0.6
+    assert _coverage_score(fx) == 0.75
     assert _signal_coverage(fx)["reddit"] is True
     assert "reddit_sentiment" in _evidence_ids(fx)
 
@@ -251,16 +251,15 @@ def _recommendation(agent: str, key: str, stake: float = 0.01) -> AgentRecommend
     )
 
 
-def test_portfolio_deduplicates_identical_common_contract_signals():
+def test_portfolio_keeps_identical_signals_from_independent_wallets():
     result = allocate_recommendations([
         _recommendation("anchor", "same-signal"),
         _recommendation("hunter", "same-signal"),
-        _recommendation("blitz", "same-signal", stake=99.0),
+        _recommendation("blitz", "same-signal"),
     ])
 
-    assert [r.agent_name for r in result.accepted] == ["anchor"]
-    assert result.duplicate_recommendations == 2
-    assert result.rejected[0]["reason"] == "duplicate_signal"
+    assert [r.agent_name for r in result.accepted] == ["anchor", "hunter", "blitz"]
+    assert result.duplicate_recommendations == 0
     assert result.observed_only == []
 
 

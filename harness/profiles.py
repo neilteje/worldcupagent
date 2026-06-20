@@ -104,62 +104,28 @@ class AgentProfile:
 
 # ── The four tuned agents ───────────────────────────────────────────────────
 
-MONK = AgentProfile(
-    name="monk", label="oracle — forecast specialist",
-    min_edge_vs_fair=0.06,
-    min_ev_per_dollar=0.03,
-    min_confidence=0.35,
-    kelly_fraction=0.45,
-    max_bet_usd=5.0,
-    stake_cap_fraction=0.10,
-    max_bets_per_window=1,
-    floor_to_min_order=True,
-    skip_on_high_scout_flag=True,
-)
+LEGACY_BLITZ_POLICY = {
+    "min_edge_vs_fair": 0.02,
+    "min_ev_per_dollar": 0.0,
+    "min_confidence": 0.35,
+    "kelly_fraction": 0.65,
+    "max_bet_usd": 5.0,
+    "stake_cap_fraction": 0.15,
+    "max_bets_per_window": 2,
+    "skip_on_high_scout_flag": False,
+    "apply_confidence_multiplier": False,
+    "trade_prematch": True,
+    "trade_halftime": True,
+    "max_entry_price": None,
+    "floor_to_min_order": True,
+    "trade_synthetic": True,
+    "synthetic_size_multiplier": 0.25,
+}
 
-ANCHOR = AgentProfile(
-    name="anchor", label="keel — disciplined EV accumulator",
-    min_edge_vs_fair=0.015,
-    min_ev_per_dollar=0.003,
-    min_confidence=0.25,
-    kelly_fraction=0.70,
-    max_bet_usd=5.0,
-    stake_cap_fraction=0.15,
-    max_bets_per_window=1,
-    floor_to_min_order=True,
-    skip_on_high_scout_flag=True,
-)
-
-HUNTER = AgentProfile(
-    name="hunter", label="saw — draw and underdog skew",
-    min_edge_vs_fair=0.015,
-    min_ev_per_dollar=0.0,
-    min_confidence=0.25,
-    max_entry_price=0.60,
-    kelly_fraction=1.00,
-    max_bet_usd=5.0,
-    stake_cap_fraction=0.20,
-    max_bets_per_window=1,
-    floor_to_min_order=True,
-    skip_on_high_scout_flag=True,
-    apply_confidence_multiplier=False,   # aggression: size at the cap on +EV picks
-)
-
-BLITZ = AgentProfile(
-    name="blitz", label="surge — event-driven aggression",
-    min_edge_vs_fair=0.005,     # very thin edges, still +EV vs FAIR price
-    min_ev_per_dollar=0.0,
-    min_confidence=0.20,
-    kelly_fraction=1.00,
-    max_bet_usd=5.0,
-    stake_cap_fraction=0.25,
-    max_bets_per_window=2,
-    floor_to_min_order=True,
-    skip_on_high_scout_flag=False,
-    apply_confidence_multiplier=False,   # fires at the cap on +EV skew (STRATEGY §5)
-    trade_synthetic=True,       # may trade demo markets, but ×0.25 sized
-    synthetic_size_multiplier=0.25,
-)
+MONK = AgentProfile(name="monk", label="legacy blitz — monk", **LEGACY_BLITZ_POLICY)
+ANCHOR = AgentProfile(name="anchor", label="legacy blitz — anchor", **LEGACY_BLITZ_POLICY)
+HUNTER = AgentProfile(name="hunter", label="legacy blitz — hunter", **LEGACY_BLITZ_POLICY)
+BLITZ = AgentProfile(name="blitz", label="legacy blitz — blitz", **LEGACY_BLITZ_POLICY)
 
 DEFAULT_PROFILES: dict[str, AgentProfile] = {
     p.name: p for p in (MONK, ANCHOR, HUNTER, BLITZ)
@@ -187,19 +153,6 @@ def get_profile(name: str | None = None) -> AgentProfile:
     return DEFAULT_PROFILES[raw]
 
 
-# BLITZ production values — frozen (spec §11/§24). Any drift here must fail loud.
-_BLITZ_FROZEN = {
-    "min_edge_vs_fair": 0.005,
-    "min_confidence": 0.20,
-    "kelly_fraction": 1.00,
-    "max_bet_usd": 5.0,
-    "max_bets_per_window": 2,
-    "skip_on_high_scout_flag": False,
-    "apply_confidence_multiplier": False,
-    "floor_to_min_order": True,
-}
-
-
 def validate_profile_config() -> list[str]:
     """Startup validation that the profile layer and ``config.py`` agree where
     they must (spec §24). Raises ``ValueError`` on drift; returns the list of
@@ -216,12 +169,14 @@ def validate_profile_config() -> list[str]:
     issues: list[str] = []
     checks: list[str] = []
 
-    blitz = DEFAULT_PROFILES["blitz"]
-    for field_name, expected in _BLITZ_FROZEN.items():
-        actual = getattr(blitz, field_name)
-        checks.append(f"blitz.{field_name}")
-        if actual != expected:
-            issues.append(f"BLITZ frozen value drift: {field_name}={actual!r} != {expected!r}")
+    for name, profile in DEFAULT_PROFILES.items():
+        for field_name, expected in LEGACY_BLITZ_POLICY.items():
+            actual = getattr(profile, field_name)
+            checks.append(f"{name}.{field_name}")
+            if actual != expected:
+                issues.append(
+                    f"legacy Blitz policy drift: {name}.{field_name}={actual!r} != {expected!r}"
+                )
 
     for name, p in DEFAULT_PROFILES.items():
         checks.append(f"{name}.max_bet_usd<=cap")

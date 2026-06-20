@@ -9,6 +9,7 @@ measure edge, never to form the belief.
 from __future__ import annotations
 
 from betting.policy import SizedPick
+from betting.kelly import kelly_fraction
 from betting.recommendation import build_recommendation
 from models.forecast_contracts import AgentRecommendation
 
@@ -54,8 +55,16 @@ def shared_snapshot(view, forecast) -> dict:
 
 def reco_from_candidate(agent_name, cand, view, forecast, bankroll, profile) -> AgentRecommendation:
     code = code_for(view, cand.outcome)
-    stake = round(min(bankroll * profile.stake_cap_fraction, profile.max_bet_usd), 2)
     entry = cand.expected_fill_price or cand.market_midpoint or 0.5
+    raw_kelly = max(0.0, kelly_fraction(cand.probability_mean, float(entry)))
+    stake = round(min(
+        bankroll * raw_kelly * profile.kelly_fraction,
+        bankroll * profile.stake_cap_fraction,
+        profile.max_bet_usd,
+        bankroll,
+    ), 2)
+    if 0 < stake < 1.0 and profile.floor_to_min_order and bankroll >= 1.0:
+        stake = 1.0
     pick = SizedPick(
         slot=cand.outcome, code=code, stake_usd=stake,
         entry_price=float(entry),

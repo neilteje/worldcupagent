@@ -105,13 +105,13 @@ def test_roster_order_does_not_give_monk_ordinary_value_ownership():
     assert coord.exposure
 
 
-def test_blitz_abstains_without_event_trigger():
+def test_blitz_trades_without_event_trigger():
     fx = _forecast()
     coord = PortfolioCoordinator()
     summary = act_for_agent(_agent("blitz"), fx, dry_run=True, coordinator=coord)
     stats = summary["recommendation_stats"]
-    assert stats["recommendations"] == 0
+    assert stats["recommendations"] == 1
     assert stats["abstentions"] == 0
-    assert not coord.exposure
-    assert summary["n_picks"] == 0
-    assert summary["orders"] == []
+    assert coord.exposure
+    assert summary["n_picks"] == 1
+    assert summary["orders"][0]["status"] == "dry_run"

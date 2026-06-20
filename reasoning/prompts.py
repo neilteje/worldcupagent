@@ -188,7 +188,6 @@ PREDICT_SYS = (
     "## Input\n"
     "  - sportmonks_digest : ML probabilities, bookmaker consensus, xG\n"
     "  - supabase_digest   : historical priors, H2H, set-piece efficiency\n"
-    "  - bzzoiro_digest    : BZZOIRO API stats, momentum, ML predictions, lineups\n\n"
 
     "## Output schema (return ONLY valid JSON — no prose, no code fences)\n"
     "{\n"
@@ -199,7 +198,6 @@ PREDICT_SYS = (
     "  'used_signals': {\n"
     "    'sportmonks' : 'leaned_on' | 'unavailable',\n"
     "    'supabase'   : 'leaned_on' | 'unavailable',\n"
-    "    'bzzoiro'    : 'leaned_on' | 'unavailable'\n"
     "  },\n"
     "  'confidence_level' : 'high' | 'medium' | 'low'\n"
     "}\n\n"
@@ -325,7 +323,6 @@ def ht_predict_input(
         "ht_snapshot_supabase": ht_snapshot,
         "ht_score_supabase":    ht_score,
         "ht_stats_sportmonks":  ht_stats_sportmonks,
-        "bzzoiro_digest":       bz_digest,
     }, default=str)
 
 
@@ -383,7 +380,7 @@ def social_pulse_input(fixture_name: str, home_name: str, away_name: str,
 
 SCOUT_SYS = (
     "You are a rapid intelligence scout for a football betting desk. You receive "
-    "the structured match data (including Sportmonks and BZZOIRO API) plus unstructured external research (injury/lineup "
+    "the structured Sportmonks match data plus unstructured external research (injury/lineup "
     "headlines from the web, Reddit crowd chatter, and a live X/Twitter social "
     "pulse from Grok). Your only job is to surface FLAGS a deeper analyst must "
     "weigh — you do NOT predict the result.\n\n"
@@ -395,16 +392,13 @@ SCOUT_SYS = (
     "rumour vs confirmed.\n\n"
 
     "## Weigh the structured priors against the live human read\n"
-    "  - `sportmonks_digest`, `bzzoiro_digest`, and `deterministic_context` are "
-    "STRUCTURED MODEL PRIORS. BZZOIRO is ONE provider among several — never treat "
-    "it as ground truth on its own.\n"
+    "  - `sportmonks_digest` and `deterministic_context` are structured model priors.\n"
     "  - `web_research`, `reddit_sentiment`, and `social_pulse_grok` are the "
     "INDEPENDENT REAL-WORLD READ — what reporters, fans, and X are saying right "
     "now. They often carry breaking news (late injuries, lineup leaks, motivation) "
     "the structured models cannot see yet.\n"
     "  - Your highest-value flags are where the live human read DIVERGES from the "
-    "model priors (e.g. BZZOIRO likes the favorite but beat reporters confirm its "
-    "key striker is out). Surface every such divergence explicitly.\n\n"
+    "model priors. Surface every such divergence explicitly.\n\n"
 
     "## Output (return ONLY valid JSON — no prose, no code fences)\n"
     "{\n"
@@ -442,7 +436,6 @@ def scout_input(
         "home_code": home_code,
         "away_code": away_code,
         "sportmonks_digest": sportmonks_digest,
-        "bzzoiro_digest": bz_digest,
         "deterministic_context": deterministic_context,
         "web_research": web_research,
         "reddit_sentiment": reddit_bundle,
@@ -517,7 +510,6 @@ def analyst_input(
         "deterministic_context": deterministic_context,
         "sportmonks_digest": sportmonks_digest,
         "supabase_digest": supabase_digest,
-        "bzzoiro_digest": bz_digest,
         "scout_flags": scout_output,
     }, default=str)
 
@@ -579,7 +571,6 @@ def devil_input(
         "deterministic_context": deterministic_context,
         "sportmonks_digest": sportmonks_digest,
         "supabase_digest": supabase_digest,
-        "bzzoiro_digest": bz_digest,
     }, default=str)
 
 
@@ -596,8 +587,8 @@ JUDGE_SYS = (
     "  1. Start from the analyst's probabilities.\n"
     "  2. Move toward the devil's counter-map in proportion to how plausible its "
     "     weakest-assumption attack is — especially shrink an inflated favorite.\n"
-    "  3. Compare that synthesis to `deterministic_context` (which blends BZZOIRO, "
-    "     Elo, Poisson and market priors); treat its component signals and risk "
+    "  3. Compare that synthesis to `deterministic_context` (Elo and Poisson); "
+    "     treat its component signals and risk "
     "     flags as ONE required quantitative cross-check — not the final word. Give "
     "     real weight to the scout/analyst flags that came from the live human read "
     "     (web headlines, Reddit crowd, Grok X-pulse); breaking lineup/injury news "
@@ -622,7 +613,7 @@ JUDGE_SYS = (
     "  'confidence': 'high'|'medium'|'low',\n"
     "  'market_alignment': 'aligned'|'mild_edge'|'strong_edge'|'fading_market',\n"
     "  'move_or_hold': 'moved_to_market'|'held_view'|'no_market',\n"
-    "  'council_summary': str,    // 2-4 sentences: how analyst+devil+markets resolved; NAME which sources you leaned on (deterministic/bzzoiro, web/news, reddit, grok pulse, market)\n"
+    "  'council_summary': str,    // 2-4 sentences: how analyst+devil+markets resolved; name sources used\n"
     "  'changed_from_analyst': bool\n"
     "}"
 )
@@ -647,27 +638,3 @@ def judge_input(
         "devils_advocate_counter": devil_output,
         "polymarket": polymarket_digest,
     }, default=str)
-
-
-# P0/P1 architecture contract: the Python pipeline validates and applies these
-# shapes, so prompt drift cannot bypass the forecast-layer rules.
-SCOUT_SYS += (
-    "\n\nArchitecture contract: split output into market_blind_evidence and "
-    "market_observations. Only market_blind_evidence is sent to Analyst."
-)
-ANALYST_SYS += (
-    "\n\nArchitecture contract: return JSON with adjustments keyed by home/draw/away, "
-    "evidence_ids_by_adjustment, unknowns, confidence, and rationale. Do not return "
-    "a replacement probability map."
-)
-DEVIL_SYS += (
-    "\n\nArchitecture contract: return two or three weighted scenarios in a "
-    "scenarios array. Each scenario has scenario_id, plausibility, probabilities "
-    "keyed by home/draw/away, and evidence_ids."
-)
-JUDGE_SYS += (
-    "\n\nArchitecture contract: select calibration policy only. Return evidence_quality, "
-    "market_efficiency_assessment, recommended_market_weight, "
-    "supported_divergence_evidence_ids, confidence, and summary. Do not invent "
-    "a final probability map."
-)

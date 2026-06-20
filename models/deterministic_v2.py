@@ -28,10 +28,9 @@ class EnsembleConfig:
     # forecaster, so it carries the prior; the repo-local statistical layer
     # (Elo + Poisson, built from 2018 + in-tournament data) adds an independent
     # tilt. These are round, a-priori weights — NOT tuned to 2022 outcomes.
-    w_elo: float = 0.50
-    w_poisson: float = 0.50
-    w_market: float = 0.0
-    w_bzzoiro: float = 0.15
+    w_elo: float = 0.10
+    w_poisson: float = 0.10
+    w_market: float = 0.80
     rho: float = DEFAULT_RHO
     # Calibration is done by base-rate shrinkage (temperature held at 1.0); a WC2022
     # parameter sweep with 8-fold CV found this flat optimum (see sweep.md).
@@ -48,8 +47,7 @@ class EnsembleConfig:
     # ablation toggles
     use_elo: bool = True
     use_poisson: bool = True
-    use_market: bool = False
-    use_bzzoiro: bool = True
+    use_market: bool = True
 
 
 def _shrink_toward(probs: dict[str, float], target: tuple, strength: float) -> dict[str, float]:
@@ -92,15 +90,7 @@ def predict_v2(home_state: dict, away_state: dict, *, market_probs: dict | None 
     poisson = poisson_1x2(eg["lambda_home"], eg["lambda_away"], rho=cfg.rho)
     elo = elo_1x2(home_state, away_state, cfg=cfg.strength, is_knockout=is_knockout)
     market = normalize_probs(market_probs) if market_probs else None
-    if bzzoiro_probs:
-        bz_mapped = {
-            "home": bzzoiro_probs.get("home", bzzoiro_probs.get("home_win")),
-            "draw": bzzoiro_probs.get("draw"),
-            "away": bzzoiro_probs.get("away", bzzoiro_probs.get("away_win")),
-        }
-        bzzoiro_ml = normalize_probs(bz_mapped)
-    else:
-        bzzoiro_ml = None
+    # Kept as an ignored compatibility argument; it cannot affect this engine.
 
     components: dict[str, dict[str, float]] = {}
     weights: dict[str, float] = {}
@@ -113,9 +103,6 @@ def predict_v2(home_state: dict, away_state: dict, *, market_probs: dict | None 
     if cfg.use_market and market is not None:
         components["market"] = market
         weights["market"] = cfg.w_market
-    if cfg.use_bzzoiro and bzzoiro_ml is not None:
-        components["bzzoiro"] = bzzoiro_ml
-        weights["bzzoiro"] = cfg.w_bzzoiro
 
     blended = _blend(components, weights)
 
@@ -135,7 +122,7 @@ def predict_v2(home_state: dict, away_state: dict, *, market_probs: dict | None 
         "probabilities": calibrated,
         "pick": pick,
         "confidence": round(calibrated[pick], 4),
-        "components": {"elo": elo, "poisson": poisson, "market": market, "bzzoiro": bzzoiro_ml},
+        "components": {"elo": elo, "poisson": poisson, "market": market},
         "active_components": list(components.keys()),
         "weights": {n: round(w, 4) for n, w in weights.items()},
         "expected_goals": eg,
@@ -147,7 +134,6 @@ def predict_v2(home_state: dict, away_state: dict, *, market_probs: dict | None 
             "w_elo": cfg.w_elo,
             "w_poisson": cfg.w_poisson,
             "w_market": cfg.w_market,
-            "w_bzzoiro": cfg.w_bzzoiro,
         },
     }
 
@@ -157,11 +143,10 @@ def ablation_configs(base: EnsembleConfig | None = None) -> dict[str, EnsembleCo
     base = base or EnsembleConfig()
     return {
         "full": base,
-        "elo_only": replace(base, use_elo=True, use_poisson=False, use_market=False, use_bzzoiro=False),
-        "poisson_only": replace(base, use_elo=False, use_poisson=True, use_market=False, use_bzzoiro=False),
-        "market_only": replace(base, use_elo=False, use_poisson=False, use_market=True, use_bzzoiro=False, w_market=1.0),
-        "bzzoiro_only": replace(base, use_elo=False, use_poisson=False, use_market=False, use_bzzoiro=True),
-        "stats_only_no_market": replace(base, use_elo=True, use_poisson=True, use_market=False, use_bzzoiro=True),
+        "elo_only": replace(base, use_elo=True, use_poisson=False, use_market=False),
+        "poisson_only": replace(base, use_elo=False, use_poisson=True, use_market=False),
+        "market_only": replace(base, use_elo=False, use_poisson=False, use_market=True, w_market=1.0),
+        "stats_only_no_market": replace(base, use_elo=True, use_poisson=True, use_market=False),
         "no_calibration": replace(base, temperature=1.0, base_rate_shrink=0.0, knockout_draw_boost=0.0, mw3_temperature_boost=0.0),
         "no_elo_blend": replace(base, strength=replace(base.strength, elo_blend=0.0)),
         "no_knockout_boost": replace(base, knockout_draw_boost=0.0),

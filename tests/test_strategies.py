@@ -20,16 +20,16 @@ def test_four_distinct_strategy_classes():
     assert {s.name for s in _all_strategies()} == {"monk", "anchor", "hunter", "blitz"}
 
 
-def test_four_distinct_data_view_hashes():
+def test_four_clones_share_the_same_data_view_hash():
     snap = make_snapshot(make_football_context())
     hashes = []
     for s in _all_strategies():
         view = s.build_data_view(snap, None)
         hashes.append(view.data_view_hash)
-    assert len(set(hashes)) == 4, "each agent must produce a distinct data-view hash"
+    assert len(set(hashes)) == 1
 
 
-def test_four_distinct_forecast_ids_and_not_one_shared_probability():
+def test_four_clones_share_fallback_forecast_id_and_policy():
     snap = make_snapshot(make_football_context())
     forecasts = {}
     for s in _all_strategies():
@@ -38,11 +38,8 @@ def test_four_distinct_forecast_ids_and_not_one_shared_probability():
         forecasts[s.name] = fc
 
     ids = [fc.forecast_id for fc in forecasts.values()]
-    assert len(set(ids)) == 4, "four agents must produce four distinct forecast ids"
-
-    assert forecasts["monk"].forecast_type == "independent_deterministic"
-    assert forecasts["hunter"].forecast_type == "poisson_fallback"
-    assert forecasts["blitz"].forecast_type == "event_triggered_common"
+    assert len(set(ids)) == 1
+    assert {fc.forecast_type for fc in forecasts.values()} == {"legacy_blitz_fallback"}
 
 
 def test_conviction_all_agents_share_the_council_belief():

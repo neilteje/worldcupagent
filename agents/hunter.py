@@ -141,3 +141,11 @@ class HunterStrategy(AgentStrategy):
         recommendations: list[AgentRecommendation],
     ) -> ExecutionPlan:
         return ExecutionPlan()
+
+
+from agents.legacy_blitz import LegacyBlitzStrategy
+
+
+class HunterStrategy(LegacyBlitzStrategy):
+    def __init__(self):
+        super().__init__("hunter")

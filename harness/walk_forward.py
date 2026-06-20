@@ -83,8 +83,8 @@ def load_matches() -> list[Match]:
 
 def _cfg_from_params(p: dict) -> EnsembleConfig:
     return EnsembleConfig(
-        w_elo=p["w_elo"], w_poisson=p["w_poisson"], w_market=0.0, w_bzzoiro=0.0,
-        use_market=False, use_bzzoiro=False,
+        w_elo=p["w_elo"], w_poisson=p["w_poisson"], w_market=0.0,
+        use_market=False,
         temperature=p["temperature"], base_rate_shrink=p["base_rate_shrink"],
         strength=StrengthConfig(rating_weight=p["rating_weight"]),
     )

@@ -12,6 +12,7 @@ release notes 20260610: HT is not enabled yet).
 """
 from __future__ import annotations
 import json
+import copy
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any
@@ -37,17 +38,14 @@ from live import metrics
 # Per-cycle spend ceiling per agent: min($5 arena rule, wallet − 5¢ buffer).
 WALLET_BUFFER_USD = 0.05
 
-from agents.monk import MonkStrategy
-from agents.anchor import AnchorStrategy
-from agents.hunter import HunterStrategy
-from agents.blitz import BlitzStrategy
+from agents.legacy_blitz import LegacyBlitzStrategy
 from agents.contracts import FixtureDataSnapshot, MarketContext
 
 STRATEGIES = {
-    "monk": MonkStrategy(),
-    "anchor": AnchorStrategy(),
-    "hunter": HunterStrategy(),
-    "blitz": BlitzStrategy(),
+    "monk": LegacyBlitzStrategy("monk"),
+    "anchor": LegacyBlitzStrategy("anchor"),
+    "hunter": LegacyBlitzStrategy("hunter"),
+    "blitz": LegacyBlitzStrategy("blitz"),
 }
 
 
@@ -221,33 +219,22 @@ def _confidence_label(value: float) -> str:
 def _deterministic_v2_model(fx: Forecast, fixture: dict) -> dict:
     from models.deterministic_v2 import EnsembleConfig, predict_v2
 
-    prior = None
-    prior_source = "market_blind"
-    cfg = EnsembleConfig(
-        w_elo=0.50,
-        w_poisson=0.50,
-        w_market=0.0,
-        use_market=False,
-    )
+    prior, prior_source = _market_prior(fx, fixture)
+    cfg = EnsembleConfig()
     stage = str((fixture.get("stage") or {}).get("name") or fixture.get("stage") or "").lower()
     is_knockout = bool(stage) and "group" not in stage
-    home_state = _state_from_independent_context(fx, "home")
-    away_state = _state_from_independent_context(fx, "away")
-    
-    bzzoiro_probs = (fx.bz_digest or {}).get("ml_prediction")
+    home_state = _state_from_prior(prior, "home")
+    away_state = _state_from_prior(prior, "away")
     
     out = predict_v2(
         home_state,
         away_state,
-        market_probs=None,
-        bzzoiro_probs=bzzoiro_probs,
+        market_probs=prior,
         cfg=cfg,
         is_knockout=is_knockout,
     )
     confidence = float(out.get("confidence", 0.5) or 0.5)
-    risk_flags = ["market_inputs_excluded"]
-    if _coverage_score(fx) < 0.5:
-        risk_flags.append("deterministic_v2_low_independent_data_coverage")
+    risk_flags = [] if prior else ["deterministic_v2_neutral_cold_start"]
     return {
         "probabilities": out["probabilities"],
         "confidence": confidence,
@@ -273,14 +260,10 @@ def _deterministic_v2_model(fx: Forecast, fixture: dict) -> dict:
 
 
 def _coverage_score(fx: Forecast) -> float:
-    # Diversity across BOTH structured model priors (Sportmonks/Supabase/BZZOIRO)
-    # and the independent real-world read (web headlines + Reddit crowd). BZZOIRO
-    # is one source among several here, not the spine — keeping it in the count
-    # stops a single API from silently dominating the coverage signal.
+    # Coverage for the sources that are allowed to affect the council.
     parts = [
         bool(fx.sm_digest),
         bool(fx.sb_digest),
-        bool(fx.bz_digest),
         bool((fx.web_research or {}).get("total_results")),
         _reddit_has_content(fx.reddit_bundle),
     ]
@@ -299,15 +282,12 @@ def _reddit_has_content(bundle: dict | None) -> bool:
 def _signal_coverage(fx: Forecast) -> dict:
     """Per-window map of which inputs actually carried content into the council.
 
-    Logged so reliance on any single source (notably the BZZOIRO API) is
-    auditable after the fact rather than assumed — the council is meant to read
-    structured model priors AND the live real-world chatter, not lean on one API.
+    Logged so reliance on any one allowed source is auditable after the fact.
     """
     pulse = getattr(fx, "social_pulse", None) or {}
     return {
         "sportmonks": bool(fx.sm_digest),
         "supabase": bool(fx.sb_digest),
-        "bzzoiro": bool(fx.bz_digest),
         "odds2prob": bool((fx.odds2prob_digest or {}).get("available")),
         "web_search": bool((fx.web_research or {}).get("total_results")),
         "reddit": _reddit_has_content(fx.reddit_bundle),
@@ -323,8 +303,6 @@ def _evidence_ids(fx: Forecast) -> list[str]:
         ids.append("sportmonks_digest")
     if fx.sb_digest:
         ids.append("supabase_digest")
-    if fx.bz_digest:
-        ids.append("bzzoiro_digest")
     for source in (fx.web_research or {}).get("sources") or []:
         ids.append(f"web:{source}")
     if _reddit_has_content(fx.reddit_bundle):
@@ -348,8 +326,6 @@ def _state_from_independent_context(fx: Forecast, side: str) -> dict:
         "xg_against": 0.0,
         "goals_for": 0.0,
         "goals_against": 0.0,
-        "bzzoiro_xg": 0.0,
-        "bzzoiro_momentum": 0.0,
     }
 
     xg = (fx.sm_digest or {}).get("expected_goals") or {}
@@ -380,12 +356,6 @@ def _state_from_independent_context(fx: Forecast, side: str) -> dict:
             state["talent_score"] = max(0.0, min(5.0, float(ko_rate) * 5.0))
     except (TypeError, ValueError):
         pass
-        
-    bz = fx.bz_digest or {}
-    bz_stats = bz.get("stats_summary") or {}
-    if bz_stats:
-        state["bzzoiro_xg"] = float(bz_stats.get(f"{side}_xg", 0.0))
-        state["bzzoiro_momentum"] = float(bz_stats.get(f"{side}_momentum", 0.0))
         
     return state
 
@@ -452,9 +422,7 @@ def _build_independent_forecast_snapshot(fx: Forecast, fixture: dict) -> dict:
     home_state = _state_from_independent_context(fx, "home")
     away_state = _state_from_independent_context(fx, "away")
     
-    bzzoiro_probs = (fx.bz_digest or {}).get("ml_prediction")
-    
-    out = predict_v2(home_state, away_state, market_probs=None, bzzoiro_probs=bzzoiro_probs, cfg=cfg, is_knockout=is_knockout)
+    out = predict_v2(home_state, away_state, market_probs=None, cfg=cfg, is_knockout=is_knockout)
     probabilities = out["probabilities"]
     confidence = max(0.0, min(1.0, float(out.get("confidence", 0.5) or 0.5)))
     coverage = _coverage_score(fx)
@@ -586,7 +554,7 @@ def gather_prematch(fixture_id: int) -> Forecast:
     ctx = fixture_bundle.build_context(
         fx.home_name, fx.away_name, fx.home_code, fx.away_code,
         sportmonks_fixture_id=fixture_id, fixture_name=fx.fixture_name,
-        match_date=match_date)
+        match_date=match_date, include_bzzoiro=False)
     fx.sm_digest = ctx.get("sportmonks_digest")
     fx.sb_digest = ctx.get("supabase_digest")
     fx.bz_digest = ctx.get("bzzoiro_digest")
@@ -630,7 +598,6 @@ def gather_prematch(fixture_id: int) -> Forecast:
         fx.kickoff, fx.sm_digest, fx.sb_digest, fx.pm_digest_result.parsed,
         fx.web_research, fx.reddit_bundle,
         deterministic_context=deterministic_context,
-        bz_digest=fx.bz_digest,
     )
     fx.cr = cr
     fx.social_pulse = cr.social_pulse or {}
@@ -731,6 +698,57 @@ def gather_halftime(fixture_id: int, prematch_note: dict | None = None) -> Forec
     return fx
 
 
+def _rerun_wallet_council(fx: Forecast, prematch_note: dict | None = None) -> Forecast:
+    """Run a fresh reasoning chain for one wallet over the shared data snapshot."""
+    wallet_fx = copy.deepcopy(fx)
+    if wallet_fx.window == "PRE_MATCH":
+        deterministic_context = (wallet_fx.grounding or {}).get("deterministic_context") or {}
+        cr = council.run_council(
+            wallet_fx.fixture_name, wallet_fx.home_code, wallet_fx.away_code,
+            wallet_fx.home_name, wallet_fx.away_name, wallet_fx.kickoff,
+            wallet_fx.sm_digest, wallet_fx.sb_digest, wallet_fx.pm_digest_result.parsed,
+            wallet_fx.web_research, wallet_fx.reddit_bundle,
+            deterministic_context=deterministic_context,
+        )
+        wallet_fx.cr = cr
+        wallet_fx.social_pulse = cr.social_pulse or {}
+        wallet_fx.probabilities = cr.probabilities
+        wallet_fx.outcome = cr.outcome
+        wallet_fx.probability = float(cr.probability)
+        wallet_fx.confidence = cr.confidence
+        wallet_fx.scout_flags = cr.scout_flags
+        wallet_fx.market_adjusted_probabilities = dict(cr.probabilities)
+        wallet_fx.summary = cr.council_summary
+        wallet_fx.grounding = {
+            **(wallet_fx.grounding or {}),
+            "council": cr.grounding,
+            "signal_coverage": _signal_coverage(wallet_fx),
+        }
+        return wallet_fx
+
+    result = llm.ht_predict(ht_predict_input(
+        wallet_fx.fixture_name, wallet_fx.home_code, wallet_fx.away_code,
+        prematch_note, wallet_fx.ht_context.get("ht_snapshot") or [],
+        wallet_fx.ht_context.get("ht_score") or [],
+        wallet_fx.ht_context.get("ht_stats_sm") or {},
+    ))
+    wallet_fx.ht_pred_result = result
+    parsed = result.parsed or {}
+    wallet_fx.outcome = _outcome_to_code(parsed.get("outcome"), wallet_fx.home_code, wallet_fx.away_code)
+    wallet_fx.probability = float(parsed.get("probability") or 0.34)
+    wallet_fx.confidence = parsed.get("confidence_level", "low")
+    wallet_fx.summary = parsed.get("rationale", "")
+    keys = [wallet_fx.home_code, "draw", wallet_fx.away_code]
+    rest = [key for key in keys if key != wallet_fx.outcome]
+    pre_probs = normalize_probabilities((prematch_note or {}).get("probabilities") or {})
+    weights = [max(float(pre_probs.get(key, 1.0)), 1e-6) for key in rest]
+    total = sum(weights)
+    wallet_fx.probabilities = {wallet_fx.outcome: wallet_fx.probability}
+    for key, weight in zip(rest, weights):
+        wallet_fx.probabilities[key] = (1.0 - wallet_fx.probability) * weight / total
+    return wallet_fx
+
+
 # ── Per-agent tail: policy → orders → ledger ───────────────────────────────
 
 def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
@@ -753,7 +771,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         goal=f"[{profile.name}] {fx.window} cycle for {fx.fixture_name}: calibrated "
              f"prediction + at most {profile.max_bets_per_window} +EV buy-YES order(s)",
         steps=[
-            "Ingest shared data bundle (Sportmonks, Polymarket, BZZOIRO, web, Reddit, Supabase)",
+            "Ingest data bundle (Sportmonks, Polymarket, web, Reddit, Supabase)",
             "Run council forecast and ground it against the bookmaker anchor"
             if fx.window == "PRE_MATCH" else
             "Run Bayesian HT update from live score + xG",
@@ -813,7 +831,6 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
         football_context={
             "sportmonks_digest": fx.sm_digest,
             "supabase_digest": fx.sb_digest,
-            "bzzoiro_digest": fx.bz_digest,
             "odds2prob_digest": fx.odds2prob_digest,
             "deterministic_model": fx.deterministic_model,
             # Codes + frozen independent snapshot let each agent map outcomes and
@@ -829,8 +846,7 @@ def act_for_agent(agent: LiveAgent, fx: Forecast, *, dry_run: bool = False,
                 if isinstance(flag, dict)
                 and (flag.get("event_type") or flag.get("trigger"))
             ],
-            # The SHARED goated council belief — all agents bet conviction off
-            # this (BZZOIRO + web + Reddit + Grok), differing only by risk.
+            # This wallet's council belief is the sole live trading forecast.
             "council_forecast": {
                 "probabilities": {
                     "home": float(fx.probabilities.get(fx.home_code, 0.0) or 0.0),
@@ -1288,9 +1304,19 @@ def run_window_cycle(fixture_id: int, window: str, agents: list[LiveAgent],
     ))
 
     results: dict[str, dict] = {}
-    for agent in agents:
+    wallet_forecasts: dict[str, dict] = {}
+    for index, agent in enumerate(agents):
         try:
-            results[agent.name] = act_for_agent(agent, fx, dry_run=dry_run,
+            # gather_* already ran the first council; every additional wallet
+            # receives a new independent call chain over the same data.
+            agent_fx = copy.deepcopy(fx) if index == 0 else _rerun_wallet_council(fx, prematch_note)
+            wallet_forecasts[agent.name] = {
+                "outcome": agent_fx.outcome,
+                "probability": agent_fx.probability,
+                "probabilities": agent_fx.probabilities,
+                "confidence": agent_fx.confidence,
+            }
+            results[agent.name] = act_for_agent(agent, agent_fx, dry_run=dry_run,
                                                 coordinator=coordinator)
         except Exception as exc:
             print(f"  [{agent.name}] agent tail FAILED: {exc!r}")
@@ -1307,4 +1333,5 @@ def run_window_cycle(fixture_id: int, window: str, agents: list[LiveAgent],
                          "market_probabilities": fx.market_probabilities,
                          "market_adjusted_probabilities": (
                              fx.market_adjusted_probabilities or fx.probabilities)},
+            "wallet_forecasts": wallet_forecasts,
             "agents": results}

@@ -88,7 +88,7 @@ def _ml(home=0.55, draw=0.26, away=0.25, source="polymarket"):
 
 def test_policy_saw_allows_moderately_priced_value():
     saw = get_profile("hunter")
-    assert saw.max_entry_price == pytest.approx(0.60)
+    assert saw.max_entry_price is None
     probs = {"AAA": 0.70, "draw": 0.18, "BBB": 0.12}   # strong favorite, underpriced
     picks = select_picks(saw, probs, _ml(), "AAA", "BBB", 100.0,
                          confidence_num=0.6)
@@ -106,15 +106,15 @@ def test_policy_keel_takes_clear_edge():
     assert picks[0].limit_price == pytest.approx(0.57, abs=0.011)
 
 
-def test_policy_synthetic_market_blocked_by_default():
+def test_policy_synthetic_market_uses_legacy_blitz_sizing():
     keel = get_profile("anchor")
     probs = {"AAA": 0.70, "draw": 0.18, "BBB": 0.12}
     reasons: list[str] = []
     picks = select_picks(keel, probs, _ml(source="synthetic_demo"),
                          "AAA", "BBB", 100.0, confidence_num=0.6,
                          skip_reasons=reasons)
-    assert picks == []
-    assert any("synthetic" in r for r in reasons)
+    assert picks
+    assert picks[0].stake_usd <= keel.max_bet_usd * keel.synthetic_size_multiplier
 
 
 def test_policy_floors_sub_dollar_blitz_pick_up_to_minimum():
@@ -141,16 +141,13 @@ def test_policy_hunter_takes_small_aggressive_stake():
     reasons: list[str] = []
     picks = select_picks(saw, probs, ml, "AAA", "BBB", 6.0,
                          confidence_num=0.6, skip_reasons=reasons)
-    assert picks and picks[0].stake_usd == pytest.approx(1.2)
-    assert reasons == []
+    assert picks and picks[0].stake_usd == pytest.approx(1.0)
+    assert any("floored up" in reason for reason in reasons)
 
 
 def test_pnl_tail_profiles_opt_out_of_confidence_multiplier():
-    assert get_profile("hunter").apply_confidence_multiplier is False
-    assert get_profile("blitz").apply_confidence_multiplier is False
-    # The disciplined/score agents keep it on.
-    assert get_profile("anchor").apply_confidence_multiplier is True
-    assert get_profile("monk").apply_confidence_multiplier is True
+    for name in ("monk", "anchor", "hunter", "blitz"):
+        assert get_profile(name).apply_confidence_multiplier is False
 
 
 def test_policy_confidence_floor():
@@ -176,7 +173,7 @@ def test_live_prematch_builds_deterministic_context_for_council():
     assert set(ctx["probabilities_by_code"]) == {"AAA", "draw", "BBB"}
     assert sum(ctx["probabilities_by_code"].values()) == pytest.approx(1.0, abs=0.001)
     assert "components" in ctx and "expected_goals" in ctx
-    assert "market" not in ctx["component_weights"]
+    assert ctx["component_weights"]["market"] == pytest.approx(0.8)
 
 
 # ── Ledger: schema v0.3 shapes ───────────────────────────────────────────────

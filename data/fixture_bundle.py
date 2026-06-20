@@ -120,7 +120,8 @@ def build_bzzoiro_digest(home_name: str, away_name: str, match_date: str) -> dic
 def build_context(home_name: str, away_name: str, home_code: str, away_code: str,
                   *, sportmonks_fixture_id: int | None = None,
                   fixture_name: str | None = None,
-                  match_date: str | None = None) -> dict:
+                  match_date: str | None = None,
+                  include_bzzoiro: bool = True) -> dict:
     """
     Assemble the council's structured grounding inputs.
 
@@ -132,7 +133,8 @@ def build_context(home_name: str, away_name: str, home_code: str, away_code: str
     sb = build_supabase_digest(home_name, away_name, home_code, away_code,
                                fixture_name=fixture_name)
     
-    bz = build_bzzoiro_digest(home_name, away_name, match_date) if match_date else None
+    bz = (build_bzzoiro_digest(home_name, away_name, match_date)
+          if include_bzzoiro and match_date else None)
     
     return {
         "sportmonks_digest": sm,

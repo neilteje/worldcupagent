@@ -267,4 +267,12 @@ class BlitzStrategy(AgentStrategy):
         return ExecutionPlan(recommendations=tuple(recommendations))
 
 
+from agents.legacy_blitz import LegacyBlitzStrategy
+
+
+class BlitzStrategy(LegacyBlitzStrategy):
+    def __init__(self):
+        super().__init__("blitz")
+
+
 __all__ = ["BlitzStrategy", "VALID_EVENT_TRIGGERS", "coerce_event_signals", "valid_blitz_signals"]

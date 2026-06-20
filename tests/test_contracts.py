@@ -27,7 +27,7 @@ def test_stable_hash_is_deterministic_and_sensitive():
     assert stable_hash(payload) != stable_hash({"a": 1, "b": {"c": 3}})
 
 
-def test_monk_data_view_hash_changes_when_bzzoiro_input_changes():
+def test_agent_data_view_hash_ignores_bzzoiro_input_changes():
     monk = MonkStrategy()
     base = make_football_context()
     h1 = monk.build_data_view(make_snapshot(base), None).data_view_hash
@@ -35,7 +35,7 @@ def test_monk_data_view_hash_changes_when_bzzoiro_input_changes():
     changed = make_football_context()
     changed["bzzoiro_digest"] = {"event_id": 99, "xg": {"home": 2.4}}
     h2 = monk.build_data_view(make_snapshot(changed), None).data_view_hash
-    assert h1 != h2, "data-view hash must change when a forecast-relevant BZZOIRO input changes"
+    assert h1 == h2, "BZZOIRO is excluded from the live forecast data view"
 
 
 def test_monk_forecast_id_stable_for_identical_inputs():

@@ -293,10 +293,8 @@ class DeterministicProbabilityEngine:
         is_knockout: bool = False,
     ) -> tuple[ForecastLayers, dict[str, Any]]:
         cfg = cfg or EnsembleConfig(w_elo=0.50, w_poisson=0.50, w_market=0.0, use_market=False)
-        if bzzoiro_shadow_only:
-            cfg = EnsembleConfig(**{**cfg.__dict__, "use_bzzoiro": False, "w_bzzoiro": 0.0})
         base_out = predict_v2(
-            home_state, away_state, market_probs=None, bzzoiro_probs=bzzoiro_probs,
+            home_state, away_state, market_probs=None,
             cfg=cfg, is_knockout=is_knockout,
         )
         base = _dist(base_out["probabilities"], stage="base")
@@ -380,32 +378,8 @@ class DeterministicProbabilityEngine:
             home_state, away_state, analyst_output=analyst_output,
             devil_output=devil_output, judge_output=judge_output,
             market_consensus=market_consensus, evidence_ids=evidence_ids,
-            data_coverage_score=data_coverage_score, bzzoiro_probs=bzzoiro_probs,
-            bzzoiro_shadow_only=bzzoiro_shadow_only, is_knockout=is_knockout,
+            data_coverage_score=data_coverage_score, is_knockout=is_knockout,
         )
-        hunter_cfg = EnsembleConfig(
-            w_elo=0.20, w_poisson=0.80, w_market=0.0, use_market=False,
-            rho=-0.08, base_rate_shrink=0.05, knockout_draw_boost=0.07,
-            use_bzzoiro=not bzzoiro_shadow_only, w_bzzoiro=0.0 if bzzoiro_shadow_only else 0.05,
-        )
-        hunter_layers, hunter_audit = self.build_layers(
-            home_state, away_state, analyst_output=analyst_output,
-            devil_output=devil_output, judge_output={"recommended_calibration_policy": "none"},
-            market_consensus=None, evidence_ids=evidence_ids,
-            data_coverage_score=data_coverage_score, bzzoiro_probs=bzzoiro_probs,
-            bzzoiro_shadow_only=bzzoiro_shadow_only, cfg=hunter_cfg,
-            is_knockout=is_knockout,
-        )
-        blitz_valid = bool((analyst_output or {}).get("event_signal_valid"))
-        blitz_submitted = layers.stressed
-        blitz_policy = "event_model"
-        blitz_warnings = tuple()
-        if not blitz_valid:
-            blitz_policy = "abstain_no_valid_event"
-            blitz_warnings = ("blitz_no_valid_event_signal",)
-            blitz_submitted = _dist(layers.evidence_adjusted.values, stage="blitz_abstain",
-                                    warnings=blitz_warnings,
-                                    upstream=(layers.evidence_adjusted.forecast_id,))
 
         def pack(agent: str, submitted: ProbabilityDistribution,
                  trading: ProbabilityDistribution, policy: str,
@@ -427,14 +401,9 @@ class DeterministicProbabilityEngine:
             )
 
         return {
-            "monk": pack("monk", layers.evidence_adjusted, layers.evidence_adjusted,
-                         "market_blind_evidence_adjusted", audit),
-            "anchor": pack("anchor", layers.market_calibrated or layers.stressed, layers.stressed,
-                           "single_market_calibration", audit),
-            "hunter": pack("hunter", hunter_layers.stressed, hunter_layers.stressed,
-                           "specialized_draw_underdog", hunter_audit),
-            "blitz": pack("blitz", blitz_submitted, blitz_submitted,
-                          blitz_policy, {**audit, "warnings": tuple(audit.get("warnings", ())) + blitz_warnings}),
+            agent: pack(agent, layers.stressed, layers.stressed,
+                        "legacy_blitz_shared", audit)
+            for agent in ("monk", "anchor", "hunter", "blitz")
         }
 
 

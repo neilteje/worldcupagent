@@ -26,13 +26,13 @@ from betting.kelly import kelly_fraction
 from conftest import make_football_context, make_market, make_snapshot
 
 
-def test_polymarket_and_bookmaker_do_not_change_independent_forecast():
+def test_legacy_deterministic_engine_uses_market_prior():
     home = {"live_rating": 0.2, "matches": 5, "xg_for": 7, "xg_against": 5}
     away = {"live_rating": 0.0, "matches": 5, "xg_for": 5, "xg_against": 7}
     a = predict_v2(home, away, market_probs={"home": 0.9, "draw": 0.05, "away": 0.05})
     b = predict_v2(home, away, market_probs={"home": 0.05, "draw": 0.05, "away": 0.9})
-    assert a["probabilities"] == b["probabilities"]
-    assert "market" not in a["active_components"]
+    assert a["probabilities"] != b["probabilities"]
+    assert "market" in a["active_components"]
 
 
 def test_market_fields_cannot_reach_analyst():
@@ -79,7 +79,7 @@ def test_evidence_deduplicated():
     assert len(normalize_evidence(raw, now=now)) == 1
 
 
-def test_expired_evidence_makes_blitz_abstain():
+def test_expired_event_evidence_does_not_gate_legacy_blitz_value():
     now = datetime.now(timezone.utc)
     ff = make_football_context(council={"home": 0.6, "draw": 0.2, "away": 0.2})
     ff["event_signals"] = [{
@@ -92,7 +92,7 @@ def test_expired_evidence_makes_blitz_abstain():
     view = blitz.build_data_view(snap, None)
     fc = blitz.build_forecast(view)
     candidates = blitz.generate_candidates(fc, view, make_market(home=0.45, draw=0.25, away=0.30))
-    assert candidates == []
+    assert candidates and candidates[0].outcome == "home"
 
 
 def test_analyst_adjustments_are_capped_and_invalid_zeroes():
@@ -118,7 +118,7 @@ def test_devil_scenarios_validated_and_deterministic():
     assert warnings
 
 
-def test_agent_mandates_monk_anchor_hunter_blitz():
+def test_all_agent_names_use_the_same_value_mandate():
     market = make_market(home=0.35, draw=0.30, away=0.25)
     ff = make_football_context(
         council={"home": 0.62, "draw": 0.24, "away": 0.14, "confidence": 0.8}
@@ -132,11 +132,11 @@ def test_agent_mandates_monk_anchor_hunter_blitz():
     assert anchor.generate_candidates(anchor.build_forecast(anchor.build_data_view(snap)), anchor.build_data_view(snap), market)
     hunter_view = hunter.build_data_view(snap)
     hunter_fc = hunter.build_forecast(hunter_view)
-    assert all(c.outcome != "home" and c.expected_fill_price <= 0.40 for c in hunter.generate_candidates(hunter_fc, hunter_view, market))
+    assert any(c.outcome == "home" for c in hunter.generate_candidates(hunter_fc, hunter_view, market))
     blitz = BlitzStrategy()
     blitz_view = blitz.build_data_view(snap)
     blitz_candidates = blitz.generate_candidates(blitz.build_forecast(blitz_view), blitz_view, market)
-    assert blitz_candidates == []
+    assert any(c.outcome == "home" for c in blitz_candidates)
 
 
 def test_blitz_uses_common_contract_with_valid_trigger():
@@ -156,7 +156,7 @@ def test_blitz_uses_common_contract_with_valid_trigger():
         blitz.generate_candidates(fc, view, make_market(home=0.35, draw=0.25, away=0.20)),
         fc, view, make_market(home=0.35, draw=0.25, away=0.20), 100.0,
     )
-    assert recs and recs[0].signal_type == "event_trigger"
+    assert recs and recs[0].signal_type == "legacy_blitz_value"
 
 
 def test_joint_allocation_order_invariant_for_mandates():
@@ -212,7 +212,7 @@ def test_reports_include_strategy_and_model_versions():
         assert key in meta
 
 
-def test_probability_engine_produces_distinct_agent_distributions():
+def test_probability_engine_produces_identical_blitz_clone_distributions():
     engine = DeterministicProbabilityEngine()
     home = {"live_rating": 0.4, "matches": 5, "xg_for": 8, "xg_against": 4, "realized_goals_missing": True}
     away = {"live_rating": 0.0, "matches": 5, "xg_for": 5, "xg_against": 7, "realized_goals_missing": True}
@@ -233,9 +233,7 @@ def test_probability_engine_produces_distinct_agent_distributions():
     )
     distributions = {name: tuple(round(v, 6) for v in fc.submitted.values.values())
                      for name, fc in forecasts.items()}
-    assert len(set(distributions.values())) > 1
-    assert distributions["monk"] != distributions["anchor"]
-    assert distributions["hunter"] != distributions["monk"]
+    assert len(set(distributions.values())) == 1
 
 
 def test_shadow_only_bzzoiro_cannot_change_engine_output():
